@@ -111,7 +111,9 @@
         let isSetupLocked = false;
         let inlineToastTimeout;
         
-        // Updated Default URL Target
+        // Single overall alert lock for background sync errors
+        let isSyncAlertActive = false;
+        
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
@@ -348,7 +350,17 @@
             })
             .catch(err => {
                 console.error("Sync Failure Details:", err);
-                alert(`Sync Failed for Bib ${row.bib}.\nError: ${err.message}\nCheck your Google script permissions status!`);
+                
+                // Alert once overall instead of firing for every single failed bib
+                if (!isSyncAlertActive) {
+                    isSyncAlertActive = true;
+                    alert(`Sync Connection Failed!\nError: ${err.message}\n\nUnsynced rows are safe in local storage and queued to sync once internet connection stabilizes. Check your Google script settings!`);
+                    
+                    // Reset alert gate after 15 seconds so future actions can trigger it if needed
+                    setTimeout(() => {
+                        isSyncAlertActive = false;
+                    }, 15000);
+                }
             });
         }
 
