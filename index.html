@@ -111,10 +111,11 @@
         let isSetupLocked = false;
         let inlineToastTimeout;
         
-        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw/exec";
+        // Updated Default URL Target
+        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
-        if (!syncUrl || syncUrl.trim() === "") {
+        if (!syncUrl || syncUrl.trim() === "" || syncUrl.includes("AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw")) {
             syncUrl = DEFAULT_SYNC_URL;
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
@@ -347,7 +348,6 @@
             })
             .catch(err => {
                 console.error("Sync Failure Details:", err);
-                // Alert visually so the volunteer knows what Google says
                 alert(`Sync Failed for Bib ${row.bib}.\nError: ${err.message}\nCheck your Google script permissions status!`);
             });
         }
@@ -427,6 +427,15 @@
             const transaction = db.transaction(["logs"], "readwrite");
             transaction.objectStore("logs").delete(id);
             transaction.oncomplete = function() { loadHistory(); };
+        }
+
+        // Service Worker registration helper block
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker Registered Successfully', reg.scope))
+                    .catch(err => console.log('Service Worker Registration Failed:', err));
+            });
         }
 
         function exportCSV() {
