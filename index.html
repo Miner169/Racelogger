@@ -141,17 +141,17 @@
             </div>
         </section>
 
-        <!-- ⏱️ SPLIT TIME CALCULATOR PANEL -->
-        <section class="theme-panel p-3 rounded-xl border shadow flex flex-col gap-2">
-            <h2 class="text-[10px] font-bold theme-text-muted uppercase tracking-widest flex items-center gap-1">⏱️ Live Split Calculator</h2>
-            <div class="grid grid-cols-2 gap-2 text-center text-xs">
-                <div class="theme-input p-2 rounded border">
-                    <span class="block text-[10px] theme-text-muted font-bold uppercase">Last Runner</span>
-                    <span id="splitLastRunner" class="font-black text-yellow-500 dark:text-yellow-500 text-sm">-</span>
+        <!-- ⏱️ COMPACT SPLIT TIME CALCULATOR PANEL -->
+        <section class="theme-panel p-2.5 rounded-xl border shadow flex flex-col gap-1.5">
+            <h2 class="text-[9px] font-extrabold theme-text-muted uppercase tracking-widest flex items-center gap-1">⏱️ Live Split Calculator</h2>
+            <div class="grid grid-cols-2 gap-2 text-center">
+                <div class="theme-input py-1 px-2 rounded-lg border">
+                    <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Last Runner</span>
+                    <span id="splitLastRunner" class="font-extrabold text-yellow-500 dark:text-yellow-500 text-[13px]">-</span>
                 </div>
-                <div class="theme-input p-2 rounded border">
-                    <span class="block text-[10px] theme-text-muted font-bold uppercase">Pacing Split Gap</span>
-                    <span id="splitGapTime" class="font-black text-indigo-600 dark:text-indigo-400 text-sm">-- : --</span>
+                <div class="theme-input py-1 px-2 rounded-lg border">
+                    <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Pacing Split Gap</span>
+                    <span id="splitGapTime" class="font-extrabold text-indigo-600 dark:text-indigo-400 text-[13px]">-- : --</span>
                 </div>
             </div>
         </section>
@@ -176,7 +176,7 @@
                     <button onclick="clearDatabase()" class="text-xs text-red-600 hover:text-red-500 font-bold">Clear All</button>
                 </div>
                 <div class="relative">
-                    <input type="text" id="searchBar" oninput="loadHistory()" placeholder="🔍 Filter by Bib, Checkpoint..." class="w-full theme-input border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-900">
+                    <input type="text" id="searchBar" oninput="loadHistory()" placeholder="🔍 Search Bib, CP, Volunteer, Remark..." class="w-full theme-input border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-900">
                 </div>
             </div>
             <div id="logList" class="overflow-y-auto flex-grow divide-y theme-border max-h-[300px]"></div>
@@ -312,6 +312,7 @@
             }
         }
 
+        // Retrieves custom fields 
         function loadSettingsState() {
             isSetupLocked = localStorage.getItem("settingsLocked") === "true";
             document.getElementById("checkpoint").value = localStorage.getItem("checkpointVal") || "";
@@ -635,9 +636,12 @@
                 logList.innerHTML = '';
 
                 [...logs].reverse().filter(log => {
-                    return log.bib.toLowerCase().includes(searchQuery) || 
-                           log.checkpoint.toLowerCase().includes(searchQuery) || 
-                           log.volunteer.toLowerCase().includes(searchQuery);
+                    const bibMatch = log.bib.toLowerCase().includes(searchQuery);
+                    const cpMatch = log.checkpoint.toLowerCase().includes(searchQuery);
+                    const volMatch = log.volunteer.toLowerCase().includes(searchQuery);
+                    const remarkMatch = log.remark && log.remark.toLowerCase().includes(searchQuery);
+                    
+                    return bibMatch || cpMatch || volMatch || remarkMatch;
                 }).forEach(log => {
                     const row = document.createElement('div');
                     row.className = 'px-4 py-3 flex flex-col justify-center hover:bg-neutral-500/10 border-b theme-border';
