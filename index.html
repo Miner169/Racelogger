@@ -42,15 +42,20 @@
 
     <main class="flex-grow p-4 max-w-md mx-auto w-full flex flex-col gap-4">
         
-        <!-- Checkpoint Setup Panel (With Lock Feature) -->
-        <section class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow">
-            <div class="flex justify-between items-center mb-3">
-                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider">1. Volunteer Setup</h2>
+        <!-- Checkpoint Setup Panel (With Lock & Minimize Feature) -->
+        <section class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow transition-all duration-300">
+            <div id="setupHeaderRow" class="flex justify-between items-center mb-3">
+                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                    <span>1. Setup</span>
+                    <!-- Dynamic Collapsed Badge -->
+                    <span id="setupSummary" class="hidden text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-bold uppercase"></span>
+                </h2>
                 <button onclick="toggleLock()" id="lockBtn" class="text-xs bg-gray-700 hover:bg-gray-600 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1">
                     🔓 Unlock Settings
                 </button>
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            <!-- Collapsible Inputs Container -->
+            <div id="setupFields" class="grid grid-cols-2 gap-3 transition-all duration-300">
                 <div>
                     <label class="block text-xs text-gray-400 mb-1 font-semibold">Checkpoint Name</label>
                     <input type="text" id="checkpoint" placeholder="e.g. CP 1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
@@ -171,7 +176,7 @@
             alert("Database failed to load.");
         };
 
-        // --- 3. SETTINGS & LOCK PANEL LOGIC ---
+        // --- 3. SETTINGS & COLLAPSIBLE LOCK PANEL LOGIC ---
         function toggleSettings() {
             const modal = document.getElementById("settingsModal");
             document.getElementById("syncUrlInput").value = syncUrl;
@@ -209,18 +214,35 @@
             const cpInput = document.getElementById("checkpoint");
             const volInput = document.getElementById("volunteer");
             const lockBtn = document.getElementById("lockBtn");
+            const setupFields = document.getElementById("setupFields");
+            const setupSummary = document.getElementById("setupSummary");
+            const setupHeaderRow = document.getElementById("setupHeaderRow");
 
             cpInput.disabled = isSetupLocked;
             volInput.disabled = isSetupLocked;
 
+            const cpVal = cpInput.value.toUpperCase().trim() || 'N/A';
+            const volVal = volInput.value.toUpperCase().trim() || 'N/A';
+
             if (isSetupLocked) {
                 lockBtn.textContent = "🔒 Settings Locked";
                 lockBtn.className = "text-xs bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
-                localStorage.setItem("checkpointVal", cpInput.value.toUpperCase());
-                localStorage.setItem("volunteerVal", volInput.value.toUpperCase());
+                localStorage.setItem("checkpointVal", cpVal);
+                localStorage.setItem("volunteerVal", volVal);
+
+                // --- MINIMIZE CODE ---
+                setupFields.classList.add("hidden"); // Collapse the input grid
+                setupHeaderRow.classList.replace("mb-3", "mb-0"); // Shave off margin
+                setupSummary.textContent = `${cpVal} • ${volVal}`; // Insert variables into the badge
+                setupSummary.classList.remove("hidden"); // Reveal badge
             } else {
                 lockBtn.textContent = "🔓 Unlock Settings";
                 lockBtn.className = "text-xs bg-gray-700 hover:bg-gray-600 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
+                
+                // --- RESTORE CODE ---
+                setupFields.classList.remove("hidden"); // Expand the input grid
+                setupHeaderRow.classList.replace("mb-0", "mb-3"); // Restore margin
+                setupSummary.classList.add("hidden"); // Hide the badge
             }
         }
 
@@ -231,13 +253,12 @@
             applyLockState();
         }
 
-        // --- 4. INSTANT confirmation toast (1 SECOND) ---
+        // --- 4. INSTANT CONFIRMATION TOAST (1 SECOND) ---
         function triggerToast(bib, message, isError = false) {
             const toast = document.getElementById('toast');
             const toastText = document.getElementById('toastText');
             const toastIcon = document.getElementById('toastIcon');
 
-            // Clear any active timeout to prevent overlapping animations
             clearTimeout(toastTimeout);
 
             toastText.textContent = `Bib ${bib}: ${message}`;
@@ -252,12 +273,10 @@
 
             toast.classList.remove('hidden');
 
-            // Hide the toast after 1000ms (1 second)
             toastTimeout = setTimeout(() => {
                 toast.classList.replace('opacity-100', 'opacity-0');
                 toast.classList.replace('scale-100', 'scale-90');
                 
-                // Completely hide after CSS transition finishes
                 setTimeout(() => {
                     toast.classList.add('hidden');
                 }, 300);
@@ -361,7 +380,6 @@
                 entry.id = e.target.result;
                 loadHistory();
                 
-                // Trigger 1-second success confirmation toast!
                 triggerToast(entry.bib, "Logged Locally!");
 
                 if (navigator.vibrate) navigator.vibrate(50);
@@ -428,11 +446,9 @@
                 const logs = request.result;
                 const searchQuery = document.getElementById('searchBar').value.toLowerCase().trim();
                 
-                // --- METRIC CALCULATIONS ---
                 const totalCountVal = logs.length;
                 const uniqueBibs = new Set(logs.map(log => log.bib));
                 
-                // Calculate entry frequencies across all stored entries
                 const frequencies = {};
                 logs.forEach(log => {
                     frequencies[log.bib] = (frequencies[log.bib] || 0) + 1;
@@ -441,7 +457,6 @@
                 document.getElementById('totalCount').textContent = totalCountVal;
                 document.getElementById('uniqueCount').textContent = uniqueBibs.size;
 
-                // Create a reversed list for display
                 const reversedLogs = [...logs].reverse();
                 const filteredLogs = reversedLogs.filter(log => {
                     return log.bib.toLowerCase().includes(searchQuery) || 
@@ -459,7 +474,6 @@
                     const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-300 italic mt-0.5">💬 ${log.remark}</div>` : '';
                     const deviceHTML = `<span class="text-[9px] bg-gray-800 text-gray-400 px-1 py-0.2 rounded font-mono">${log.device || 'PC'}</span>`;
                     
-                    // Display frequency multiplier badge if bib was recorded multiple times
                     const freqCount = frequencies[log.bib] || 1;
                     const freqBadge = freqCount > 1 ? `<span class="text-[10px] bg-indigo-600/60 text-indigo-200 px-1.5 py-0.5 rounded font-bold">${freqCount}x</span>` : '';
 
@@ -496,7 +510,6 @@
         function deleteRow(id, bib, time) {
             if (confirm(`Are you sure you want to delete this specific log entry (Bib: ${bib})? This action will sync to your remote spreadsheet.`)) {
                 
-                // 1. Send the delete request to Google Sheets
                 if (syncUrl) {
                     fetch(syncUrl, {
                         method: "POST",
@@ -513,7 +526,6 @@
                     .catch(err => console.log("Could not sync delete to server. Please delete manually from Google Sheets.", err));
                 }
 
-                // 2. Perform deletion from the local database sandbox
                 const transaction = db.transaction(["logs"], "readwrite");
                 const store = transaction.objectStore("logs");
                 const request = store.delete(id);
@@ -606,7 +618,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             const swCode = `
-                const CACHE_NAME = 'race-logger-v8';
+                const CACHE_NAME = 'race-logger-v9';
                 const ASSETS = [
                     '/',
                     '/index.html',
