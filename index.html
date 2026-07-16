@@ -6,24 +6,20 @@
     <title>Race Bib Logger</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col font-sans select-none pb-16">
 
-    <!-- Compact Header Status Bar with Side-by-Side Elements -->
+    <!-- Compact Header Status Bar -->
     <header class="bg-blue-600 px-4 py-1.5 shadow-md flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-2.5">
             <h1 class="text-base font-black tracking-wider">RACE LOG</h1>
             <span id="syncStatus" class="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold">Auto-Sync Enabled</span>
         </div>
         <div class="flex items-center gap-2">
-            <button onclick="toggleSettings()" class="text-white hover:text-gray-200 text-lg p-1" title="Settings">
-                ⚙️
-            </button>
-            <button onclick="installApp()" id="installBtn" class="hidden text-[10px] bg-white text-blue-600 px-2.5 py-1 rounded-md font-bold shadow hover:bg-gray-100 transition">
-                📲 Install App
-            </button>
+            <button onclick="toggleSettings()" class="text-white hover:text-gray-200 text-lg p-1" title="Settings">⚙️</button>
+            <button onclick="installApp()" id="installBtn" class="hidden text-[10px] bg-white text-blue-600 px-2.5 py-1 rounded-md font-bold shadow hover:bg-gray-100 transition">📲 Install App</button>
         </div>
     </header>
 
@@ -41,20 +37,15 @@
     </div>
 
     <main class="flex-grow p-4 max-w-md mx-auto w-full flex flex-col gap-4">
-        
-        <!-- Checkpoint Setup Panel (With Lock & Minimize Feature) -->
+        <!-- Checkpoint Setup Panel -->
         <section class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow transition-all duration-300">
             <div id="setupHeaderRow" class="flex justify-between items-center mb-3">
                 <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
                     <span>1. Setup</span>
-                    <!-- Dynamic Collapsed Badge -->
                     <span id="setupSummary" class="hidden text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-bold uppercase"></span>
                 </h2>
-                <button onclick="toggleLock()" id="lockBtn" class="text-xs bg-gray-700 hover:bg-gray-600 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1">
-                    🔓 Unlock Settings
-                </button>
+                <button onclick="toggleLock()" id="lockBtn" class="text-xs bg-gray-700 hover:bg-gray-600 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1">🔓 Unlock Settings</button>
             </div>
-            <!-- Collapsible Inputs Container -->
             <div id="setupFields" class="grid grid-cols-2 gap-3 transition-all duration-300">
                 <div>
                     <label class="block text-xs text-gray-400 mb-1 font-semibold">Checkpoint Name</label>
@@ -70,24 +61,19 @@
         <!-- Fast Entry Log Form -->
         <section class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow flex flex-col gap-3">
             <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider">2. Enter Bib</h2>
-            
             <div class="flex gap-3 items-stretch">
                 <div class="flex-grow">
                     <input type="tel" id="bibInput" inputmode="numeric" pattern="[0-9]*" placeholder="0" class="w-full h-16 bg-gray-700 text-center text-4xl font-black text-white border-2 border-gray-600 rounded-xl px-2 focus:outline-none focus:border-blue-500 transition">
                 </div>
-                <button onclick="checkDuplicateAndLog()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-extrabold text-lg px-6 rounded-xl shadow-lg transition duration-150 flex items-center justify-center">
-                    LOG
-                </button>
+                <button onclick="checkDuplicateAndLog()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-extrabold text-lg px-6 rounded-xl shadow-lg transition duration-150 flex items-center justify-center">LOG</button>
             </div>
-
-            <!-- In-line Remark / Dynamic Status Field -->
             <div class="mt-1 relative">
                 <label id="remarkLabel" class="block text-xs text-gray-400 mb-1 font-semibold">Remark (Optional)</label>
                 <input type="text" id="remarkInput" onfocus="clearInlineToast()" placeholder="e.g. Missed helper, penalty, etc." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200">
             </div>
         </section>
 
-        <!-- Advanced Counter Statistics Panel -->
+        <!-- Stats Panel -->
         <div class="grid grid-cols-2 gap-3">
             <div class="bg-gray-800/50 p-3 rounded-lg border border-gray-700 text-center">
                 <div class="text-xs text-gray-400 font-semibold mb-1">Total Logs</div>
@@ -99,31 +85,24 @@
             </div>
         </div>
 
-        <!-- Scrollable Scan History with Local Filter Search -->
+        <!-- Scan History -->
         <section class="flex-grow bg-gray-800 rounded-xl border border-gray-700 shadow flex flex-col overflow-hidden min-h-[200px]">
             <div class="px-4 py-3 border-b border-gray-700 flex flex-col gap-2">
                 <div class="flex justify-between items-center">
                     <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Local Scan History</h3>
                     <button onclick="clearDatabase()" class="text-xs text-red-400 hover:text-red-300 font-bold">Clear All</button>
                 </div>
-                <!-- Local Search Bar -->
                 <div class="relative">
                     <input type="text" id="searchBar" oninput="loadHistory()" placeholder="🔍 Filter by Bib, Checkpoint, or Name..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
                 </div>
             </div>
-            <div id="logList" class="overflow-y-auto flex-grow divide-y divide-gray-700 max-h-[300px]">
-                <!-- Dynamic Logs go here -->
-            </div>
+            <div id="logList" class="overflow-y-auto flex-grow divide-y divide-gray-700 max-h-[300px]"></div>
         </section>
 
-        <!-- Export & Share Section -->
+        <!-- Export -->
         <section class="flex flex-col gap-2">
-            <button onclick="exportCSV()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2">
-                📥 Export & Download CSV
-            </button>
-            <p class="text-[10px] text-gray-500 text-center">Data is stored securely on your browser's local sandbox. Exporting saves a clean file ready to be copied into Google Sheets.</p>
+            <button onclick="exportCSV()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2">📥 Export & Download CSV</button>
         </section>
-
     </main>
 
     <script>
@@ -132,39 +111,30 @@
         let isSetupLocked = false;
         let inlineToastTimeout;
         
-        // --- HARDCODED GOOGLE SCRIPT URL ---
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw/exec";
         
-        // Force the app to use your exact Google Sheet link, avoiding old or broken cache overrides
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
         if (!syncUrl || syncUrl.trim() === "") {
             syncUrl = DEFAULT_SYNC_URL;
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
 
-        // --- 1. DEVICE DETECTOR ---
         function getDeviceType() {
             const ua = navigator.userAgent;
             if (/tablet|ipad|playbook|silk/i.test(ua)) return "Tablet";
             if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Opera Mini/i.test(ua)) {
                 return /iPhone|iPod/i.test(ua) ? "iPhone" : "Android Mobile";
             }
-            if (/Windows/i.test(ua)) return "Windows PC";
-            if (/Macintosh/i.test(ua)) return "Mac PC";
-            if (/Linux/i.test(ua)) return "Linux PC";
-            return "Unknown Device";
+            return "PC";
         }
 
-        // --- 2. INDEXEDDB SETUP ---
         const dbRequest = indexedDB.open("RaceLoggerDB", 1);
-
         dbRequest.onupgradeneeded = function(e) {
             db = e.target.result;
             if (!db.objectStoreNames.contains("logs")) {
                 db.createObjectStore("logs", { keyPath: "id", autoIncrement: true });
             }
         };
-
         dbRequest.onsuccess = function(e) {
             db = e.target.result;
             updateSyncStatusLabel();
@@ -173,11 +143,6 @@
             attemptSync();
         };
 
-        dbRequest.onerror = function() {
-            alert("Database failed to load.");
-        };
-
-        // --- 3. SETTINGS & COLLAPSIBLE LOCK PANEL LOGIC ---
         function toggleSettings() {
             const modal = document.getElementById("settingsModal");
             document.getElementById("syncUrlInput").value = syncUrl;
@@ -196,13 +161,8 @@
 
         function updateSyncStatusLabel() {
             const status = document.getElementById("syncStatus");
-            if (!syncUrl) {
-                status.textContent = "Offline Mode";
-                status.className = "text-[10px] bg-yellow-500 text-yellow-950 px-2 py-0.5 rounded-full font-bold";
-            } else {
-                status.textContent = "Auto-Sync Enabled";
-                status.className = "text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold";
-            }
+            status.textContent = !syncUrl ? "Offline Mode" : "Auto-Sync Enabled";
+            status.className = !syncUrl ? "text-[10px] bg-yellow-500 text-yellow-950 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold";
         }
 
         function toggleLock() {
@@ -230,8 +190,6 @@
                 lockBtn.className = "text-xs bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
                 localStorage.setItem("checkpointVal", cpVal);
                 localStorage.setItem("volunteerVal", volVal);
-
-                // --- MINIMIZE CODE ---
                 setupFields.classList.add("hidden"); 
                 setupHeaderRow.classList.replace("mb-3", "mb-0"); 
                 setupSummary.textContent = `${cpVal} • ${volVal}`; 
@@ -239,8 +197,6 @@
             } else {
                 lockBtn.textContent = "🔓 Unlock Settings";
                 lockBtn.className = "text-xs bg-gray-700 hover:bg-gray-600 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
-                
-                // --- RESTORE CODE ---
                 setupFields.classList.remove("hidden"); 
                 setupHeaderRow.classList.replace("mb-0", "mb-3"); 
                 setupSummary.classList.add("hidden"); 
@@ -254,65 +210,46 @@
             applyLockState();
         }
 
-        // --- 4. INLINE TOAST SYSTEM ON REMARK SPACE (3 SECONDS) ---
         function triggerInlineToast(bib, statusText, remarkText = "", isError = false) {
             const remarkInput = document.getElementById('remarkInput');
             const remarkLabel = document.getElementById('remarkLabel');
-
-            // 1. Instantly clear any active timers to handle rapid logging entries
             clearTimeout(inlineToastTimeout);
 
-            // 2. Prep status string
             let displayText = isError ? `⚠️ Bib ${bib}: ${statusText}` : `✅ Bib ${bib}: ${statusText}`;
-            if (remarkText) {
-                displayText += ` (Remark: "${remarkText}")`;
-            }
+            if (remarkText) displayText += ` (${remarkText})`;
 
-            // 3. Stylize the Input Box to look like an active status bar
             remarkInput.value = displayText;
-            remarkInput.disabled = true; // Temporary locked status UI
+            remarkInput.disabled = true;
             
             if (isError) {
-                remarkInput.className = "w-full bg-red-950 border-red-500 text-red-300 rounded-lg px-3 py-2 text-sm focus:outline-none font-bold text-center transition-all duration-200";
+                remarkInput.className = "w-full bg-red-950 border-red-500 text-red-300 rounded-lg px-3 py-2 text-sm font-bold text-center";
                 remarkLabel.className = "block text-xs text-red-400 mb-1 font-bold";
                 remarkLabel.textContent = "Status Alert";
             } else {
-                remarkInput.className = "w-full bg-emerald-950 border-emerald-500 text-emerald-300 rounded-lg px-3 py-2 text-sm focus:outline-none font-bold text-center transition-all duration-200";
+                remarkInput.className = "w-full bg-emerald-950 border-emerald-500 text-emerald-300 rounded-lg px-3 py-2 text-sm font-bold text-center";
                 remarkLabel.className = "block text-xs text-emerald-400 mb-1 font-bold";
                 remarkLabel.textContent = "Last Action Status";
             }
 
-            // 4. Set 3 second timer to clear and restore to normal state
-            inlineToastTimeout = setTimeout(() => {
-                clearInlineToast();
-            }, 3000);
+            inlineToastTimeout = setTimeout(() => { clearInlineToast(); }, 4000);
         }
 
         function clearInlineToast() {
             const remarkInput = document.getElementById('remarkInput');
             const remarkLabel = document.getElementById('remarkLabel');
-            
             clearTimeout(inlineToastTimeout);
-
-            // Restore elements to default states
             remarkInput.disabled = false;
             remarkInput.value = "";
             remarkInput.placeholder = "e.g. Missed helper, penalty, etc.";
-            remarkInput.className = "w-full bg-gray-700 border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200";
-            
+            remarkInput.className = "w-full bg-gray-700 border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500";
             remarkLabel.className = "block text-xs text-gray-400 mb-1 font-semibold";
             remarkLabel.textContent = "Remark (Optional)";
         }
 
-        // --- 5. DUPLICATE CHECK & LOG ENTRY HANDLING ---
         function checkDuplicateAndLog() {
             const bibInput = document.getElementById('bibInput');
             const bib = bibInput.value.trim();
-
-            if (!bib) {
-                alert("Please enter a valid Bib Number.");
-                return;
-            }
+            if (!bib) return;
 
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
@@ -321,24 +258,11 @@
             request.onsuccess = function() {
                 const logs = request.result;
                 const now = new Date();
-                const tenMinutesInMs = 10 * 60 * 1000;
+                const duplicate = logs.find(log => log.bib === bib && (now - new Date(log.time)) < 600000);
 
-                const duplicate = logs.find(log => {
-                    if (log.bib === bib) {
-                        const logTime = new Date(log.time);
-                        return (now - logTime) < tenMinutesInMs;
-                    }
-                    return false;
-                });
-
-                if (duplicate) {
-                    if (confirm(`⚠️ Warning: Bib ${bib} was already logged recently (${duplicate.time}).\n\nLog this new entry anyway?`)) {
-                        logEntry(bib);
-                    } else {
-                        bibInput.value = '';
-                        clearInlineToast();
-                        bibInput.focus();
-                    }
+                if (duplicate && !confirm(`⚠️ Bib ${bib} was logged recently. Log again?`)) {
+                    bibInput.value = '';
+                    bibInput.focus();
                 } else {
                     logEntry(bib);
                 }
@@ -348,15 +272,9 @@
         function logEntry(bib) {
             const bibInput = document.getElementById('bibInput');
             const remarkInput = document.getElementById('remarkInput');
-            const checkpointInput = document.getElementById('checkpoint');
-            const volunteerInput = document.getElementById('volunteer');
-            
-            const checkpoint = checkpointInput.value.trim() || 'Unknown';
-            const volunteer = volunteerInput.value.trim() || 'Unknown';
-            
-            // Collect the remark before we alter/clear input fields
+            const checkpoint = document.getElementById('checkpoint').value.trim() || 'Unknown';
+            const volunteer = document.getElementById('volunteer').value.trim() || 'Unknown';
             const remark = remarkInput.disabled ? "" : remarkInput.value.trim();
-            const deviceType = getDeviceType();
 
             const now = new Date();
             const timestampStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
@@ -367,7 +285,7 @@
                 volunteer: volunteer.toUpperCase(),
                 checkpoint: checkpoint.toUpperCase(),
                 remark: remark,
-                device: deviceType,
+                device: getDeviceType(),
                 latitude: null,
                 longitude: null,
                 synced: false
@@ -375,21 +293,14 @@
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        entry.latitude = position.coords.latitude;
-                        entry.longitude = position.coords.longitude;
-                        saveToDB(entry);
-                    },
-                    () => {
-                        saveToDB(entry);
-                    },
-                    { timeout: 3000 }
+                    (pos) => { entry.latitude = pos.coords.latitude; entry.longitude = pos.coords.longitude; saveToDB(entry); },
+                    () => { saveToDB(entry); },
+                    { timeout: 2000 }
                 );
             } else {
                 saveToDB(entry);
             }
 
-            // Immediately clear the search/bib input area for the next bib entry
             bibInput.value = '';
             bibInput.focus();
         }
@@ -402,65 +313,57 @@
             request.onsuccess = function(e) {
                 entry.id = e.target.result;
                 loadHistory();
-                
-                // Show the successful prompt immediately in the Remark space
-                triggerInlineToast(entry.bib, "Logged!", entry.remark, false);
-
+                triggerInlineToast(entry.bib, "Saved Locally!", entry.remark, false);
                 if (navigator.vibrate) navigator.vibrate(50);
-                
-                if (syncUrl) {
-                    syncSingleRow(entry);
-                }
+                if (syncUrl) syncSingleRow(entry);
             };
         }
 
-        // --- 6. AUTO-SYNC LOGIC ---
         function syncSingleRow(row) {
             if (!syncUrl || row.synced) return;
 
             fetch(syncUrl, {
                 method: "POST",
                 mode: "cors",
-                headers: {
-                    "Content-Type": "text/plain"
-                },
+                headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify(row)
             })
-            .then(res => res.json())
-            .then(data => {
+            .then(async res => {
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch(e) { 
+                    throw new Error("Invalid response structural type from Google Script: " + text);
+                }
+                
                 if (data.status === "success") {
                     row.synced = true;
                     const transaction = db.transaction(["logs"], "readwrite");
                     const store = transaction.objectStore("logs");
                     store.put(row);
-                    transaction.oncomplete = function() {
-                        loadHistory();
-                    };
+                    transaction.oncomplete = function() { loadHistory(); };
+                } else {
+                    throw new Error(data.message || "Script execution error.");
                 }
             })
-            .catch(err => console.log("Sync failed. Queued for background transfer.", err));
+            .catch(err => {
+                console.error("Sync Failure Details:", err);
+                // Alert visually so the volunteer knows what Google says
+                alert(`Sync Failed for Bib ${row.bib}.\nError: ${err.message}\nCheck your Google script permissions status!`);
+            });
         }
 
         function attemptSync() {
             if (!syncUrl) return;
-
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
             const request = store.getAll();
-
             request.onsuccess = function() {
-                const logs = request.result;
-                logs.forEach(log => {
-                    if (!log.synced) {
-                        syncSingleRow(log);
-                    }
-                });
+                request.result.forEach(log => { if (!log.synced) syncSingleRow(log); });
             };
         }
 
         window.addEventListener('online', attemptSync);
 
-        // --- 7. DISPLAY HISTORIC DATA, DELETE HANDLER, & SEARCH ---
         function loadHistory() {
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
@@ -470,36 +373,24 @@
                 const logs = request.result;
                 const searchQuery = document.getElementById('searchBar').value.toLowerCase().trim();
                 
-                const totalCountVal = logs.length;
-                const uniqueBibs = new Set(logs.map(log => log.bib));
-                
+                document.getElementById('totalCount').textContent = logs.length;
+                document.getElementById('uniqueCount').textContent = new Set(logs.map(l => l.bib)).size;
+
                 const frequencies = {};
-                logs.forEach(log => {
-                    frequencies[log.bib] = (frequencies[log.bib] || 0) + 1;
-                });
-
-                document.getElementById('totalCount').textContent = totalCountVal;
-                document.getElementById('uniqueCount').textContent = uniqueBibs.size;
-
-                const reversedLogs = [...logs].reverse();
-                const filteredLogs = reversedLogs.filter(log => {
-                    return log.bib.toLowerCase().includes(searchQuery) || 
-                           log.checkpoint.toLowerCase().includes(searchQuery) || 
-                           log.volunteer.toLowerCase().includes(searchQuery);
-                });
+                logs.forEach(l => frequencies[l.bib] = (frequencies[l.bib] || 0) + 1);
 
                 const logList = document.getElementById('logList');
                 logList.innerHTML = '';
 
-                filteredLogs.forEach(log => {
+                [...logs].reverse().filter(log => {
+                    return log.bib.toLowerCase().includes(searchQuery) || 
+                           log.checkpoint.toLowerCase().includes(searchQuery) || 
+                           log.volunteer.toLowerCase().includes(searchQuery);
+                }).forEach(log => {
                     const row = document.createElement('div');
                     row.className = 'px-4 py-3 flex justify-between items-center hover:bg-gray-700/30';
-                    
                     const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-300 italic mt-0.5">💬 ${log.remark}</div>` : '';
-                    const deviceHTML = `<span class="text-[9px] bg-gray-800 text-gray-400 px-1 py-0.2 rounded font-mono">${log.device || 'PC'}</span>`;
-                    
-                    const freqCount = frequencies[log.bib] || 1;
-                    const freqBadge = freqCount > 1 ? `<span class="text-[10px] bg-indigo-600/60 text-indigo-200 px-1.5 py-0.5 rounded font-bold">${freqCount}x</span>` : '';
+                    const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-600/60 text-indigo-200 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
 
                     row.innerHTML = `
                         <div class="flex-grow">
@@ -507,22 +398,15 @@
                                 <span class="text-xl font-black text-yellow-400">${log.bib}</span>
                                 ${freqBadge}
                                 <span class="text-[10px] bg-gray-700 px-1.5 py-0.5 rounded text-gray-300 font-bold tracking-wide">${log.checkpoint}</span>
-                                ${deviceHTML}
                             </div>
                             <div class="text-[10px] text-gray-400 mt-0.5">${log.time} • By: ${log.volunteer}</div>
                             ${remarkHTML}
                         </div>
                         <div class="text-right flex items-center gap-3 shrink-0">
                             <div class="flex flex-col items-end gap-1">
-                                <span class="text-[10px] ${log.synced ? 'text-emerald-400 font-bold' : 'text-yellow-500 font-bold'}">
-                                    ${log.synced ? '✅ Synced' : '⏳ Queued'}
-                                </span>
-                                <span class="text-[9px] text-gray-500 block">${log.latitude ? '📍 GPS Saved' : '⚠️ No GPS'}</span>
+                                <span class="text-[10px] ${log.synced ? 'text-emerald-400 font-bold' : 'text-yellow-500 font-bold'}">${log.synced ? '✅ Synced' : '⏳ Queued'}</span>
                             </div>
-                            <!-- Delete Button -->
-                            <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-500 hover:text-red-400 p-1 text-base transition" title="Delete entry">
-                                🗑️
-                            </button>
+                            <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-500 hover:text-red-400 p-1 text-base">🗑️</button>
                         </div>
                     `;
                     logList.appendChild(row);
@@ -530,149 +414,46 @@
             };
         }
 
-        // Delete row locally & execute remote delete on Google Sheets
         function deleteRow(id, bib, time) {
-            if (confirm(`Are you sure you want to delete this specific log entry (Bib: ${bib})? This action will sync to your remote spreadsheet.`)) {
-                
-                if (syncUrl) {
-                    fetch(syncUrl, {
-                        method: "POST",
-                        mode: "cors",
-                        headers: {
-                            "Content-Type": "text/plain"
-                        },
-                        body: JSON.stringify({ action: "delete", bib: bib, time: time })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        console.log("Remote delete sync outcome: ", data.message);
-                    })
-                    .catch(err => console.log("Could not sync delete to server. Please delete manually from Google Sheets.", err));
-                }
-
-                const transaction = db.transaction(["logs"], "readwrite");
-                const store = transaction.objectStore("logs");
-                const request = store.delete(id);
-                
-                request.onsuccess = function() {
-                    loadHistory();
-                    triggerInlineToast(bib, "Deleted!", "", true);
-                };
+            if (!confirm(`Delete entry for Bib ${bib}?`)) return;
+            if (syncUrl) {
+                fetch(syncUrl, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({ action: "delete", bib: bib, time: time })
+                }).catch(err => console.error(err));
             }
+            const transaction = db.transaction(["logs"], "readwrite");
+            transaction.objectStore("logs").delete(id);
+            transaction.oncomplete = function() { loadHistory(); };
         }
 
-        // --- 8. EXPORT LOCAL DATABASE TO CSV ---
         function exportCSV() {
             const transaction = db.transaction(["logs"], "readonly");
-            const store = transaction.objectStore("logs");
-            const request = store.getAll();
-
+            const request = transaction.objectStore("logs").getAll();
             request.onsuccess = function() {
-                const logs = request.result;
-                if (logs.length === 0) {
-                    alert("No local records found to export.");
-                    return;
-                }
-
-                let csvContent = "data:text/csv;charset=utf-8,";
-                csvContent += "ID,Bib,Time,Checkpoint,Recorded By,Remark,Device,Latitude,Longitude,Synced\n";
-
-                logs.forEach(log => {
-                    csvContent += `${log.id},"${log.bib}","${log.time}","${log.checkpoint}","${log.volunteer}","${log.remark || ''}","${log.device || ''}","${log.latitude || ''}","${log.longitude || ''}","${log.synced}"\n`;
-                });
-
-                const encodedUri = encodeURI(csvContent);
+                if (request.result.length === 0) return;
+                let csv = "data:text/csv;charset=utf-8,ID,Bib,Time,Checkpoint,Volunteer,Remark,Device\n";
+                request.result.forEach(l => { csv += `${l.id},"${l.bib}","${l.time}","${l.checkpoint}","${l.volunteer}","${l.remark || ''}","${l.device}"\n`; });
                 const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                
-                const nowStr = new Date().toISOString().split('T')[0];
-                link.setAttribute("download", `Race_Logs_${nowStr}.csv`);
+                link.setAttribute("href", encodeURI(csv));
+                link.setAttribute("download", `Race_Logs_${new Date().toISOString().split('T')[0]}.csv`);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
             };
         }
 
-        // --- 9. CLEANUP HANDLER ---
         function clearDatabase() {
-            if (confirm("Are you absolutely sure you want to erase all logged bibs on this device? Make sure you exported them to a CSV first!")) {
-                const transaction = db.transaction(["logs"], "readwrite");
-                const store = transaction.objectStore("logs");
-                const request = store.clear();
-                request.onsuccess = function() {
-                    loadHistory();
-                };
-            }
+            if (!confirm("Erase all local entries?")) return;
+            const transaction = db.transaction(["logs"], "readwrite");
+            transaction.objectStore("logs").clear();
+            transaction.oncomplete = function() { loadHistory(); };
         }
 
-        // Listen for enter keys
-        document.getElementById('bibInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                checkDuplicateAndLog();
-            }
-        });
-        
-        document.getElementById('remarkInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                checkDuplicateAndLog();
-            }
-        });
-
-        // --- 10. PWA INSTALLATION ---
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBtn').classList.remove('hidden');
-        });
-
-        function installApp() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        document.getElementById('installBtn').classList.add('hidden');
-                    }
-                    deferredPrompt = null;
-                });
-            }
-        }
-    </script>
-
-    <!-- Dynamic Service Worker Setup -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            const swCode = `
-                const CACHE_NAME = 'race-logger-v11';
-                const ASSETS = [
-                    '/',
-                    '/index.html',
-                    '/manifest.json'
-                ];
-
-                self.addEventListener('install', (e) => {
-                    e.waitUntil(
-                        caches.open(CACHE_NAME).then((cache) => {
-                            return cache.addAll(ASSETS);
-                        })
-                    );
-                });
-
-                self.addEventListener('fetch', (e) => {
-                    e.respondWith(
-                        caches.match(e.request).then((cachedResponse) => {
-                            return cachedResponse || fetch(e.request);
-                        })
-                    );
-                });
-            `;
-
-            const blob = new Blob([swCode], { type: 'application/javascript' });
-            const swUrl = URL.createObjectURL(blob);
-
-            navigator.serviceWorker.register(swUrl)
-                .then(() => console.log("Service Worker Registered successfully!"))
-                .catch(err => console.log("Service Worker Registration Failed", err));
-        }
+        document.getElementById('bibInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') checkDuplicateAndLog(); });
+        document.getElementById('remarkInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') checkDuplicateAndLog(); });
     </script>
 </body>
 </html>
