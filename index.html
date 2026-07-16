@@ -194,7 +194,7 @@
         let isSetupLocked = false;
         let inlineToastTimeout;
         let lastGeoposition = { latitude: null, longitude: null }; 
-        let editingRowId = null; // Track current row in active editing state
+        let editingRowId = null; 
         
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
@@ -249,7 +249,6 @@
             updateQueueStatus(); 
             attemptSync();
             
-            // Auto-refresh the log list every 15 seconds to gracefully toggle/disable expired edit buttons
             setInterval(loadHistory, 15000);
         };
 
@@ -510,6 +509,7 @@
             });
         }
 
+        // Background Batch Sync
         function attemptSync() {
             if (!syncUrl) return;
             const transaction = db.transaction(["logs"], "readonly");
@@ -567,7 +567,7 @@
             }
         }
 
-        // Check if log creation time was less than 5 minutes (300,000 ms) ago
+        // Limit active editing window to 5 minutes
         function isEditable(logTimeStr) {
             const logTime = new Date(logTimeStr);
             const now = new Date();
@@ -599,13 +599,10 @@
 
             getReq.onsuccess = function() {
                 const log = getReq.result;
-                
-                // Track historical bib so Apps Script knows which row to replace
                 log.originalBib = log.originalBib || log.bib; 
-                
                 log.bib = newBib;
                 log.remark = newRemark;
-                log.synced = false; // Mark unsynced so modifications upload to cloud
+                log.synced = false; 
 
                 store.put(log);
                 transaction.oncomplete = function() {
@@ -648,7 +645,6 @@
                     const editable = isEditable(log.time);
 
                     if (editingRowId === log.id) {
-                        // --- EDITABLE ROW STATE ---
                         row.innerHTML = `
                             <div class="flex flex-col gap-2">
                                 <div class="flex items-center gap-2">
@@ -667,7 +663,6 @@
                             </div>
                         `;
                     } else {
-                        // --- READ ONLY ROW STATE ---
                         const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
                         
@@ -740,11 +735,20 @@
             };
         }
 
+        // REQUIRED 0000 CONFIRMATION TRIGGER TO ERASE DATABASE
         function clearDatabase() {
-            if (!confirm("Erase all local entries?")) return;
+            const confirmation = prompt("⚠️ To completely erase ALL local logs from this device, please type '0000' and press OK:");
+            if (confirmation !== "0000") {
+                alert("Incorrect confirmation code. Clear action cancelled.");
+                return;
+            }
+            
             const transaction = db.transaction(["logs"], "readwrite");
             transaction.objectStore("logs").clear();
-            transaction.oncomplete = function() { loadHistory(); };
+            transaction.oncomplete = function() { 
+                loadHistory(); 
+                alert("All local database records cleared successfully.");
+            };
         }
 
         document.getElementById('bibInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') checkDuplicateAndLog(); });
