@@ -28,20 +28,20 @@
         }
 
         body.light-theme {
-            --bg-color: #f3f4f6;         /* Light Gray Background */
-            --panel-bg: #ffffff;         /* Crisp White panels */
-            --text-main: #111827;        /* Ultra-dark gray for readable text */
-            --text-muted: #4b5563;       /* High-contrast dark gray for labels & subtext */
-            --border-color: #d1d5db;     /* Distinct borders */
-            --input-bg: #ffffff;         /* White inputs */
-            --input-text: #111827;       
-            --input-placeholder: #71717a; /* Highly visible gray placeholders */
-            --header-bg: #1e3a8a;        /* Strong Blue */
-            --header-border: #1d4ed8;
-            --header-text: #ffffff;      /* White text for contrast */
-            --btn-lock-bg: #e5e7eb;
-            --btn-lock-text: #111827;
-            --btn-lock-border: #9ca3af;
+            --bg-color: #e5e5e7;         /* Soft, warm light gray */
+            --panel-bg: #f4f4f6;         /* Gentle off-white panel */
+            --text-main: #1c1c1e;        /* Deep soft charcoal for comfortable reading */
+            --text-muted: #5a5a5f;       /* Muted gray for labels */
+            --border-color: #d1d1d6;     /* Subtle light border */
+            --input-bg: #fafafa;         /* Soft off-white inputs */
+            --input-text: #1c1c1e;       
+            --input-placeholder: #8e8e93; /* Readable placeholder */
+            --header-bg: #2a4365;        /* Softened Slate Blue */
+            --header-border: #1e3a8a;
+            --header-text: #f4f4f6;      
+            --btn-lock-bg: #e5e5e7;
+            --btn-lock-text: #1c1c1e;
+            --btn-lock-border: #b0b0b5;
         }
 
         /* Semantic Theme Mappings */
@@ -147,7 +147,7 @@
             <div class="grid grid-cols-2 gap-2 text-center">
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Last Runner</span>
-                    <span id="splitLastRunner" class="font-extrabold text-yellow-500 dark:text-yellow-500 text-[13px]">-</span>
+                    <span id="splitLastRunner" class="font-extrabold text-yellow-600 dark:text-yellow-500 text-[13px]">-</span>
                 </div>
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Pacing Split Gap</span>
@@ -258,6 +258,7 @@
             modal.classList.toggle("hidden");
         }
 
+        // Configuration setup updates
         function saveSettings() {
             const inputVal = document.getElementById("syncUrlInput").value.trim();
             const newUrl = inputVal || DEFAULT_SYNC_URL;
@@ -312,7 +313,6 @@
             }
         }
 
-        // Retrieves custom fields 
         function loadSettingsState() {
             isSetupLocked = localStorage.getItem("settingsLocked") === "true";
             document.getElementById("checkpoint").value = localStorage.getItem("checkpointVal") || "";
