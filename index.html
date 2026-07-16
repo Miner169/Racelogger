@@ -32,18 +32,18 @@
         body.light-theme {
             --bg-color: #d8d8dc;         /* Less bright, darker muted light gray */
             --panel-bg: #eaeaea;         /* Soft warm gray instead of stark white */
-            --text-main: #1c1c1e;        /* Charcoal text */
-            --text-muted: #5a5a5f;       /* Darker muted gray labels */
-            --border-color: #bebec3;     /* Muted outline borders */
+            --text-main: #000000;        /* Pure black text for maximum readability */
+            --text-muted: #333333;       /* Bold charcoal for legible labels and subtext */
+            --border-color: #a8a8af;     /* Highly visible borders */
             --input-bg: #ebebef;         /* Soft off-white inputs with low glare */
-            --input-text: #1c1c1e;       
-            --input-placeholder: #7c7c82; /* Readable placeholder */
+            --input-text: #000000;       /* Pure black input text */
+            --input-placeholder: #555555; /* Visible, high-contrast placeholder text */
             --header-bg: #1e2e42;        /* Low-contrast dark slate blue */
             --header-border: #2d3d52;
             --header-text: #93c5fd;      
             --btn-lock-bg: #dbdbdf;
-            --btn-lock-text: #1c1c1e;
-            --btn-lock-border: #a8a8af;
+            --btn-lock-text: #000000;
+            --btn-lock-border: #92929a;
         }
 
         /* Semantic Theme Mappings */
@@ -122,7 +122,7 @@
                 </div>
             </div>
 
-            <!-- Expandable Tutorial Block (Hidden by default, nested inside setup to save space) -->
+            <!-- Expandable Tutorial Block -->
             <div id="pwaTutorialBlock" class="hidden text-[11px] border border-blue-900/50 rounded-lg p-3 bg-blue-950/20 text-left flex flex-col gap-2 transition-all duration-200">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400">Run Offline Safely</h4>
                 <p class="theme-text-muted leading-relaxed">Save the app directly to your home screen to prevent browser reloads and ensure reliable offline use.</p>
@@ -743,7 +743,7 @@
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs font-bold theme-text-muted uppercase tracking-wider">Edit Bib:</span>
                                     <input type="text" id="edit-bib-${log.id}" value="${log.bib}" class="w-24 theme-input border rounded px-2 py-0.5 text-sm font-black focus:outline-none focus:ring-1 focus:ring-blue-900">
-                                    <span class="text-[10px] bg-neutral-900 border border-neutral-850 px-1.5 py-0.5 rounded text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
+                                    <span class="text-[10px] bg-neutral-900 border border-neutral-850 px-1.5 py-0.5 rounded text-neutral-450 font-bold tracking-wide">${log.checkpoint}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs font-bold theme-text-muted uppercase tracking-wider">Remark:</span>
@@ -812,6 +812,7 @@
             });
         }
 
+        // Export
         function exportCSV() {
             const transaction = db.transaction(["logs"], "readonly");
             const request = transaction.objectStore("logs").getAll();
