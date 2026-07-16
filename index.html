@@ -134,7 +134,13 @@
         
         // --- HARDCODED GOOGLE SCRIPT URL ---
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw/exec";
+        
+        // Force the app to use your exact Google Sheet link, avoiding old or broken cache overrides
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
+        if (!syncUrl || syncUrl.trim() === "") {
+            syncUrl = DEFAULT_SYNC_URL;
+            localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
+        }
 
         // --- 1. DEVICE DETECTOR ---
         function getDeviceType() {
