@@ -11,17 +11,17 @@
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col font-sans select-none pb-16">
 
-    <!-- Header Status Bar with Settings Gear -->
-    <header class="bg-blue-600 px-4 py-3 shadow-md flex justify-between items-center sticky top-0 z-50">
-        <div>
-            <h1 class="text-xl font-extrabold tracking-wider">RACE LOG</h1>
-            <span id="syncStatus" class="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold">Auto-Sync Enabled</span>
+    <!-- Compact Header Status Bar with Side-by-Side Elements -->
+    <header class="bg-blue-600 px-4 py-1.5 shadow-md flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-2.5">
+            <h1 class="text-base font-black tracking-wider">RACE LOG</h1>
+            <span id="syncStatus" class="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold">Auto-Sync Enabled</span>
         </div>
         <div class="flex items-center gap-2">
-            <button onclick="toggleSettings()" class="text-white hover:text-gray-200 text-xl p-1" title="Settings">
+            <button onclick="toggleSettings()" class="text-white hover:text-gray-200 text-lg p-1" title="Settings">
                 ⚙️
             </button>
-            <button onclick="installApp()" id="installBtn" class="hidden text-xs bg-white text-blue-600 px-3 py-1.5 rounded-lg font-bold shadow hover:bg-gray-100 transition">
+            <button onclick="installApp()" id="installBtn" class="hidden text-[10px] bg-white text-blue-600 px-2.5 py-1 rounded-md font-bold shadow hover:bg-gray-100 transition">
                 📲 Install App
             </button>
         </div>
@@ -196,11 +196,11 @@
         function updateSyncStatusLabel() {
             const status = document.getElementById("syncStatus");
             if (!syncUrl) {
-                status.textContent = "Offline Storage Mode (No Sync URL)";
-                status.className = "text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full font-bold";
+                status.textContent = "Offline Mode";
+                status.className = "text-[10px] bg-yellow-500 text-yellow-950 px-2 py-0.5 rounded-full font-bold";
             } else {
                 status.textContent = "Auto-Sync Enabled";
-                status.className = "text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold";
+                status.className = "text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold";
             }
         }
 
@@ -231,18 +231,18 @@
                 localStorage.setItem("volunteerVal", volVal);
 
                 // --- MINIMIZE CODE ---
-                setupFields.classList.add("hidden"); // Collapse the input grid
-                setupHeaderRow.classList.replace("mb-3", "mb-0"); // Shave off margin
-                setupSummary.textContent = `${cpVal} • ${volVal}`; // Insert variables into the badge
-                setupSummary.classList.remove("hidden"); // Reveal badge
+                setupFields.classList.add("hidden"); 
+                setupHeaderRow.classList.replace("mb-3", "mb-0"); 
+                setupSummary.textContent = `${cpVal} • ${volVal}`; 
+                setupSummary.classList.remove("hidden"); 
             } else {
                 lockBtn.textContent = "🔓 Unlock Settings";
                 lockBtn.className = "text-xs bg-gray-700 hover:bg-gray-600 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
                 
                 // --- RESTORE CODE ---
-                setupFields.classList.remove("hidden"); // Expand the input grid
-                setupHeaderRow.classList.replace("mb-0", "mb-3"); // Restore margin
-                setupSummary.classList.add("hidden"); // Hide the badge
+                setupFields.classList.remove("hidden"); 
+                setupHeaderRow.classList.replace("mb-0", "mb-3"); 
+                setupSummary.classList.add("hidden"); 
             }
         }
 
@@ -618,7 +618,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             const swCode = `
-                const CACHE_NAME = 'race-logger-v9';
+                const CACHE_NAME = 'race-logger-v10';
                 const ASSETS = [
                     '/',
                     '/index.html',
