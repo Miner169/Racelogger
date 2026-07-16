@@ -308,6 +308,15 @@
             }
         }
 
+        // Formats Date correctly to: "17 Jul 2026"
+        function getCustomFormattedDate(dateObj) {
+            return dateObj.toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+
         function toggleTheme() {
             const isLight = document.body.classList.contains("light-theme");
             localStorage.setItem("theme", isLight ? "dark" : "light");
@@ -459,7 +468,12 @@
             request.onsuccess = function() {
                 const logs = request.result;
                 const now = new Date();
-                const duplicate = logs.find(log => log.bib === bib && (now - new Date(log.time)) < 600000);
+                
+                // Parse helper function to handle both formats ("DD MMM YYYY" and legacy "MM/DD/YYYY") cleanly
+                const duplicate = logs.find(log => {
+                    const logDate = new Date(log.time);
+                    return log.bib === bib && !isNaN(logDate) && (now - logDate) < 600000;
+                });
 
                 if (duplicate && !confirm(`⚠️ Bib ${bib} was logged recently. Log again?`)) {
                     bibInput.value = '';
@@ -514,7 +528,19 @@
             const remark = remarkInput.disabled ? "" : remarkInput.value.trim();
 
             const now = new Date();
-            const timestampStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+            
+            // Format custom date strictly as "17 Jul 2026"[cite: 1]
+            const datePart = getCustomFormattedDate(now); 
+
+            // Formats exact time string as "1:54:57 AM"
+            const timePart = now.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            }); 
+
+            const timestampStr = `${datePart} ${timePart}`; // Combined: "17 Jul 2026 1:54:57 AM"
 
             const entry = {
                 bib: bib,
@@ -643,7 +669,7 @@
             const diffMs = new Date(lastLog.time) - new Date(secondLastLog.time);
             const diffSeconds = Math.floor(diffMs / 1000);
 
-            if (diffSeconds < 0) {
+            if (isNaN(diffSeconds) || diffSeconds < 0) {
                 splitGapTime.textContent = "0s";
                 return;
             }
@@ -661,6 +687,7 @@
         function isEditable(logTimeStr) {
             const logTime = new Date(logTimeStr);
             const now = new Date();
+            if (isNaN(logTime.getTime())) return false;
             return (now - logTime) < 300000; 
         }
 
@@ -727,10 +754,10 @@
                 [...logs].reverse().filter(log => {
                     const bibMatch = log.bib.toLowerCase().includes(searchQuery);
                     const cpMatch = log.checkpoint.toLowerCase().includes(searchQuery);
-                    const volMatch = log.volunteer.toLowerCase().includes(searchQuery);
+                    const textVolMatch = log.volunteer.toLowerCase().includes(searchQuery);
                     const remarkMatch = log.remark && log.remark.toLowerCase().includes(searchQuery);
                     
-                    return bibMatch || cpMatch || volMatch || remarkMatch;
+                    return bibMatch || cpMatch || textVolMatch || remarkMatch;
                 }).forEach(log => {
                     const row = document.createElement('div');
                     row.className = 'px-4 py-3 flex flex-col justify-center hover:bg-neutral-500/10 border-b theme-border';
