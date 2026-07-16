@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col font-sans select-none">
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col font-sans select-none pb-16">
 
     <!-- Header Status Bar with Settings Gear -->
     <header class="bg-blue-600 px-4 py-3 shadow-md flex justify-between items-center sticky top-0 z-50">
@@ -120,10 +120,17 @@
 
     </main>
 
+    <!-- Floating Confirmation Toast (Fixed at the bottom, away from the Log button) -->
+    <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl font-black text-sm z-50 flex items-center gap-2 transition-all duration-300 transform scale-90 opacity-0">
+        <span id="toastIcon">✅</span>
+        <span id="toastText">Bib Logged Status</span>
+    </div>
+
     <script>
         let db;
         let deferredPrompt;
         let isSetupLocked = false;
+        let toastTimeout;
         
         // --- HARDCODED GOOGLE SCRIPT URL ---
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw/exec";
@@ -224,7 +231,40 @@
             applyLockState();
         }
 
-        // --- 4. DUPLICATE CHECK & LOG ENTRY HANDLING ---
+        // --- 4. INSTANT confirmation toast (1 SECOND) ---
+        function triggerToast(bib, message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toastText');
+            const toastIcon = document.getElementById('toastIcon');
+
+            // Clear any active timeout to prevent overlapping animations
+            clearTimeout(toastTimeout);
+
+            toastText.textContent = `Bib ${bib}: ${message}`;
+            
+            if (isError) {
+                toastIcon.textContent = "⚠️";
+                toast.className = "fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-600 text-white px-5 py-3 rounded-xl shadow-2xl font-black text-sm z-50 flex items-center gap-2 transition-all duration-300 transform scale-100 opacity-100";
+            } else {
+                toastIcon.textContent = "✅";
+                toast.className = "fixed bottom-6 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl font-black text-sm z-50 flex items-center gap-2 transition-all duration-300 transform scale-100 opacity-100";
+            }
+
+            toast.classList.remove('hidden');
+
+            // Hide the toast after 1000ms (1 second)
+            toastTimeout = setTimeout(() => {
+                toast.classList.replace('opacity-100', 'opacity-0');
+                toast.classList.replace('scale-100', 'scale-90');
+                
+                // Completely hide after CSS transition finishes
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300);
+            }, 1000);
+        }
+
+        // --- 5. DUPLICATE CHECK & LOG ENTRY HANDLING ---
         function checkDuplicateAndLog() {
             const bibInput = document.getElementById('bibInput');
             const bib = bibInput.value.trim();
@@ -320,6 +360,10 @@
             request.onsuccess = function(e) {
                 entry.id = e.target.result;
                 loadHistory();
+                
+                // Trigger 1-second success confirmation toast!
+                triggerToast(entry.bib, "Logged Locally!");
+
                 if (navigator.vibrate) navigator.vibrate(50);
                 
                 if (syncUrl) {
@@ -328,7 +372,7 @@
             };
         }
 
-        // --- 5. AUTO-SYNC LOGIC ---
+        // --- 6. AUTO-SYNC LOGIC ---
         function syncSingleRow(row) {
             if (!syncUrl || row.synced) return;
 
@@ -374,7 +418,7 @@
 
         window.addEventListener('online', attemptSync);
 
-        // --- 6. DISPLAY HISTORIC DATA, DELETE HANDLER, & SEARCH ---
+        // --- 7. DISPLAY HISTORIC DATA, DELETE HANDLER, & SEARCH ---
         function loadHistory() {
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
@@ -476,11 +520,12 @@
                 
                 request.onsuccess = function() {
                     loadHistory();
+                    triggerToast(bib, "Deleted!", true);
                 };
             }
         }
 
-        // --- 7. EXPORT LOCAL DATABASE TO CSV ---
+        // --- 8. EXPORT LOCAL DATABASE TO CSV ---
         function exportCSV() {
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
@@ -512,7 +557,7 @@
             };
         }
 
-        // --- 8. CLEANUP HANDLER ---
+        // --- 9. CLEANUP HANDLER ---
         function clearDatabase() {
             if (confirm("Are you absolutely sure you want to erase all logged bibs on this device? Make sure you exported them to a CSV first!")) {
                 const transaction = db.transaction(["logs"], "readwrite");
@@ -537,7 +582,7 @@
             }
         });
 
-        // --- 9. PWA INSTALLATION ---
+        // --- 10. PWA INSTALLATION ---
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
@@ -561,7 +606,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             const swCode = `
-                const CACHE_NAME = 'race-logger-v7';
+                const CACHE_NAME = 'race-logger-v8';
                 const ASSETS = [
                     '/',
                     '/index.html',
