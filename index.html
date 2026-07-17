@@ -263,6 +263,10 @@
         let syncTimerId = null;
         let lowBatteryThresholdActive = false;
 
+        // --- 🔒 SYNC ENGINE STATE (prevents overlapping/racing sync requests) ---
+        let isSyncing = false;      // true while a batch_sync request is in flight
+        let syncRerunQueued = false; // true if new entries arrived mid-sync; triggers an immediate re-run
+
         // GPS Safe Warmup Handlers
         let gpsWarmupTimeout = null;
         let isGpsHardwareRunning = false;
@@ -359,7 +363,10 @@
 
         function resetSyncTimer() {
             if (syncTimerId) clearInterval(syncTimerId);
-            syncTimerId = setInterval(loadHistory, syncIntervalMs);
+            syncTimerId = setInterval(function() {
+                loadHistory();
+                if (syncUrl) attemptSync(); // Safety-net retry for anything still queued
+            }, syncIntervalMs);
         }
 
         // --- 🎯 SMART LOW-POWER CACHED GPS MECHANISM ---
@@ -676,6 +683,13 @@
             };
         }
 
+        // --- 🔑 UNIQUE ID GENERATOR (idempotency key for server handshake) ---
+        function generateUID() {
+            if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+            // Fallback for older WebViews without crypto.randomUUID
+            return 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11);
+        }
+
         function logEntry(bib) {
             const bibInput = document.getElementById('bibInput');
             const remarkInput = document.getElementById('remarkInput');
@@ -687,6 +701,7 @@
             const timestampStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
 
             const entry = {
+                uid: generateUID(), // Unique idempotency key — server uses this to dedupe/confirm, never the bib
                 bib: bib,
                 time: timestampStr,
                 volunteer: volunteer.toUpperCase(),
@@ -695,7 +710,8 @@
                 device: getDeviceType(),
                 latitude: lastGeoposition.latitude,
                 longitude: lastGeoposition.longitude,
-                synced: false
+                synced: false,
+                syncAttempts: 0
             };
 
             saveToDB(entry);
@@ -777,11 +793,14 @@
         function syncSingleRow(row) {
             if (!syncUrl) return;
 
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 25000);
+
             fetch(syncUrl, {
                 method: "POST",
                 mode: "cors",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify(row)
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ action: "batch_sync", data: [row] })
             })
             .then(async res => {
                 const text = await res.text();
@@ -790,62 +809,116 @@
                     throw new Error("Invalid response style: " + text);
                 }
                 
-                if (data.status === "success") {
-                    row.synced = true;
-                    const transaction = db.transaction(["logs"], "readwrite");
-                    const store = transaction.objectStore("logs");
-                    store.put(row);
-                    transaction.oncomplete = function() { 
-                        loadHistory(); 
-                    };
-                } else {
+                if (data.status !== "success") {
                     throw new Error(data.message || "Script execution error.");
                 }
+
+                const confirmedIds = new Set(data.confirmedIds || []);
+                if (!confirmedIds.has(row.uid)) {
+                    throw new Error("Server did not confirm this row — will retry.");
+                }
+
+                row.synced = true;
+                const transaction = db.transaction(["logs"], "readwrite");
+                const store = transaction.objectStore("logs");
+                store.put(row);
+                transaction.oncomplete = function() { 
+                    loadHistory(); 
+                };
             })
             .catch(err => {
                 console.error("Sync Failure:", err);
                 updateQueueStatus(); 
-            });
+            })
+            .finally(() => clearTimeout(timeoutId));
         }
 
-// --- ⚡ UPGRADED BATCH SYNC ENGINE ---
+// --- ⚡ UPGRADED BATCH SYNC ENGINE (locked, idempotent, per-row confirmed) ---
 function attemptSync() {
     if (!syncUrl) return;
+
+    // 🔒 If a sync is already in flight, don't fire an overlapping request.
+    // Just flag that we should run again the instant this one finishes —
+    // this is what prevents the race that was dropping bibs during rapid entry.
+    if (isSyncing) {
+        syncRerunQueued = true;
+        return;
+    }
+
     const transaction = db.transaction(["logs"], "readonly");
     const store = transaction.objectStore("logs");
     const request = store.getAll();
-    
+
     request.onsuccess = function() {
         const logs = request.result;
         const unsynced = logs.filter(log => !log.synced);
         if (unsynced.length === 0) return;
 
-        // Bundle all pending logs into a single batch
-        const payload = { 
-            action: "batch_sync", 
-            data: unsynced 
+        isSyncing = true;
+
+        const payload = {
+            action: "batch_sync",
+            data: unsynced
         };
-        
+
+        // Abort safety net: if the script hangs (cold start, quota, etc.) don't block forever
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
+
         fetch(syncUrl, {
             method: "POST",
             mode: "cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(payload),
+            signal: controller.signal
         })
         .then(async res => {
-            const data = await res.json();
-            if (data.status === "success") {
-                const writeTransaction = db.transaction(["logs"], "readwrite");
-                const writeStore = writeTransaction.objectStore("logs");
-                unsynced.forEach(log => {
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); } catch (e) {
+                throw new Error("Invalid server response: " + text.slice(0, 200));
+            }
+            if (data.status !== "success") {
+                throw new Error(data.message || "Script reported failure.");
+            }
+
+            // ✅ Server must return the list of UIDs it actually wrote/confirmed.
+            // We ONLY mark those as synced — anything not confirmed stays queued
+            // and will be retried, instead of being silently assumed successful.
+            const confirmedIds = new Set(data.confirmedIds || []);
+            const writeTransaction = db.transaction(["logs"], "readwrite");
+            const writeStore = writeTransaction.objectStore("logs");
+
+            let confirmedCount = 0;
+            unsynced.forEach(log => {
+                if (confirmedIds.has(log.uid)) {
                     log.synced = true;
                     writeStore.put(log);
-                });
+                    confirmedCount++;
+                } else {
+                    log.syncAttempts = (log.syncAttempts || 0) + 1;
+                    writeStore.put(log);
+                }
+            });
+
+            writeTransaction.oncomplete = function() {
                 loadHistory();
-                console.log(`Successfully synced ${data.processed} logs.`);
-            }
+                const missed = unsynced.length - confirmedCount;
+                console.log(`Sync: ${confirmedCount}/${unsynced.length} confirmed by server.` + (missed > 0 ? ` ${missed} still pending retry.` : ''));
+            };
         })
-        .catch(err => console.error("Batch Sync Error:", err));
+        .catch(err => {
+            console.error("Batch Sync Error:", err);
+        })
+        .finally(() => {
+            clearTimeout(timeoutId);
+            isSyncing = false;
+            // If more entries arrived (or this attempt left rows unconfirmed), go again immediately.
+            if (syncRerunQueued) {
+                syncRerunQueued = false;
+                attemptSync();
+            }
+        });
     };
 }
 
@@ -1052,15 +1125,19 @@ function attemptSync() {
 
         function deleteRow(id, bib, time) {
             if (!confirm(`Delete entry for Bib ${bib}?`)) return;
-            if (syncUrl) {
-                fetch(syncUrl, {
-                    method: "POST",
-                    mode: "cors",
-                    headers: { "Content-Type": "text/plain" },
-                    body: JSON.stringify({ action: "delete", bib: bib, time: time })
-                }).catch(err => console.error(err));
-            }
             const transaction = db.transaction(["logs"], "readwrite");
+            const getReq = transaction.objectStore("logs").get(id);
+            getReq.onsuccess = function() {
+                const log = getReq.result;
+                if (syncUrl && log) {
+                    fetch(syncUrl, {
+                        method: "POST",
+                        mode: "cors",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify({ action: "delete", uid: log.uid, bib: bib, time: time })
+                    }).catch(err => console.error(err));
+                }
+            };
             transaction.objectStore("logs").delete(id);
             transaction.oncomplete = function() { loadHistory(); };
         }
