@@ -184,7 +184,7 @@
             </div>
         </section>
 
-        <!-- live SPLIT TIME CALCULATOR PANEL -->
+        <!-- ⏱️ COMPACT SPLIT TIME CALCULATOR PANEL -->
         <section class="theme-panel p-2.5 rounded-xl border shadow flex flex-col gap-1.5">
             <h2 class="text-[9px] font-extrabold theme-text-muted uppercase tracking-widest flex items-center gap-1">⏱️ Live Split Calculator</h2>
             <div class="grid grid-cols-2 gap-2 text-center">
@@ -211,7 +211,7 @@
             </div>
         </div>
 
-        <!-- SYNC PROGRESS PANEL & QUEUE INSPECTOR -->
+        <!-- 🔄 SYNC PROGRESS PANEL & QUEUE INSPECTOR -->
         <section id="queueInspectorSection" class="hidden theme-panel p-4 rounded-xl border shadow flex flex-col gap-3 transition-all duration-300">
             <div class="flex justify-between items-center border-b theme-border pb-2">
                 <div class="flex items-center gap-2">
@@ -784,21 +784,14 @@
             });
         }
 
-        // --- ⚡ UPGRADED SINGLE ROW SYNC FOR QUEUE INSPECTOR ---
         function syncSingleRow(row) {
             if (!syncUrl) return;
-
-            // Wrap the single row into the expected batch format for unified backend processing
-            const payload = {
-                action: "batch_sync",
-                data: [row]
-            };
 
             fetch(syncUrl, {
                 method: "POST",
                 mode: "cors",
                 headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(row)
             })
             .then(async res => {
                 const text = await res.text();
@@ -820,7 +813,7 @@
                 }
             })
             .catch(err => {
-                console.error("Single Sync Failure:", err);
+                console.error("Sync Failure:", err);
                 updateQueueStatus(); 
             });
         }
@@ -842,17 +835,12 @@
 
                 console.log(`Starting Batch Upload for ${unsynced.length} records...`);
                 
-                // Wrap the payload to match your production backend's expected schema
-                const payload = {
-                    action: "batch_sync",
-                    data: unsynced
-                };
-                
+                // Bundle array payload & fire one unified POST request
                 fetch(syncUrl, {
                     method: "POST",
                     mode: "cors",
                     headers: { "Content-Type": "text/plain" },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(unsynced)
                 })
                 .then(async res => {
                     const text = await res.text();
@@ -872,7 +860,7 @@
 
                         writeTransaction.oncomplete = function() {
                             loadHistory();
-                            console.log(`Successfully batch synchronized ${data.processed} logs!`);
+                            console.log("Successfully batch synchronized logs!");
                         };
                     } else {
                         throw new Error(data.message || "Failed execution on script server.");
