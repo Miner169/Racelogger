@@ -27,25 +27,23 @@
             --btn-lock-bg: #171717;
             --btn-lock-text: #d4d4d4;
             --btn-lock-border: #262626;
-            --bib-text-color: #d97706;   /* Rich amber/yellow for dark theme */
         }
 
         body.light-theme {
-            --bg-color: #d0d0d5;         /* Less bright, darker muted light gray */
-            --panel-bg: #e4e4e8;         /* Soft warm gray instead of stark white */
-            --text-main: #111111;        /* Pure black text for maximum readability */
-            --text-muted: #3a3a40;       /* Bold charcoal for legible labels and subtext */
-            --border-color: #97979f;     /* Highly visible borders */
-            --input-bg: #ececf0;         /* Soft off-white inputs with low glare */
-            --input-text: #111111;       /* Pure black input text */
-            --input-placeholder: #606068; /* Visible, high-contrast placeholder text */
-            --header-bg: #243447;        /* Low-contrast dark slate blue */
-            --header-border: #31475d;
-            --header-text: #b7d3ff;      
-            --btn-lock-bg: #d7d7dd;
-            --btn-lock-text: #111111;
-            --btn-lock-border: #8f8f97;
-            --bib-text-color: #1e3a8a;   /* High-contrast dark blue for light theme */
+            --bg-color: #d8d8dc;         /* Less bright, darker muted light gray */
+            --panel-bg: #eaeaea;         /* Soft warm gray instead of stark white */
+            --text-main: #000000;        /* Pure black text for maximum readability */
+            --text-muted: #333333;       /* Bold charcoal for legible labels and subtext */
+            --border-color: #a8a8af;     /* Highly visible borders */
+            --input-bg: #ebebef;         /* Soft off-white inputs with low glare */
+            --input-text: #000000;       /* Pure black input text */
+            --input-placeholder: #555555; /* Visible, high-contrast placeholder text */
+            --header-bg: #1e2e42;        /* Low-contrast dark slate blue */
+            --header-border: #2d3d52;
+            --header-text: #93c5fd;      
+            --btn-lock-bg: #dbdbdf;
+            --btn-lock-text: #000000;
+            --btn-lock-border: #92929a;
         }
 
         /* Semantic Theme Mappings */
@@ -68,11 +66,9 @@
         .theme-header { background-color: var(--header-bg); border-color: var(--header-border); }
         .theme-header-text { color: var(--header-text); }
         .theme-btn-lock { background-color: var(--btn-lock-bg); border-color: var(--btn-lock-border); color: var(--btn-lock-text); }
-        .theme-bib-text { color: var(--bib-text-color); }
 
         html, body {
             overscroll-behavior-y: contain; /* Block pull-to-refresh on browsers */
-            touch-action: pan-x pan-y;
         }
     </style>
 </head>
@@ -83,18 +79,19 @@
         <div class="flex items-center gap-2.5">
             <h1 class="text-base font-black tracking-wider theme-header-text">RACE LOG</h1>
             <span id="syncStatus" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">Auto-Sync</span>
+            <!-- Modified click handler to open the Inspector Modal -->
             <button id="queueBadge" onclick="toggleQueueInspector()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
                 <span id="queueCount">0</span> Pending 🔄
             </button>
         </div>
         <div class="flex items-center gap-1.5">
-            <!-- 🔋 Native Battery Status Indicator -->
+            <!-- 🔋 Native Battery Status Indicator Container -->
             <div id="batteryIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2 py-0.5 rounded-full font-bold border border-neutral-800">
                 <span id="batteryIcon">🔋</span>
                 <span id="batteryText" class="text-neutral-400">--%</span>
             </div>
             <!-- GPS Status Indicator -->
-            <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800">
+            <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800 mr-1">
                 <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse" id="gpsDot"></span>
                 <span id="gpsText" class="text-neutral-400">GPS OFF</span>
             </div>
@@ -103,7 +100,7 @@
         </div>
     </header>
 
-    <!-- Queue Inspector Modal & Progress Panel -->
+    <!-- Queue Inspector & Sync Progress Modal -->
     <div id="queueModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
         <div class="theme-panel p-5 rounded-2xl border w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center mb-3">
@@ -111,7 +108,7 @@
                 <button onclick="toggleQueueInspector()" class="text-neutral-400 hover:text-white text-sm font-bold px-2 py-1">✕ Close</button>
             </div>
 
-            <!-- Visual Sync Progress Panel -->
+            <!-- Sync Progress Bar Component -->
             <div class="mb-4">
                 <div class="flex justify-between text-[11px] theme-text-muted mb-1 font-bold">
                     <span>Sync Progress Status</span>
@@ -122,9 +119,9 @@
                 </div>
             </div>
 
-            <!-- Live List Display Container -->
+            <!-- Live Inspector List Container -->
             <div class="flex-grow overflow-y-auto mb-4 border theme-border rounded-lg p-2 bg-black/40 min-h-[150px]" id="queueInspectorList">
-                <!-- Script populates elements dynamically -->
+                <!-- Dynamically populated via JS execution -->
             </div>
 
             <div class="flex flex-col gap-2">
@@ -157,6 +154,7 @@
                     <span id="setupSummary" class="hidden text-[11px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono font-bold uppercase"></span>
                 </h2>
                 <div class="flex items-center gap-1.5">
+                    <!-- Compact Install Help Button -->
                     <button id="pwaHelpBtn" onclick="togglePwaInstructions()" class="hidden text-[10px] bg-blue-950 hover:bg-blue-900 text-blue-400 border border-blue-800 px-2 py-1 rounded-md font-bold transition">ℹ️ Install App</button>
                     <button onclick="toggleLock()" id="lockBtn" class="text-xs theme-btn-lock border px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1">🔓 Unlock Settings</button>
                 </div>
@@ -212,11 +210,11 @@
             <div class="grid grid-cols-2 gap-2 text-center">
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Last Runner</span>
-                    <span id="splitLastRunner" class="font-extrabold text-orange-700 dark:text-orange-500 text-[13px]">-</span>
+                    <span id="splitLastRunner" class="font-extrabold text-yellow-600 dark:text-yellow-500 text-[13px]">-</span>
                 </div>
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Pacing Split Gap</span>
-                    <span id="splitGapTime" class="font-extrabold text-indigo-700 dark:text-indigo-400 text-[13px]">-- : --</span>
+                    <span id="splitGapTime" class="font-extrabold text-indigo-600 dark:text-indigo-400 text-[13px]">-- : --</span>
                 </div>
             </div>
         </section>
@@ -225,11 +223,11 @@
         <div class="grid grid-cols-2 gap-3">
             <div class="theme-panel py-2 px-3 rounded-xl border text-center shadow-sm">
                 <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Total Logs</div>
-                <div id="totalCount" class="text-xl font-black text-blue-700 dark:text-blue-500">0</div>
+                <div id="totalCount" class="text-xl font-black text-blue-600 dark:text-blue-500">0</div>
             </div>
             <div class="theme-panel py-2 px-3 rounded-xl border text-center shadow-sm">
                 <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Unique Runners</div>
-                <div id="uniqueCount" class="text-xl font-black text-indigo-700 dark:text-indigo-500">0</div>
+                <div id="uniqueCount" class="text-xl font-black text-indigo-600 dark:text-indigo-500">0</div>
             </div>
         </div>
 
@@ -259,11 +257,13 @@
         let inlineToastTimeout;
         let lastGeoposition = { latitude: null, longitude: null }; 
         let editingRowId = null; 
+        
+        // Loop State Variables
         let isSyncing = false;
         let historyIntervalId = null;
-        let gpsWatchId = null; 
+        let gpsWatchId = null;
         let isLowBatteryModeActive = false;
-        let syncCycleDuration = 15000;
+        let syncCycleDuration = 15000; // Default: 15 seconds
         
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
@@ -273,6 +273,7 @@
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
 
+        // --- 🛑 ANTI-REFRESH MECHANISM FOR BROWSER USERS ---
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
         if (!isStandalone) {
@@ -304,6 +305,7 @@
             });
         }
 
+        // --- 📲 NESTED PWA INSTRUCTIONS TRIGGER ---
         function checkPwaDisplay() {
             const helpBtn = document.getElementById("pwaHelpBtn");
             const iosInst = document.getElementById("iosInstruction");
@@ -338,6 +340,7 @@
             }
         }
 
+        // --- THEME CONTROLLER ---
         function applyTheme() {
             const currentTheme = localStorage.getItem("theme") || "dark";
             const themeBtn = document.getElementById("themeBtn");
@@ -350,19 +353,10 @@
             }
         }
 
-        function getCustomFormattedDate(dateObj) {
-            return dateObj.toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-            });[cite: 1]
-        }
-
         function toggleTheme() {
             const isLight = document.body.classList.contains("light-theme");
             localStorage.setItem("theme", isLight ? "dark" : "light");
             applyTheme();
-            loadHistory();
         }
 
         function getDeviceType() {
@@ -386,11 +380,9 @@
             applyTheme(); 
             updateSyncStatusLabel();
             loadSettingsState();
-            loadHistory();
             
-            // Initiate Battery Safeguard & Location Monitoring Ecosystem
-            initBatterySafeguards();
-
+            // Initiate Ecosystem Loops
+            initBatterySafeguards(); 
             updateQueueStatus(); 
             attemptSync();
             checkPwaDisplay(); 
@@ -410,26 +402,20 @@
             });
         };
 
-        // --- 🔋 BATTERY SAFEGUARDS & GEOLOCATION INTERFACE ---
+        // --- 🔋 BATTERY SAFEGUARDS SYSTEM ---
         function initBatterySafeguards() {
-            try {
-                if ('getBattery' in navigator) {
-                    navigator.getBattery().then(battery => {
-                        updateBatteryStatus(battery);
-                        battery.addEventListener('levelchange', () => updateBatteryStatus(battery));
-                        battery.addEventListener('chargingchange', () => updateBatteryStatus(battery));
-                    }).catch(e => {
-                        console.warn("Battery status API promise rejected:", e);
-                        document.getElementById("batteryText").textContent = "N/A";
-                        startGPSHardwareWatch(); 
-                    });
-                } else {
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    updateBatteryStatus(battery);
+                    battery.addEventListener('levelchange', () => updateBatteryStatus(battery));
+                    battery.addEventListener('chargingchange', () => updateBatteryStatus(battery));
+                }).catch(() => {
                     document.getElementById("batteryText").textContent = "N/A";
-                    startGPSHardwareWatch(); 
-                }
-            } catch (err) {
-                console.error("Battery API interface setup exception:", err);
-                startGPSHardwareWatch();
+                    startContinuousGPSWatch(); 
+                });
+            } else {
+                document.getElementById("batteryText").textContent = "N/A";
+                startContinuousGPSWatch(); 
             }
         }
 
@@ -442,47 +428,44 @@
             
             batteryText.textContent = `${level}%${isCharging ? ' ⚡' : ''}`;
             
-            // Threshold Check: Below 15% drop triggers low power preservation safeguards
-            if (level <= 15 && !isCharging) {
+            // Threshold configuration: Critical boundary underneath 15%
+            if (level < 15 && !isCharging) {
                 if (!isLowBatteryModeActive) {
                     isLowBatteryModeActive = true;
                     batteryText.className = "text-red-500 font-extrabold animate-pulse";
                     batteryIcon.textContent = "🪫";
                     
-                    // 🛑 Safeguard 1: Entirely shut down high-power GPS hardware loops
-                    stopGPSHardwareWatch();
-                    const gpsDot = document.getElementById("gpsDot");
-                    const gpsText = document.getElementById("gpsText");
-                    gpsDot.className = "w-2 h-2 rounded-full bg-red-700";
-                    gpsText.textContent = "BATTERY_OFF";
+                    // Safeguard 1: Terminate high-drain hardware execution loop completely
+                    stopContinuousGPSWatch();
+                    document.getElementById("gpsDot").className = "w-2 h-2 rounded-full bg-red-700";
+                    document.getElementById("gpsText").textContent = "BATT_OFF";
                     lastGeoposition = { latitude: null, longitude: null }; 
 
-                    // 📉 Safeguard 2: Dynamically reduce background synchronization frequency to 1 minute
+                    // Safeguard 2: Throttle cellular transmission network cycle frequency to 1 minute
                     syncCycleDuration = 60000;
                     startHistoryInterval();
                     
-                    alert("⚠️ Low Battery Alert! High-power hardware functions (GPS) have been completely powered down and cellular communication logs throttled to 1-minute cycles to conserve power.");
+                    alert("⚠️ Critical Power Saving Mode: Battery is below 15%. High-accuracy GPS hardware has been fully disabled and server transmission loops reduced to 1-minute intervals to conserve juice.");
                 }
             } else {
-                // Restoration Conditions met: Battery charged or connected to line power
                 if (isLowBatteryModeActive) {
                     isLowBatteryModeActive = false;
                     batteryText.className = "text-neutral-400";
                     batteryIcon.textContent = "🔋";
                     
-                    // Reset to standard high-speed 15-second tracking frequency
+                    // Recover back to high performance 15-second synchronization cycles
                     syncCycleDuration = 15000;
                     startHistoryInterval();
                     
-                    // Re-engage continuous tracking watch loops
-                    startGPSHardwareWatch();
+                    // Re-enable real-time continuous GPS stream
+                    startContinuousGPSWatch();
                 }
             }
         }
 
-        function startGPSHardwareWatch() {
-            stopGPSHardwareWatch();
-            if (isLowBatteryModeActive) return;
+        function startContinuousGPSWatch() {
+            stopContinuousGPSWatch();
+            if (isLowBatteryModeActive) return; // Block GPS hardware wake states in low power
 
             const gpsDot = document.getElementById("gpsDot");
             const gpsText = document.getElementById("gpsText");
@@ -492,7 +475,7 @@
                 return;
             }
 
-            gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
+            gpsDot.className = "w-2 h-2 rounded-full bg-yellow-650 animate-pulse";
             gpsText.textContent = "SEARCHING";
 
             gpsWatchId = navigator.geolocation.watchPosition(
@@ -510,7 +493,7 @@
                     }
                 },
                 (err) => {
-                    gpsDot.className = "w-2 h-2 rounded-full bg-red-650 animate-pulse";
+                    gpsDot.className = "w-2 h-2 rounded-full bg-red-600 animate-pulse";
                     gpsText.textContent = err.code === 1 ? "DENIED" : "SEARCHING";
                     lastGeoposition = { latitude: null, longitude: null };
                 },
@@ -518,7 +501,7 @@
             );
         }
 
-        function stopGPSHardwareWatch() {
+        function stopContinuousGPSWatch() {
             if (gpsWatchId !== null) {
                 navigator.geolocation.clearWatch(gpsWatchId);
                 gpsWatchId = null;
@@ -527,7 +510,11 @@
 
         function startHistoryInterval() {
             stopHistoryInterval();
-            historyIntervalId = setInterval(loadHistory, syncCycleDuration);
+            loadHistory();
+            historyIntervalId = setInterval(() => {
+                loadHistory();
+                attemptSync();
+            }, syncCycleDuration);
         }
 
         function stopHistoryInterval() {
@@ -656,16 +643,14 @@
                 const logs = request.result;
                 const now = new Date();
                 
-                // Duplicate check validation scoped exclusively to current Active Checkpoint
+                // Isolation constraint checking rules match ONLY on matching location contexts
                 const duplicate = logs.find(log => {
-                    const logDate = new Date(log.time);
                     return log.bib === bib && 
                            log.checkpoint === currentCheckpoint && 
-                           !isNaN(logDate) && 
-                           (now - logDate) < 600000; // 10 minute window validation
+                           (now - new Date(log.time)) < 600000;
                 });
 
-                if (duplicate && !confirm(`⚠️ Bib ${bib} was logged at ${currentCheckpoint} within 10 minutes. Record duplicate log?`)) {
+                if (duplicate && !confirm(`⚠️ Bib ${bib} was recorded here at ${currentCheckpoint} within 10 minutes. Duplicate record entry anyway?`)) {
                     bibInput.value = '';
                     bibInput.focus();
                 } else {
@@ -682,15 +667,7 @@
             const remark = remarkInput.disabled ? "" : remarkInput.value.trim();
 
             const now = new Date();
-            const datePart = getCustomFormattedDate(now);[cite: 1]
-            const timePart = now.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-            }); 
-
-            const timestampStr = `${datePart} ${timePart}`; 
+            const timestampStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
 
             const entry = {
                 bib: bib,
@@ -746,7 +723,7 @@
             };
         }
 
-        // --- 🔍 INTERACTIVE QUEUE INSPECTOR MODAL CONTROL ---
+        // --- 🔍 INTERACTIVE QUEUE INSPECTOR MODAL INTERFACES ---
         function toggleQueueInspector() {
             const modal = document.getElementById("queueModal");
             const isHidden = modal.classList.contains("hidden");
@@ -770,7 +747,7 @@
                 
                 listEl.innerHTML = "";
                 if (unsynced.length === 0) {
-                    listEl.innerHTML = `<div class="text-xs text-neutral-500 font-bold p-4 text-center">Queue clean. Everything is perfectly in sync!</div>`;
+                    listEl.innerHTML = `<div class="text-xs text-neutral-500 font-bold p-4 text-center">Queue empty. Ready for transmission!</div>`;
                     return;
                 }
 
@@ -779,12 +756,12 @@
                     el.className = "flex justify-between items-center border-b border-neutral-900 py-2 text-xs";
                     el.innerHTML = `
                         <div class="flex-grow">
-                            <span class="font-extrabold text-amber-500">Bib ${log.bib}</span>
-                            <span class="text-[9px] text-neutral-400 ml-1.5 font-bold font-mono">CP: ${log.checkpoint}</span>
+                            <span class="font-extrabold text-yellow-500">Bib ${log.bib}</span>
+                            <span class="text-[9px] text-neutral-400 ml-2 font-mono">[${log.checkpoint}]</span>
                         </div>
                         <div class="flex items-center gap-3">
-                            <span class="text-[9px] text-neutral-500 font-mono">${log.time.split(' ').slice(2).join(' ')}</span>
-                            <button onclick="deleteQueueRow(${log.id})" class="text-red-500 text-xs font-bold hover:text-red-400 px-1">✕</button>
+                            <span class="text-[9px] text-neutral-500 font-mono">${log.time.split(' ')[1] || ''}</span>
+                            <button onclick="deleteQueueRow(${log.id})" class="text-red-500 font-bold hover:text-red-400 px-1">✕</button>
                         </div>
                     `;
                     listEl.appendChild(el);
@@ -793,7 +770,7 @@
         }
 
         function deleteQueueRow(id) {
-            if (!confirm("Remove this specific record from the local outgoing sync engine queue?")) return;
+            if (!confirm("Remove this log record permanently from outbound sync engines?")) return;
             const transaction = db.transaction(["logs"], "readwrite");
             transaction.objectStore("logs").delete(id);
             transaction.oncomplete = function() {
@@ -812,20 +789,20 @@
                 const unsynced = logs.filter(log => !log.synced);
                 
                 if (unsynced.length === 0) {
-                    alert("No data pending in queue payload output!");
+                    alert("No pending queue array payload constructs found!");
                     return;
                 }
 
                 const payload = JSON.stringify({ action: "batch_sync", data: unsynced }, null, 2);
                 navigator.clipboard.writeText(payload).then(() => {
-                    alert("📋 Raw backup JSON structure array copied to clipboard successfully!");
+                    alert("📋 Raw background sync JSON payload array copied onto clip memory stack successfully!");
                 }).catch(() => {
-                    alert("System error copying payload container to clipboard.");
+                    alert("Platform clipboard write failure error mapping elements.");
                 });
             };
         }
 
-        // --- 📊 TRANSMISSION ENGINE & SYNC PROGRESS BAR ---
+        // --- 📊 TRANSMISSION SYSTEM & SYNC PROGRESS BAR ---
         function attemptSync() {
             if (!syncUrl || isSyncing || !navigator.onLine) return;
             
@@ -850,6 +827,7 @@
                 progressText.className = "text-blue-500 font-bold animate-pulse";
                 progressBar.style.width = "40%"; 
                 
+                // Execution framework wraps complete pending structural payload groups down into singular transmissions
                 fetch(syncUrl, {
                     method: "POST",
                     mode: "cors",
@@ -889,7 +867,7 @@
                     }
                 })
                 .catch(err => {
-                    console.error("Transmission connection failure:", err);
+                    console.error("Transmission connection failure error:", err);
                     isSyncing = false;
                     updateQueueStatus();
                     progressBar.style.width = "0%";
@@ -897,6 +875,19 @@
                     progressText.className = "text-red-400 font-bold";
                 });
             };
+        }
+
+        // --- 🌀 SERVICE WORKER BACKGROUND SYNC REGISTRATION ---
+        function registerBackgroundSync() {
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                navigator.serviceWorker.ready.then(reg => {
+                    return reg.sync.register('sync-logs');[cite: 3]
+                }).then(() => {
+                    console.log('Native service background sync task successfully locked down.');
+                }).catch(err => {
+                    console.error('Background sync engine registration failure error:', err);
+                });
+            }
         }
 
         function calculateLiveSplits(logs) {
@@ -923,7 +914,7 @@
             const diffMs = new Date(lastLog.time) - new Date(secondLastLog.time);
             const diffSeconds = Math.floor(diffMs / 1000);
 
-            if (isNaN(diffSeconds) || diffSeconds < 0) {
+            if (diffSeconds < 0) {
                 splitGapTime.textContent = "0s";
                 return;
             }
@@ -941,26 +932,12 @@
         function isEditable(logTimeStr) {
             const logTime = new Date(logTimeStr);
             const now = new Date();
-            if (isNaN(logTime.getTime())) return false;
             return (now - logTime) < 300000; 
         }
 
         function startEditing(id) {
             editingRowId = id;
             loadHistory();
-        }
-
-        // --- 🌀 NATIVE SERVICE WORKER BACKGROUND SYNC INTERACTION ---
-        function registerBackgroundSync() {
-            if ('serviceWorker' in navigator && 'SyncManager' in window) {
-                navigator.serviceWorker.ready.then(reg => {
-                    return reg.sync.register('sync-logs');
-                }).then(() => {
-                    console.log('Native background sync task successfully locked down.');
-                }).catch(err => {
-                    console.error('Background sync interface rejection:', err);
-                });
-            }
         }
 
         function cancelEditing() {
@@ -1025,10 +1002,10 @@
                 [...logs].reverse().filter(log => {
                     const bibMatch = log.bib.toLowerCase().includes(searchQuery);
                     const cpMatch = log.checkpoint.toLowerCase().includes(searchQuery);
-                    const textVolMatch = log.volunteer.toLowerCase().includes(searchQuery);
+                    const volMatch = log.volunteer.toLowerCase().includes(searchQuery);
                     const remarkMatch = log.remark && log.remark.toLowerCase().includes(searchQuery);
                     
-                    return bibMatch || cpMatch || textVolMatch || remarkMatch;
+                    return bibMatch || cpMatch || volMatch || remarkMatch;
                 }).forEach(log => {
                     const row = document.createElement('div');
                     row.className = 'px-4 py-3 flex flex-col justify-center hover:bg-neutral-500/10 border-b theme-border';
@@ -1058,14 +1035,14 @@
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
                         
                         const editButtonHTML = editable 
-                            ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-700 hover:text-blue-500 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded transition">✏️ Edit</button>` 
+                            ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 hover:text-blue-500 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded transition">✏️ Edit</button>` 
                             : '';
 
                         row.innerHTML = `
                             <div class="flex justify-between items-center w-full">
                                 <div class="flex-grow">
                                     <div class="flex items-center gap-2">
-                                        <span class="text-xl font-black theme-bib-text">${log.bib}</span>
+                                        <span class="text-xl font-black text-yellow-600 dark:text-yellow-500">${log.bib}</span>
                                         ${freqBadge}
                                         <span class="text-[10px] bg-neutral-900 border border-neutral-850 px-1.5 py-0.5 rounded text-neutral-300 dark:text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
                                     </div>
@@ -1099,8 +1076,8 @@
             }
             const transaction = db.transaction(["logs"], "readwrite");
             transaction.objectStore("logs").delete(id);
-            transaction.oncomplete = function() {
-                loadHistory();
+            transaction.oncomplete = function() { 
+                loadHistory(); 
                 registerBackgroundSync();
             };
         }
@@ -1116,6 +1093,7 @@
             });
         }
 
+        // Export
         function exportCSV() {
             const transaction = db.transaction(["logs"], "readonly");
             const request = transaction.objectStore("logs").getAll();
