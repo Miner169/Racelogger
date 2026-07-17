@@ -104,8 +104,8 @@
                 <span id="batIcon">🔋</span> <span id="batText">100%</span>
             </div>
             <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800">
-                <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse" id="gpsDot"></span>
-                <span id="gpsText" class="text-neutral-400">GPS OFF</span>
+                <span class="w-2 h-2 rounded-full bg-red-600" id="gpsDot"></span>
+                <span id="gpsText" class="text-neutral-400">GPS SLEEP</span>
             </div>
             <button onclick="toggleTheme()" id="themeBtn" class="text-gray-300 hover:text-white text-lg p-1" title="Toggle Theme">☀️</button>
             <button onclick="toggleSettings()" class="text-gray-300 hover:text-white text-lg p-1" title="Settings">⚙️</button>
@@ -174,13 +174,14 @@
             <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
             <div class="flex gap-3 items-stretch">
                 <div class="flex-grow">
-                    <input type="tel" id="bibInput" inputmode="numeric" pattern="[0-9]*" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl px-2 focus:outline-none focus:border-blue-900 transition">
+                    <!-- Added onfocus and oninput listeners to dynamically "warm up" GPS -->
+                    <input type="tel" id="bibInput" onfocus="warmUpGPS()" oninput="warmUpGPS()" inputmode="numeric" pattern="[0-9]*" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl px-2 focus:outline-none focus:border-blue-900 transition">
                 </div>
                 <button onclick="checkDuplicateAndLog()" class="bg-blue-800 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-lg px-6 rounded-xl shadow-lg transition duration-150 flex items-center justify-center">LOG</button>
             </div>
             <div class="mt-1 relative">
                 <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark (Optional)</label>
-                <input type="text" id="remarkInput" onfocus="clearInlineToast()" placeholder="e.g. Missed helper, penalty, etc." class="w-full theme-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 transition-all duration-200">
+                <input type="text" id="remarkInput" onfocus="clearInlineToast(); warmUpGPS();" placeholder="e.g. Missed helper, penalty, etc." class="w-full theme-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 transition-all duration-200">
             </div>
         </section>
 
@@ -258,8 +259,11 @@
         // Dynamic settings
         let syncIntervalMs = 15000; 
         let syncTimerId = null;
-        let gpsWatchId = null;
         let lowBatteryThresholdActive = false;
+
+        // GPS Safe Warmup Handlers
+        let gpsWarmupTimeout = null;
+        let isGpsHardwareRunning = false;
 
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
@@ -335,28 +339,19 @@
             lowBatteryThresholdActive = true;
             document.getElementById('batteryIndicator').className = "flex items-center gap-1 text-[10px] bg-red-950 text-red-400 px-2 py-0.5 rounded-full font-bold border border-red-800";
             
-            // 1. Shuts down GPS Watch hardware to save battery
-            if (gpsWatchId !== null) {
-                navigator.geolocation.clearWatch(gpsWatchId);
-                gpsWatchId = null;
-            }
-            const gpsDot = document.getElementById("gpsDot");
-            const gpsText = document.getElementById("gpsText");
-            gpsDot.className = "w-2 h-2 rounded-full bg-red-600 animate-pulse";
-            gpsText.textContent = "SAVER ACTIVE";
-
-            // 2. Reduces Cellular auto-sync frequency from 15 seconds to 1 minute
+            // Shuts off all warmups during safe mode to preserve critical energy
+            shutOffGPSHardware();
+            
+            // Reduces background upload requests
             syncIntervalMs = 60000;
             resetSyncTimer();
-            console.log("Battery Safeguard Triggered: GPS off, sync frequency locked to 1 minute.");
+            console.log("Battery Safeguard Active: GPS Warmup completely disabled. Sync set to 1 minute.");
         }
 
         function deactivateBatterySafeMode() {
             lowBatteryThresholdActive = false;
             document.getElementById('batteryIndicator').className = "flex items-center gap-1 text-[10px] bg-black px-2 py-0.5 rounded-full font-bold border border-neutral-800 text-neutral-400";
             
-            // Restore high precision tracking and standard sync frequency
-            startContinuousGPSWatch();
             syncIntervalMs = 15000;
             resetSyncTimer();
         }
@@ -364,6 +359,73 @@
         function resetSyncTimer() {
             if (syncTimerId) clearInterval(syncTimerId);
             syncTimerId = setInterval(loadHistory, syncIntervalMs);
+        }
+
+        // --- 🎯 SMART BATTERY-SAVING GPS MECHANISM ---
+        // Shuts down the hardware entirely when not in use
+        function warmUpGPS() {
+            if (lowBatteryThresholdActive) return; // Stay off completely on critical battery
+
+            const gpsDot = document.getElementById("gpsDot");
+            const gpsText = document.getElementById("gpsText");
+
+            // Reset the inactivity timer every time a user types or interacts
+            if (gpsWarmupTimeout) clearTimeout(gpsWarmupTimeout);
+
+            if (!navigator.geolocation) {
+                gpsText.textContent = "NO GPS HW";
+                return;
+            }
+
+            if (!isGpsHardwareRunning) {
+                isGpsHardwareRunning = true;
+                gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
+                gpsText.textContent = "WARMING UP...";
+            }
+
+            // Request location with cached validation
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    lastGeoposition.latitude = pos.coords.latitude;
+                    lastGeoposition.longitude = pos.coords.longitude;
+                    
+                    const acc = pos.coords.accuracy;
+                    if (acc <= 15) {
+                        gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+                        gpsText.textContent = `3D LOCK (${Math.round(acc)}m)`;
+                    } else {
+                        gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
+                        gpsText.textContent = `WEAK (${Math.round(acc)}m)`;
+                    }
+                },
+                (err) => {
+                    gpsDot.className = "w-2 h-2 rounded-full bg-red-600";
+                    if (err.code === 1) {
+                        gpsText.textContent = "DENIED";
+                    } else {
+                        gpsText.textContent = "SEARCHING";
+                    }
+                },
+                { 
+                    enableHighAccuracy: true, 
+                    timeout: 8000, 
+                    maximumAge: 5000 // Returns quickly if position was queried within 5 seconds
+                }
+            );
+
+            // Shuts off GPS hardware automatically after 10 seconds of keyboard inactivity
+            gpsWarmupTimeout = setTimeout(shutOffGPSHardware, 10000);
+        }
+
+        function shutOffGPSHardware() {
+            isGpsHardwareRunning = false;
+            if (gpsWarmupTimeout) clearTimeout(gpsWarmupTimeout);
+            
+            const gpsDot = document.getElementById("gpsDot");
+            const gpsText = document.getElementById("gpsText");
+            
+            gpsDot.className = "w-2 h-2 rounded-full bg-red-600";
+            gpsText.textContent = lowBatteryThresholdActive ? "SAVER ACTIVE" : "GPS SLEEP";
         }
 
         // --- PWA INSTRUCTIONS ---
@@ -445,7 +507,6 @@
             loadSettingsState();
             loadHistory();
             initBatteryMonitoring();
-            startContinuousGPSWatch(); 
             updateQueueStatus(); 
             attemptSync();
             checkPwaDisplay(); 
@@ -605,44 +666,6 @@
             };
         }
 
-        function startContinuousGPSWatch() {
-            if (lowBatteryThresholdActive) return; // Prevent high precision hardware if Battery Safe mode is active
-            
-            const gpsDot = document.getElementById("gpsDot");
-            const gpsText = document.getElementById("gpsText");
-
-            if (!navigator.geolocation) {
-                gpsText.textContent = "NO GPS HW";
-                return;
-            }
-
-            gpsWatchId = navigator.geolocation.watchPosition(
-                (pos) => {
-                    lastGeoposition.latitude = pos.coords.latitude;
-                    lastGeoposition.longitude = pos.coords.longitude;
-                    
-                    const acc = pos.coords.accuracy;
-                    if (acc <= 15) {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                        gpsText.textContent = `3D LOCK (${Math.round(acc)}m)`;
-                    } else {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
-                        gpsText.textContent = `WEAK (${Math.round(acc)}m)`;
-                    }
-                },
-                (err) => {
-                    gpsDot.className = "w-2 h-2 rounded-full bg-red-600 animate-pulse";
-                    if (err.code === 1) {
-                        gpsText.textContent = "DENIED";
-                    } else {
-                        gpsText.textContent = "SEARCHING";
-                    }
-                    lastGeoposition = { latitude: null, longitude: null };
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        }
-
         function logEntry(bib) {
             const bibInput = document.getElementById('bibInput');
             const remarkInput = document.getElementById('remarkInput');
@@ -668,6 +691,9 @@
             saveToDB(entry);
             bibInput.value = '';
             bibInput.focus();
+            
+            // Shut off GPS hardware immediately after saving
+            shutOffGPSHardware();
         }
 
         function saveToDB(entry) {
@@ -681,7 +707,6 @@
                 triggerInlineToast(entry.bib, "Saved Locally!", entry.remark, false);
                 if (navigator.vibrate) navigator.vibrate(50);
                 
-                // Request modern background sync or immediate fallback sync
                 requestBackgroundSync();
             };
         }
