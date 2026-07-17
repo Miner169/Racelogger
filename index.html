@@ -11,39 +11,39 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Theme Variables */
+        /* Theme Variables - Tuned for Legibility and Contrast */
         :root {
             --bg-color: #000000;         /* AMOLED Black */
             --panel-bg: #0a0a0a;         /* Deepest gray */
-            --text-main: #e5e5e5;        /* Light gray text */
-            --text-muted: #8e8e93;       /* Balanced muted gray */
-            --border-color: #262626;     /* Subtle dark border */
-            --input-bg: #000000;         /* Black inputs */
+            --text-main: #f5f5f7;        /* Highly legible crisp off-white */
+            --text-muted: #a1a1aa;       /* Clearly visible muted gray */
+            --border-color: #27272a;     /* Clear but subtle dark border */
+            --input-bg: #09090b;         /* Low-glare dark inputs */
             --input-text: #ffffff;
-            --input-placeholder: #555555;
-            --header-bg: #0c1a30;        /* Deep blue */
-            --header-border: #172554;
-            --header-text: #60a5fa;
-            --btn-lock-bg: #171717;
-            --btn-lock-text: #d4d4d4;
-            --btn-lock-border: #262626;
+            --input-placeholder: #71717a; /* Visible, accessible placeholder */
+            --header-bg: #0f172a;        /* Highly readable slate-blue */
+            --header-border: #1e293b;
+            --header-text: #60a5fa;      /* Vibrant blue for high dark-mode contrast */
+            --btn-lock-bg: #18181b;
+            --btn-lock-text: #e4e4e7;
+            --btn-lock-border: #27272a;
         }
 
         body.light-theme {
-            --bg-color: #d8d8dc;         /* Less bright, darker muted light gray */
-            --panel-bg: #eaeaea;         /* Soft warm gray instead of stark white */
-            --text-main: #000000;        /* Pure black text for maximum readability */
-            --text-muted: #333333;       /* Bold charcoal for legible labels and subtext */
-            --border-color: #a8a8af;     /* Highly visible borders */
-            --input-bg: #ebebef;         /* Soft off-white inputs with low glare */
-            --input-text: #000000;       /* Pure black input text */
-            --input-placeholder: #555555; /* Visible, high-contrast placeholder text */
-            --header-bg: #1e2e42;        /* Low-contrast dark slate blue */
-            --header-border: #2d3d52;
-            --header-text: #93c5fd;      
-            --btn-lock-bg: #dbdbdf;
-            --btn-lock-text: #000000;
-            --btn-lock-border: #92929a;
+            --bg-color: #f4f4f5;         /* Cleaner, softer light-gray background with zero glare */
+            --panel-bg: #ffffff;         /* Stark white panels for pristine separation */
+            --text-main: #111111;        /* Smooth, rich dark charcoal for maximum, fatigue-free reading */
+            --text-muted: #52525b;       /* Bold charcoal for highly legible labels */
+            --border-color: #d4d4d8;     /* Well-defined light borders */
+            --input-bg: #f4f4f5;         /* Soft light-gray input wells */
+            --input-text: #111111;       /* Crisp charcoal input text */
+            --input-placeholder: #71717a; /* Accessible, high-contrast placeholder */
+            --header-bg: #1e293b;        /* Professional dark slate header */
+            --header-border: #0f172a;
+            --header-text: #93c5fd;      /* Soft blue with great contrast on slate */
+            --btn-lock-bg: #e4e4e7;
+            --btn-lock-text: #111111;
+            --btn-lock-border: #a1a1aa;
         }
 
         /* Semantic Theme Mappings */
@@ -220,7 +220,7 @@
         let lastGeoposition = { latitude: null, longitude: null }; 
         let editingRowId = null; 
         
-        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
+        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
         if (!syncUrl || syncUrl.trim() === "" || syncUrl.includes("AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw")) {
@@ -658,6 +658,7 @@
             }
         }
 
+        // 300,000 ms = 5 minutes
         function isEditable(logTimeStr) {
             const logTime = new Date(logTimeStr);
             const now = new Date();
@@ -669,11 +670,13 @@
             loadHistory();
         }
 
+        // Cancel Edit
         function cancelEditing() {
             editingRowId = null;
             loadHistory();
         }
 
+        // Save Edited Data to indexedDB and Sync to Server
         function saveEdit(id) {
             const newBib = document.getElementById(`edit-bib-${id}`).value.trim();
             const newRemark = document.getElementById(`edit-remark-${id}`).value.trim();
@@ -773,7 +776,7 @@
                                     </div>
                                     <div class="text-[10px] theme-text-muted mt-0.5 font-semibold">${log.time} • By: ${log.volunteer}</div>
                                     ${remarkHTML}
-                                </div>
+                                }
                                 <div class="text-right flex items-center gap-2.5 shrink-0">
                                     <div class="flex flex-col items-end gap-1">
                                         <span class="text-[10px] ${log.synced ? 'text-emerald-600 dark:text-emerald-500 font-extrabold' : 'text-yellow-600 dark:text-yellow-500 font-extrabold'}">${log.synced ? 'Synced' : 'Queued'}</span>
