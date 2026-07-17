@@ -27,23 +27,25 @@
             --btn-lock-bg: #171717;
             --btn-lock-text: #d4d4d4;
             --btn-lock-border: #262626;
+            --bib-text-color: #d97706;   /* Rich amber/yellow for dark theme */
         }
 
         body.light-theme {
-            --bg-color: #d0d0d5;         /* Less bright, darker muted light gray */
-            --panel-bg: #e4e4e8;         /* Soft warm gray instead of stark white */
-            --text-main: #111111;        /* Pure black text for maximum readability */
-            --text-muted: #3a3a40;       /* Bold charcoal for legible labels and subtext */
-            --border-color: #97979f;     /* Highly visible borders */
-            --input-bg: #ececf0;         /* Soft off-white inputs with low glare */
+            --bg-color: #d0d0d5;         /* Darker muted light gray */
+            --panel-bg: #e4e4e8;         /* Soft warm gray */
+            --text-main: #111111;        /* Pure black text for readability */
+            --text-muted: #222225;       /* Muted text is now much darker */
+            --border-color: #7a7a82;     /* Highly visible borders */
+            --input-bg: #f3f3f6;         /* Bright light inputs */
             --input-text: #111111;       /* Pure black input text */
-            --input-placeholder: #606068; /* Visible, high-contrast placeholder text */
-            --header-bg: #243447;        /* Low-contrast dark slate blue */
-            --header-border: #31475d;
-            --header-text: #b7d3ff;      
-            --btn-lock-bg: #d7d7dd;
+            --input-placeholder: #4a4a50; /* Legible, high-contrast placeholder */
+            --header-bg: #1e293b;        /* Dark slate blue for high-contrast header */
+            --header-border: #0f172a;
+            --header-text: #38bdf8;      
+            --btn-lock-bg: #c7c7ce;
             --btn-lock-text: #111111;
-            --btn-lock-border: #8f8f97;
+            --btn-lock-border: #6b6b72;
+            --bib-text-color: #1e3a8a;   /* High-contrast dark blue for light theme (replaces hard-to-see yellow) */
         }
 
         /* Semantic Theme Mappings */
@@ -66,6 +68,7 @@
         .theme-header { background-color: var(--header-bg); border-color: var(--header-border); }
         .theme-header-text { color: var(--header-text); }
         .theme-btn-lock { background-color: var(--btn-lock-bg); border-color: var(--btn-lock-border); color: var(--btn-lock-text); }
+        .theme-bib-text { color: var(--bib-text-color); }
 
         html, body {
             overscroll-behavior-y: contain; /* Block pull-to-refresh on browsers */
@@ -172,7 +175,7 @@
             <div class="grid grid-cols-2 gap-2 text-center">
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Last Runner</span>
-                    <span id="splitLastRunner" class="font-extrabold text-orange-700 text-[13px]">-</span>
+                    <span id="splitLastRunner" class="font-extrabold text-orange-700 dark:text-orange-500 text-[13px]">-</span>
                 </div>
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Pacing Split Gap</span>
@@ -211,6 +214,15 @@
         <section class="flex flex-col gap-2">
             <button onclick="exportCSV()" class="w-full bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2">📥 Export & Download CSV</button>
         </section>
+
+        <!-- App Asset Recovery Tools -->
+        <section class="theme-panel p-3 rounded-xl border shadow-sm mt-1 flex flex-col gap-2 bg-neutral-900/10">
+            <h3 class="text-[9px] font-black theme-text-muted uppercase tracking-widest">🛠️ App Source Tools</h3>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="downloadIndexHtml()" class="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-bold py-2 rounded-lg transition shadow-sm">📄 index.html</button>
+                <button onclick="downloadServiceWorker()" class="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-bold py-2 rounded-lg transition shadow-sm">⚙️ sw.js</button>
+            </div>
+        </section>
     </main>
 
     <script>
@@ -219,8 +231,11 @@
         let inlineToastTimeout;
         let lastGeoposition = { latitude: null, longitude: null }; 
         let editingRowId = null; 
+        let isSyncing = false;
+        let historyIntervalId = null;
+        let gpsTimerId = null;
         
-        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
+        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
         if (!syncUrl || syncUrl.trim() === "" || syncUrl.includes("AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw")) {
@@ -314,13 +329,14 @@
                 day: 'numeric',
                 month: 'short',
                 year: 'numeric'
-            });
+            });[cite: 1]
         }
 
         function toggleTheme() {
             const isLight = document.body.classList.contains("light-theme");
             localStorage.setItem("theme", isLight ? "dark" : "light");
             applyTheme();
+            loadHistory(); // Force dynamic reload to switch CSS variables in runtime correctly
         }
 
         function getDeviceType() {
@@ -330,6 +346,18 @@
                 return /iPhone|iPod/i.test(ua) ? "iPhone" : "Android Mobile";
             }
             return "PC";
+        }
+
+        // Source Code Exporters
+        function downloadIndexHtml() {
+            const blob = new Blob(["<!DOCTYPE html>\n" + document.documentElement.outerHTML], { type: "text/html;charset=utf-8" });
+            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "index.html"; a.click();
+        }
+
+        function downloadServiceWorker() {
+            const content = `const CACHE_NAME = 'race-logger-v1';\nconst ASSETS = ['/', '/index.html', '/manifest.json'];\nself.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS))));\nself.addEventListener('activate', e => e.waitUntil(self.clients.claim()));\nself.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));`;
+            const blob = new Blob([content], { type: "application/javascript;charset=utf-8" });
+            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "sw.js"; a.click();
         }
 
         const dbRequest = indexedDB.open("RaceLoggerDB", 1);
@@ -345,12 +373,30 @@
             updateSyncStatusLabel();
             loadSettingsState();
             loadHistory();
-            startContinuousGPSWatch(); 
+            
+            // Initial positioning and 30 minutes battery saver interval execution
+            triggerBatterySavingGPSLock();
+            gpsTimerId = setInterval(triggerBatterySavingGPSLock, 1800000); // Trigger positioning every 30 minutes (1,800,000ms)
+
             updateQueueStatus(); 
             attemptSync();
             checkPwaDisplay(); 
             
-            setInterval(loadHistory, 15000);
+            historyIntervalId = setInterval(loadHistory, 15000);[cite: 3]
+            
+            // Robust event bindings to aggressively trigger database syncing whenever network connection/window state gets reactivated
+            window.addEventListener('online', attemptSync);
+            window.addEventListener('focus', attemptSync);
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) { 
+                    clearInterval(historyIntervalId); 
+                    historyIntervalId = null; 
+                } else { 
+                    historyIntervalId = setInterval(loadHistory, 15000);[cite: 3] 
+                    loadHistory(); 
+                    attemptSync(); 
+                }
+            });
         };
 
         function toggleSettings() {
@@ -484,7 +530,8 @@
             };
         }
 
-        function startContinuousGPSWatch() {
+        // --- 🔋 BATTERY-OPTIMIZED SINGLE POSITIONAL LOCK (EVERY 30 MINS) ---
+        function triggerBatterySavingGPSLock() {
             const gpsDot = document.getElementById("gpsDot");
             const gpsText = document.getElementById("gpsText");
 
@@ -493,30 +540,28 @@
                 return;
             }
 
-            navigator.geolocation.watchPosition(
+            gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
+            gpsText.textContent = "LOCKING...";
+
+            // Retrieve position and immediately close/disengage GPS hardware down
+            navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     lastGeoposition.latitude = pos.coords.latitude;
                     lastGeoposition.longitude = pos.coords.longitude;
                     
                     const acc = pos.coords.accuracy;
-                    if (acc <= 15) {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                        gpsText.textContent = `3D LOCK (${Math.round(acc)}m)`;
-                    } else {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
-                        gpsText.textContent = `WEAK (${Math.round(acc)}m)`;
-                    }
+                    gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+                    gpsText.textContent = `OK (${Math.round(acc)}m)`;
                 },
                 (err) => {
                     gpsDot.className = "w-2 h-2 rounded-full bg-red-600 animate-pulse";
                     if (err.code === 1) {
                         gpsText.textContent = "DENIED";
                     } else {
-                        gpsText.textContent = "SEARCHING";
+                        gpsText.textContent = "FAILED";
                     }
-                    lastGeoposition = { latitude: null, longitude: null };
                 },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
         }
 
@@ -569,7 +614,7 @@
                 loadHistory();
                 triggerInlineToast(entry.bib, "Saved Locally!", entry.remark, false);
                 if (navigator.vibrate) navigator.vibrate(50);
-                if (syncUrl) syncSingleRow(entry);
+                if (syncUrl) attemptSync();
             };
         }
 
@@ -593,57 +638,55 @@
             };
         }
 
-        function syncSingleRow(row) {
-            if (!syncUrl) return;
-
-            fetch(syncUrl, {
-                method: "POST",
-                mode: "cors",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify(row)
-            })
-            .then(async res => {
-                const text = await res.text();
-                let data;
-                try { data = JSON.parse(text); } catch(e) { 
-                    throw new Error("Invalid response style: " + text);
-                }
-                
-                if (data.status === "success") {
-                    row.synced = true;
-                    const transaction = db.transaction(["logs"], "readwrite");
-                    const store = transaction.objectStore("logs");
-                    store.put(row);
-                    transaction.oncomplete = function() { 
-                        loadHistory(); 
-                    };
-                } else {
-                    throw new Error(data.message || "Script execution error.");
-                }
-            })
-            .catch(err => {
-                console.error("Sync Failure:", err);
-                updateQueueStatus(); 
-            });
-        }
-
         function attemptSync() {
-            if (!syncUrl) return;
+            if (!syncUrl || isSyncing || !navigator.onLine) return;[cite: 3]
+            
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
             const request = store.getAll();
+            
             request.onsuccess = function() {
                 const logs = request.result;
                 const unsynced = logs.filter(log => !log.synced);
-                if (unsynced.length > 0) {
-                    unsynced.forEach(log => syncSingleRow(log));
-                } else {
+                if (unsynced.length === 0) {
                     updateQueueStatus();
+                    return;
                 }
+                
+                isSyncing = true;
+                
+                // Pack everything into a clean JSON array post
+                fetch(syncUrl, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({ action: "batch_sync", data: unsynced })
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status === "success") {
+                        const writeTx = db.transaction(["logs"], "readwrite");
+                        const writeStore = writeTx.objectStore("logs");
+                        unsynced.forEach(row => {
+                            row.synced = true;
+                            writeStore.put(row);
+                        });
+                        writeTx.oncomplete = () => {
+                            isSyncing = false;
+                            loadHistory();
+                        };
+                    } else {
+                        isSyncing = false;
+                        updateQueueStatus();
+                    }
+                })
+                .catch(err => {
+                    console.error("Batch Sync Failure:", err);
+                    isSyncing = false;
+                    updateQueueStatus();
+                });
             };
         }
-
-        window.addEventListener('online', attemptSync);
 
         function calculateLiveSplits(logs) {
             const splitLastRunner = document.getElementById("splitLastRunner");
@@ -725,12 +768,13 @@
                 transaction.oncomplete = function() {
                     editingRowId = null;
                     loadHistory();
-                    if (syncUrl) syncSingleRow(log);
+                    if (syncUrl) attemptSync();
                 };
             };
         }
 
         function loadHistory() {
+            if (document.hidden) return;[cite: 3]
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
             const request = store.getAll();
@@ -783,7 +827,7 @@
                             </div>
                         `;
                     } else {
-                        const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
+                        const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-700 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
                         
                         const editButtonHTML = editable 
@@ -794,7 +838,7 @@
                             <div class="flex justify-between items-center w-full">
                                 <div class="flex-grow">
                                     <div class="flex items-center gap-2">
-                                        <span class="text-xl font-black text-yellow-600 dark:text-yellow-500">${log.bib}</span>
+                                        <span class="text-xl font-black theme-bib-text">${log.bib}</span>
                                         ${freqBadge}
                                         <span class="text-[10px] bg-neutral-900 border border-neutral-850 px-1.5 py-0.5 rounded text-neutral-300 dark:text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
                                     </div>
