@@ -79,18 +79,11 @@
         <div class="flex items-center gap-2.5">
             <h1 class="text-base font-black tracking-wider theme-header-text">RACE LOG</h1>
             <span id="syncStatus" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">Auto-Sync</span>
-            <!-- Modified click handler to open the Inspector Modal -->
-            <button id="queueBadge" onclick="toggleQueueInspector()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
+            <button id="queueBadge" onclick="attemptSync()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
                 <span id="queueCount">0</span> Pending 🔄
             </button>
         </div>
         <div class="flex items-center gap-1.5">
-            <!-- 🔋 Native Battery Status Indicator Container -->
-            <div id="batteryIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2 py-0.5 rounded-full font-bold border border-neutral-800">
-                <span id="batteryIcon">🔋</span>
-                <span id="batteryText" class="text-neutral-400">--%</span>
-            </div>
-            <!-- GPS Status Indicator -->
             <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800 mr-1">
                 <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse" id="gpsDot"></span>
                 <span id="gpsText" class="text-neutral-400">GPS OFF</span>
@@ -99,37 +92,6 @@
             <button onclick="toggleSettings()" class="text-gray-300 hover:text-white text-lg p-1" title="Settings">⚙️</button>
         </div>
     </header>
-
-    <!-- Queue Inspector & Sync Progress Modal -->
-    <div id="queueModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
-        <div class="theme-panel p-5 rounded-2xl border w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-sm font-black uppercase tracking-wider theme-text">🔄 Queue Inspector</h3>
-                <button onclick="toggleQueueInspector()" class="text-neutral-400 hover:text-white text-sm font-bold px-2 py-1">✕ Close</button>
-            </div>
-
-            <!-- Sync Progress Bar Component -->
-            <div class="mb-4">
-                <div class="flex justify-between text-[11px] theme-text-muted mb-1 font-bold">
-                    <span>Sync Progress Status</span>
-                    <span id="syncProgressText">Idle</span>
-                </div>
-                <div class="w-full bg-neutral-900 rounded-full h-2.5 overflow-hidden border theme-border">
-                    <div id="syncProgressBar" class="bg-blue-600 h-full w-0 transition-all duration-300"></div>
-                </div>
-            </div>
-
-            <!-- Live Inspector List Container -->
-            <div class="flex-grow overflow-y-auto mb-4 border theme-border rounded-lg p-2 bg-black/40 min-h-[150px]" id="queueInspectorList">
-                <!-- Dynamically populated via JS execution -->
-            </div>
-
-            <div class="flex flex-col gap-2">
-                <button onclick="copyRawQueuePayload()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-bold py-2.5 rounded-lg transition">📋 Copy Raw Backup JSON Payload</button>
-                <button onclick="attemptSync()" class="w-full bg-blue-800 hover:bg-blue-700 text-white text-xs font-black py-2.5 rounded-lg transition uppercase tracking-wider">🔄 Force Immediate Batch Sync</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Settings Modal -->
     <div id="settingsModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
@@ -258,13 +220,6 @@
         let lastGeoposition = { latitude: null, longitude: null }; 
         let editingRowId = null; 
         
-        // Loop State Variables
-        let isSyncing = false;
-        let historyIntervalId = null;
-        let gpsWatchId = null;
-        let isLowBatteryModeActive = false;
-        let syncCycleDuration = 15000; // Default: 15 seconds
-        
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
@@ -380,149 +335,14 @@
             applyTheme(); 
             updateSyncStatusLabel();
             loadSettingsState();
-            
-            // Initiate Ecosystem Loops
-            initBatterySafeguards(); 
+            loadHistory();
+            startContinuousGPSWatch(); 
             updateQueueStatus(); 
             attemptSync();
             checkPwaDisplay(); 
             
-            startHistoryInterval();
-            
-            window.addEventListener('online', attemptSync);
-            window.addEventListener('focus', attemptSync);
-            document.addEventListener("visibilitychange", () => {
-                if (document.hidden) {
-                    stopHistoryInterval();
-                } else {
-                    startHistoryInterval();
-                    loadHistory();
-                    attemptSync();
-                }
-            });
+            setInterval(loadHistory, 15000);
         };
-
-        // --- 🔋 BATTERY SAFEGUARDS SYSTEM ---
-        function initBatterySafeguards() {
-            if ('getBattery' in navigator) {
-                navigator.getBattery().then(battery => {
-                    updateBatteryStatus(battery);
-                    battery.addEventListener('levelchange', () => updateBatteryStatus(battery));
-                    battery.addEventListener('chargingchange', () => updateBatteryStatus(battery));
-                }).catch(() => {
-                    document.getElementById("batteryText").textContent = "N/A";
-                    startContinuousGPSWatch(); 
-                });
-            } else {
-                document.getElementById("batteryText").textContent = "N/A";
-                startContinuousGPSWatch(); 
-            }
-        }
-
-        function updateBatteryStatus(battery) {
-            const level = Math.round(battery.level * 100);
-            const isCharging = battery.charging;
-            
-            const batteryText = document.getElementById("batteryText");
-            const batteryIcon = document.getElementById("batteryIcon");
-            
-            batteryText.textContent = `${level}%${isCharging ? ' ⚡' : ''}`;
-            
-            // Threshold configuration: Critical boundary underneath 15%
-            if (level < 15 && !isCharging) {
-                if (!isLowBatteryModeActive) {
-                    isLowBatteryModeActive = true;
-                    batteryText.className = "text-red-500 font-extrabold animate-pulse";
-                    batteryIcon.textContent = "🪫";
-                    
-                    // Safeguard 1: Terminate high-drain hardware execution loop completely
-                    stopContinuousGPSWatch();
-                    document.getElementById("gpsDot").className = "w-2 h-2 rounded-full bg-red-700";
-                    document.getElementById("gpsText").textContent = "BATT_OFF";
-                    lastGeoposition = { latitude: null, longitude: null }; 
-
-                    // Safeguard 2: Throttle cellular transmission network cycle frequency to 1 minute
-                    syncCycleDuration = 60000;
-                    startHistoryInterval();
-                    
-                    alert("⚠️ Critical Power Saving Mode: Battery is below 15%. High-accuracy GPS hardware has been fully disabled and server transmission loops reduced to 1-minute intervals to conserve juice.");
-                }
-            } else {
-                if (isLowBatteryModeActive) {
-                    isLowBatteryModeActive = false;
-                    batteryText.className = "text-neutral-400";
-                    batteryIcon.textContent = "🔋";
-                    
-                    // Recover back to high performance 15-second synchronization cycles
-                    syncCycleDuration = 15000;
-                    startHistoryInterval();
-                    
-                    // Re-enable real-time continuous GPS stream
-                    startContinuousGPSWatch();
-                }
-            }
-        }
-
-        function startContinuousGPSWatch() {
-            stopContinuousGPSWatch();
-            if (isLowBatteryModeActive) return; // Block GPS hardware wake states in low power
-
-            const gpsDot = document.getElementById("gpsDot");
-            const gpsText = document.getElementById("gpsText");
-
-            if (!navigator.geolocation) {
-                gpsText.textContent = "NO GPS HW";
-                return;
-            }
-
-            gpsDot.className = "w-2 h-2 rounded-full bg-yellow-650 animate-pulse";
-            gpsText.textContent = "SEARCHING";
-
-            gpsWatchId = navigator.geolocation.watchPosition(
-                (pos) => {
-                    lastGeoposition.latitude = pos.coords.latitude;
-                    lastGeoposition.longitude = pos.coords.longitude;
-                    
-                    const acc = pos.coords.accuracy;
-                    if (acc <= 15) {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                        gpsText.textContent = `3D LOCK (${Math.round(acc)}m)`;
-                    } else {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
-                        gpsText.textContent = `WEAK (${Math.round(acc)}m)`;
-                    }
-                },
-                (err) => {
-                    gpsDot.className = "w-2 h-2 rounded-full bg-red-600 animate-pulse";
-                    gpsText.textContent = err.code === 1 ? "DENIED" : "SEARCHING";
-                    lastGeoposition = { latitude: null, longitude: null };
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        }
-
-        function stopContinuousGPSWatch() {
-            if (gpsWatchId !== null) {
-                navigator.geolocation.clearWatch(gpsWatchId);
-                gpsWatchId = null;
-            }
-        }
-
-        function startHistoryInterval() {
-            stopHistoryInterval();
-            loadHistory();
-            historyIntervalId = setInterval(() => {
-                loadHistory();
-                attemptSync();
-            }, syncCycleDuration);
-        }
-
-        function stopHistoryInterval() {
-            if (historyIntervalId) {
-                clearInterval(historyIntervalId);
-                historyIntervalId = null;
-            }
-        }
 
         function toggleSettings() {
             const modal = document.getElementById("settingsModal");
@@ -627,13 +447,10 @@
             remarkLabel.textContent = "Remark (Optional)";
         }
 
-        // --- 🎯 CHECKPOINT-SPECIFIC DUPLICATE VERIFICATION ---
         function checkDuplicateAndLog() {
             const bibInput = document.getElementById('bibInput');
             const bib = bibInput.value.trim();
             if (!bib) return;
-
-            const currentCheckpoint = (document.getElementById('checkpoint').value.trim() || 'Unknown').toUpperCase();
 
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
@@ -642,21 +459,51 @@
             request.onsuccess = function() {
                 const logs = request.result;
                 const now = new Date();
-                
-                // Isolation constraint checking rules match ONLY on matching location contexts
-                const duplicate = logs.find(log => {
-                    return log.bib === bib && 
-                           log.checkpoint === currentCheckpoint && 
-                           (now - new Date(log.time)) < 600000;
-                });
+                const duplicate = logs.find(log => log.bib === bib && (now - new Date(log.time)) < 600000);
 
-                if (duplicate && !confirm(`⚠️ Bib ${bib} was recorded here at ${currentCheckpoint} within 10 minutes. Duplicate record entry anyway?`)) {
+                if (duplicate && !confirm(`⚠️ Bib ${bib} was logged recently. Log again?`)) {
                     bibInput.value = '';
                     bibInput.focus();
                 } else {
                     logEntry(bib);
                 }
             };
+        }
+
+        function startContinuousGPSWatch() {
+            const gpsDot = document.getElementById("gpsDot");
+            const gpsText = document.getElementById("gpsText");
+
+            if (!navigator.geolocation) {
+                gpsText.textContent = "NO GPS HW";
+                return;
+            }
+
+            navigator.geolocation.watchPosition(
+                (pos) => {
+                    lastGeoposition.latitude = pos.coords.latitude;
+                    lastGeoposition.longitude = pos.coords.longitude;
+                    
+                    const acc = pos.coords.accuracy;
+                    if (acc <= 15) {
+                        gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+                        gpsText.textContent = `3D LOCK (${Math.round(acc)}m)`;
+                    } else {
+                        gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
+                        gpsText.textContent = `WEAK (${Math.round(acc)}m)`;
+                    }
+                },
+                (err) => {
+                    gpsDot.className = "w-2 h-2 rounded-full bg-red-600 animate-pulse";
+                    if (err.code === 1) {
+                        gpsText.textContent = "DENIED";
+                    } else {
+                        gpsText.textContent = "SEARCHING";
+                    }
+                    lastGeoposition = { latitude: null, longitude: null };
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
         }
 
         function logEntry(bib) {
@@ -696,10 +543,7 @@
                 loadHistory();
                 triggerInlineToast(entry.bib, "Saved Locally!", entry.remark, false);
                 if (navigator.vibrate) navigator.vibrate(50);
-                if (syncUrl) {
-                    attemptSync();
-                    registerBackgroundSync(); 
-                }
+                if (syncUrl) syncSingleRow(entry);
             };
         }
 
@@ -723,172 +567,57 @@
             };
         }
 
-        // --- 🔍 INTERACTIVE QUEUE INSPECTOR MODAL INTERFACES ---
-        function toggleQueueInspector() {
-            const modal = document.getElementById("queueModal");
-            const isHidden = modal.classList.contains("hidden");
-            
-            if (isHidden) {
-                modal.classList.remove("hidden");
-                renderQueueList();
-            } else {
-                modal.classList.add("hidden");
-            }
-        }
+        function syncSingleRow(row) {
+            if (!syncUrl) return;
 
-        function renderQueueList() {
-            const listEl = document.getElementById("queueInspectorList");
-            const transaction = db.transaction(["logs"], "readonly");
-            const request = transaction.objectStore("logs").getAll();
-
-            request.onsuccess = function() {
-                const logs = request.result;
-                const unsynced = logs.filter(log => !log.synced);
-                
-                listEl.innerHTML = "";
-                if (unsynced.length === 0) {
-                    listEl.innerHTML = `<div class="text-xs text-neutral-500 font-bold p-4 text-center">Queue empty. Ready for transmission!</div>`;
-                    return;
+            fetch(syncUrl, {
+                method: "POST",
+                mode: "cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify(row)
+            })
+            .then(async res => {
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch(e) { 
+                    throw new Error("Invalid response style: " + text);
                 }
-
-                unsynced.forEach(log => {
-                    const el = document.createElement("div");
-                    el.className = "flex justify-between items-center border-b border-neutral-900 py-2 text-xs";
-                    el.innerHTML = `
-                        <div class="flex-grow">
-                            <span class="font-extrabold text-yellow-500">Bib ${log.bib}</span>
-                            <span class="text-[9px] text-neutral-400 ml-2 font-mono">[${log.checkpoint}]</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-[9px] text-neutral-500 font-mono">${log.time.split(' ')[1] || ''}</span>
-                            <button onclick="deleteQueueRow(${log.id})" class="text-red-500 font-bold hover:text-red-400 px-1">✕</button>
-                        </div>
-                    `;
-                    listEl.appendChild(el);
-                });
-            };
-        }
-
-        function deleteQueueRow(id) {
-            if (!confirm("Remove this log record permanently from outbound sync engines?")) return;
-            const transaction = db.transaction(["logs"], "readwrite");
-            transaction.objectStore("logs").delete(id);
-            transaction.oncomplete = function() {
-                renderQueueList();
-                loadHistory();
-                registerBackgroundSync();
-            };
-        }
-
-        function copyRawQueuePayload() {
-            const transaction = db.transaction(["logs"], "readonly");
-            const request = transaction.objectStore("logs").getAll();
-
-            request.onsuccess = function() {
-                const logs = request.result;
-                const unsynced = logs.filter(log => !log.synced);
                 
-                if (unsynced.length === 0) {
-                    alert("No pending queue array payload constructs found!");
-                    return;
+                if (data.status === "success") {
+                    row.synced = true;
+                    const transaction = db.transaction(["logs"], "readwrite");
+                    const store = transaction.objectStore("logs");
+                    store.put(row);
+                    transaction.oncomplete = function() { 
+                        loadHistory(); 
+                    };
+                } else {
+                    throw new Error(data.message || "Script execution error.");
                 }
-
-                const payload = JSON.stringify({ action: "batch_sync", data: unsynced }, null, 2);
-                navigator.clipboard.writeText(payload).then(() => {
-                    alert("📋 Raw background sync JSON payload array copied onto clip memory stack successfully!");
-                }).catch(() => {
-                    alert("Platform clipboard write failure error mapping elements.");
-                });
-            };
+            })
+            .catch(err => {
+                console.error("Sync Failure:", err);
+                updateQueueStatus(); 
+            });
         }
 
-        // --- 📊 TRANSMISSION SYSTEM & SYNC PROGRESS BAR ---
         function attemptSync() {
-            if (!syncUrl || isSyncing || !navigator.onLine) return;
-            
+            if (!syncUrl) return;
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
             const request = store.getAll();
-            
             request.onsuccess = function() {
                 const logs = request.result;
                 const unsynced = logs.filter(log => !log.synced);
-                if (unsynced.length === 0) {
+                if (unsynced.length > 0) {
+                    unsynced.forEach(log => syncSingleRow(log));
+                } else {
                     updateQueueStatus();
-                    return;
                 }
-                
-                isSyncing = true;
-                
-                const progressText = document.getElementById("syncProgressText");
-                const progressBar = document.getElementById("syncProgressBar");
-                
-                progressText.textContent = `Syncing batch (${unsynced.length})...`;
-                progressText.className = "text-blue-500 font-bold animate-pulse";
-                progressBar.style.width = "40%"; 
-                
-                // Execution framework wraps complete pending structural payload groups down into singular transmissions
-                fetch(syncUrl, {
-                    method: "POST",
-                    mode: "cors",
-                    headers: { "Content-Type": "text/plain" },
-                    body: JSON.stringify({ action: "batch_sync", data: unsynced })
-                })
-                .then(res => res.json())
-                .then(res => {
-                    if (res.status === "success") {
-                        progressBar.style.width = "100%";
-                        progressText.textContent = "Data Synced!";
-                        progressText.className = "text-emerald-500 font-bold";
-                        
-                        const writeTx = db.transaction(["logs"], "readwrite");
-                        const writeStore = writeTx.objectStore("logs");
-                        unsynced.forEach(row => {
-                            row.synced = true;
-                            writeStore.put(row);
-                        });
-                        writeTx.oncomplete = () => {
-                            isSyncing = false;
-                            loadHistory();
-                            renderQueueList();
-                            
-                            setTimeout(() => {
-                                progressBar.style.width = "0%";
-                                progressText.textContent = "Idle";
-                                progressText.className = "theme-text-muted";
-                            }, 1500);
-                        };
-                    } else {
-                        isSyncing = false;
-                        updateQueueStatus();
-                        progressBar.style.width = "0%";
-                        progressText.textContent = "Rejected";
-                        progressText.className = "text-red-500 font-bold";
-                    }
-                })
-                .catch(err => {
-                    console.error("Transmission connection failure error:", err);
-                    isSyncing = false;
-                    updateQueueStatus();
-                    progressBar.style.width = "0%";
-                    progressText.textContent = "Network Offline";
-                    progressText.className = "text-red-400 font-bold";
-                });
             };
         }
 
-        // --- 🌀 SERVICE WORKER BACKGROUND SYNC REGISTRATION ---
-        function registerBackgroundSync() {
-            if ('serviceWorker' in navigator && 'SyncManager' in window) {
-                navigator.serviceWorker.ready.then(reg => {
-                    return reg.sync.register('sync-logs');[cite: 3]
-                }).then(() => {
-                    console.log('Native service background sync task successfully locked down.');
-                }).catch(err => {
-                    console.error('Background sync engine registration failure error:', err);
-                });
-            }
-        }
+        window.addEventListener('online', attemptSync);
 
         function calculateLiveSplits(logs) {
             const splitLastRunner = document.getElementById("splitLastRunner");
@@ -969,16 +698,12 @@
                 transaction.oncomplete = function() {
                     editingRowId = null;
                     loadHistory();
-                    if (syncUrl) {
-                        attemptSync();
-                        registerBackgroundSync(); 
-                    }
+                    if (syncUrl) syncSingleRow(log);
                 };
             };
         }
 
         function loadHistory() {
-            if (document.hidden) return;
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
             const request = store.getAll();
@@ -1076,19 +801,13 @@
             }
             const transaction = db.transaction(["logs"], "readwrite");
             transaction.objectStore("logs").delete(id);
-            transaction.oncomplete = function() { 
-                loadHistory(); 
-                registerBackgroundSync();
-            };
+            transaction.oncomplete = function() { loadHistory(); };
         }
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(reg => {
-                        console.log('Service Worker Registered Successfully', reg.scope);
-                        registerBackgroundSync();
-                    })
+                    .then(reg => console.log('Service Worker Registered Successfully', reg.scope))
                     .catch(err => console.log('Service Worker Registration Failed:', err));
             });
         }
