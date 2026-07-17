@@ -174,7 +174,7 @@
             <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
             <div class="flex gap-3 items-stretch">
                 <div class="flex-grow">
-                    <!-- Added onfocus and oninput listeners to dynamically "warm up" GPS -->
+                    <!-- Trigger low-power warm-up on focus or keyboard input -->
                     <input type="tel" id="bibInput" onfocus="warmUpGPS()" oninput="warmUpGPS()" inputmode="numeric" pattern="[0-9]*" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl px-2 focus:outline-none focus:border-blue-900 transition">
                 </div>
                 <button onclick="checkDuplicateAndLog()" class="bg-blue-800 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-lg px-6 rounded-xl shadow-lg transition duration-150 flex items-center justify-center">LOG</button>
@@ -253,7 +253,9 @@
         let db;
         let isSetupLocked = false;
         let inlineToastTimeout;
-        let lastGeoposition = { latitude: null, longitude: null }; 
+        
+        // Cache structure holding position details and accurate JS milliseconds timestamp
+        let lastGeoposition = { latitude: null, longitude: null, timestamp: 0 }; 
         let editingRowId = null; 
         
         // Dynamic settings
@@ -339,13 +341,12 @@
             lowBatteryThresholdActive = true;
             document.getElementById('batteryIndicator').className = "flex items-center gap-1 text-[10px] bg-red-950 text-red-400 px-2 py-0.5 rounded-full font-bold border border-red-800";
             
-            // Shuts off all warmups during safe mode to preserve critical energy
+            // Shut off warm-ups entirely during emergency battery reserve
             shutOffGPSHardware();
             
-            // Reduces background upload requests
             syncIntervalMs = 60000;
             resetSyncTimer();
-            console.log("Battery Safeguard Active: GPS Warmup completely disabled. Sync set to 1 minute.");
+            console.log("Battery Safeguard Active: GPS disabled. Sync rate limited to 1 minute.");
         }
 
         function deactivateBatterySafeMode() {
@@ -361,20 +362,27 @@
             syncTimerId = setInterval(loadHistory, syncIntervalMs);
         }
 
-        // --- 🎯 SMART BATTERY-SAVING GPS MECHANISM ---
-        // Shuts down the hardware entirely when not in use
+        // --- 🎯 SMART LOW-POWER CACHED GPS MECHANISM ---
         function warmUpGPS() {
-            if (lowBatteryThresholdActive) return; // Stay off completely on critical battery
+            if (lowBatteryThresholdActive) return; 
 
             const gpsDot = document.getElementById("gpsDot");
             const gpsText = document.getElementById("gpsText");
 
-            // Reset the inactivity timer every time a user types or interacts
             if (gpsWarmupTimeout) clearTimeout(gpsWarmupTimeout);
 
             if (!navigator.geolocation) {
                 gpsText.textContent = "NO GPS HW";
                 return;
+            }
+
+            // ⏱️ 10-Minute Cache Bypass check (600,000 milliseconds)
+            const cacheAgeMs = Date.now() - lastGeoposition.timestamp;
+            if (lastGeoposition.latitude !== null && cacheAgeMs < 600000) {
+                const minutesOld = Math.floor(cacheAgeMs / 60000);
+                gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+                gpsText.textContent = `CACHED (${minutesOld}m old)`;
+                return; // Skips calling geolocation hardware completely
             }
 
             if (!isGpsHardwareRunning) {
@@ -383,20 +391,16 @@
                 gpsText.textContent = "WARMING UP...";
             }
 
-            // Request location with cached validation
+            // Request location fix with LOW POWER specifications (enableHighAccuracy: false)
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     lastGeoposition.latitude = pos.coords.latitude;
                     lastGeoposition.longitude = pos.coords.longitude;
+                    lastGeoposition.timestamp = Date.now();
                     
                     const acc = pos.coords.accuracy;
-                    if (acc <= 15) {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                        gpsText.textContent = `3D LOCK (${Math.round(acc)}m)`;
-                    } else {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
-                        gpsText.textContent = `WEAK (${Math.round(acc)}m)`;
-                    }
+                    gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+                    gpsText.textContent = `LP FIX (${Math.round(acc)}m)`;
                 },
                 (err) => {
                     gpsDot.className = "w-2 h-2 rounded-full bg-red-600";
@@ -407,13 +411,13 @@
                     }
                 },
                 { 
-                    enableHighAccuracy: true, 
+                    enableHighAccuracy: false, // Disables active satellite array lookup (conserves massive battery)
                     timeout: 8000, 
-                    maximumAge: 5000 // Returns quickly if position was queried within 5 seconds
+                    maximumAge: 600000         // Matches our 10 min threshold logic inside browser internal cache
                 }
             );
 
-            // Shuts off GPS hardware automatically after 10 seconds of keyboard inactivity
+            // Turn off GPS operational lights automatically after 10 seconds of keyboard inactivity
             gpsWarmupTimeout = setTimeout(shutOffGPSHardware, 10000);
         }
 
@@ -424,8 +428,15 @@
             const gpsDot = document.getElementById("gpsDot");
             const gpsText = document.getElementById("gpsText");
             
-            gpsDot.className = "w-2 h-2 rounded-full bg-red-600";
-            gpsText.textContent = lowBatteryThresholdActive ? "SAVER ACTIVE" : "GPS SLEEP";
+            // If we have a fresh valid location, display green sleeping status
+            const cacheAgeMs = Date.now() - lastGeoposition.timestamp;
+            if (lastGeoposition.latitude !== null && cacheAgeMs < 600000) {
+                gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+                gpsText.textContent = "GPS READY";
+            } else {
+                gpsDot.className = "w-2 h-2 rounded-full bg-red-600";
+                gpsText.textContent = lowBatteryThresholdActive ? "SAVER ACTIVE" : "GPS SLEEP";
+            }
         }
 
         // --- PWA INSTRUCTIONS ---
@@ -623,7 +634,6 @@
             const bib = bibInput.value.trim();
             if (!bib) return;
 
-            // --- 🛑 MANDATORY SETUP CHECK ---
             const cpInput = document.getElementById('checkpoint');
             const volInput = document.getElementById('volunteer');
             const cpVal = cpInput.value.trim();
@@ -692,7 +702,7 @@
             bibInput.value = '';
             bibInput.focus();
             
-            // Shut off GPS hardware immediately after saving
+            // Soft-sleep indicators after logging
             shutOffGPSHardware();
         }
 
@@ -832,9 +842,9 @@
                 navigator.serviceWorker.ready.then(reg => {
                     return reg.sync.register('sync-logs');
                 }).then(() => {
-                    console.log('Standard Background Sync Registered Successfully.');
+                    console.log('Standard Background Sync Registered.');
                 }).catch(err => {
-                    console.warn('Background sync registration failed, fallback to direct sync.', err);
+                    console.warn('Background sync failed, fallback to direct.', err);
                     if (syncUrl) attemptSync();
                 });
             } else {
