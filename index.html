@@ -174,7 +174,6 @@
             <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
             <div class="flex gap-3 items-stretch">
                 <div class="flex-grow">
-                    <!-- Trigger low-power warm-up on focus or keyboard input -->
                     <input type="tel" id="bibInput" onfocus="warmUpGPS()" oninput="warmUpGPS()" inputmode="numeric" pattern="[0-9]*" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl px-2 focus:outline-none focus:border-blue-900 transition">
                 </div>
                 <button onclick="checkDuplicateAndLog()" class="bg-blue-800 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-lg px-6 rounded-xl shadow-lg transition duration-150 flex items-center justify-center">LOG</button>
@@ -240,7 +239,15 @@
                     <input type="text" id="searchBar" oninput="loadHistory()" placeholder="🔍 Search Bib, CP, Volunteer, Remark..." class="w-full theme-input border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-900">
                 </div>
             </div>
-            <div id="logList" class="overflow-y-auto flex-grow divide-y theme-border max-h-[300px]"></div>
+            <div class="overflow-y-auto flex-grow flex flex-col max-h-[350px]">
+                <div id="logList" class="divide-y theme-border"></div>
+                <!-- Interactive Button at the bottom of history -->
+                <div id="showAllWrapper" class="p-3 text-center border-t theme-border hidden">
+                    <button id="showAllBtn" onclick="forceShowAllLogs()" class="text-xs font-black text-blue-500 hover:text-blue-400 transition tracking-wide uppercase px-4 py-1.5 rounded bg-neutral-950 border border-neutral-900">
+                        Show All Logs (<span id="hiddenLogsCount">0</span> Hidden) ↓
+                    </button>
+                </div>
+            </div>
         </section>
 
         <!-- Export -->
@@ -254,20 +261,21 @@
         let isSetupLocked = false;
         let inlineToastTimeout;
         
-        // Cache structure holding position details and accurate JS milliseconds timestamp
         let lastGeoposition = { latitude: null, longitude: null, timestamp: 0 }; 
         let editingRowId = null; 
+        let forceDisplayAll = false; // Flag for "Show All Logs" override
         
         // Dynamic settings
         let syncIntervalMs = 15000; 
         let syncTimerId = null;
         let lowBatteryThresholdActive = false;
 
-        // GPS Safe Warmup Handlers
+        // GPS Safe Warmup Handlers with Debounce Safeguards
         let gpsWarmupTimeout = null;
         let isGpsHardwareRunning = false;
+        let lastGpsQueryTime = 0; // Tracks query timestamps to enforce the 10s debounce lock
 
-        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
+        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
         if (!syncUrl || syncUrl.trim() === "" || syncUrl.includes("AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw")) {
@@ -341,7 +349,6 @@
             lowBatteryThresholdActive = true;
             document.getElementById('batteryIndicator').className = "flex items-center gap-1 text-[10px] bg-red-950 text-red-400 px-2 py-0.5 rounded-full font-bold border border-red-800";
             
-            // Shut off warm-ups entirely during emergency battery reserve
             shutOffGPSHardware();
             
             syncIntervalMs = 60000;
@@ -362,7 +369,7 @@
             syncTimerId = setInterval(loadHistory, syncIntervalMs);
         }
 
-        // --- 🎯 SMART LOW-POWER CACHED GPS MECHANISM ---
+        // --- 🎯 SMART LOW-POWER DEBOUNCED GPS MECHANISM ---
         function warmUpGPS() {
             if (lowBatteryThresholdActive) return; 
 
@@ -376,14 +383,22 @@
                 return;
             }
 
-            // ⏱️ 10-Minute Cache Bypass check (600,000 milliseconds)
-            const cacheAgeMs = Date.now() - lastGeoposition.timestamp;
+            const now = Date.now();
+
+            // ⏱️ 10-Minute Cache Bypass Check
+            const cacheAgeMs = now - lastGeoposition.timestamp;
             if (lastGeoposition.latitude !== null && cacheAgeMs < 600000) {
                 const minutesOld = Math.floor(cacheAgeMs / 60000);
                 gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
                 gpsText.textContent = `CACHED (${minutesOld}m old)`;
-                return; // Skips calling geolocation hardware completely
+                return; 
             }
+
+            // 🛑 DEBOUNCE BLOCKER (Enforce maximum 1 request per 10 seconds)
+            if (now - lastGpsQueryTime < 10000) {
+                return; // Suppress redundant API requests
+            }
+            lastGpsQueryTime = now;
 
             if (!isGpsHardwareRunning) {
                 isGpsHardwareRunning = true;
@@ -391,7 +406,7 @@
                 gpsText.textContent = "WARMING UP...";
             }
 
-            // Request location fix with LOW POWER specifications (enableHighAccuracy: false)
+            // Request low-power location coordinates
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     lastGeoposition.latitude = pos.coords.latitude;
@@ -411,13 +426,12 @@
                     }
                 },
                 { 
-                    enableHighAccuracy: false, // Disables active satellite array lookup (conserves massive battery)
+                    enableHighAccuracy: false, // Low power network & cell location mode
                     timeout: 8000, 
-                    maximumAge: 600000         // Matches our 10 min threshold logic inside browser internal cache
+                    maximumAge: 600000         
                 }
             );
 
-            // Turn off GPS operational lights automatically after 10 seconds of keyboard inactivity
             gpsWarmupTimeout = setTimeout(shutOffGPSHardware, 10000);
         }
 
@@ -428,7 +442,6 @@
             const gpsDot = document.getElementById("gpsDot");
             const gpsText = document.getElementById("gpsText");
             
-            // If we have a fresh valid location, display green sleeping status
             const cacheAgeMs = Date.now() - lastGeoposition.timestamp;
             if (lastGeoposition.latitude !== null && cacheAgeMs < 600000) {
                 gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
@@ -640,7 +653,7 @@
             const volVal = volInput.value.trim();
 
             if (!cpVal || !volVal) {
-                alert("⚠️ Setup incomplete! Please fill out the Checkpoint Name and Volunteer Initials under '1. Setup' before logging any bib entries.");
+                alert("⚠️ Setup incomplete! Please fill out Checkpoint and Volunteer fields first.");
                 if (isSetupLocked) {
                     toggleLock(); 
                 }
@@ -660,7 +673,6 @@
                 const logs = request.result;
                 const now = new Date();
                 
-                // --- 📍 CHECKPOINT-SPECIFIC DUPLICATE CHECK ---
                 const duplicate = logs.find(log => 
                     log.bib === bib && 
                     log.checkpoint.toUpperCase() === cpVal.toUpperCase() && 
@@ -702,7 +714,6 @@
             bibInput.value = '';
             bibInput.focus();
             
-            // Soft-sleep indicators after logging
             shutOffGPSHardware();
         }
 
@@ -752,7 +763,6 @@
             };
         }
 
-        // --- 📊 RENDER QUEUE INSPECTOR LIST ---
         function renderQueueInspectorList(pendingLogs) {
             const inspectorList = document.getElementById("inspectorList");
             inspectorList.innerHTML = '';
@@ -808,19 +818,58 @@
             });
         }
 
+        // --- ⚡ UPGRADED NETWORK BATCHING ENGINE ---
         function attemptSync() {
             if (!syncUrl) return;
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
             const request = store.getAll();
+            
             request.onsuccess = function() {
                 const logs = request.result;
                 const unsynced = logs.filter(log => !log.synced);
-                if (unsynced.length > 0) {
-                    unsynced.forEach(log => syncSingleRow(log));
-                } else {
+                if (unsynced.length === 0) {
                     updateQueueStatus();
+                    return;
                 }
+
+                console.log(`Starting Batch Upload for ${unsynced.length} records...`);
+                
+                // Bundle array payload & fire one unified POST request
+                fetch(syncUrl, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify(unsynced)
+                })
+                .then(async res => {
+                    const text = await res.text();
+                    let data;
+                    try { data = JSON.parse(text); } catch(e) { 
+                        throw new Error("Payload parse error: " + text);
+                    }
+                    
+                    if (data.status === "success") {
+                        const writeTransaction = db.transaction(["logs"], "readwrite");
+                        const writeStore = writeTransaction.objectStore("logs");
+                        
+                        unsynced.forEach(log => {
+                            log.synced = true;
+                            writeStore.put(log);
+                        });
+
+                        writeTransaction.oncomplete = function() {
+                            loadHistory();
+                            console.log("Successfully batch synchronized logs!");
+                        };
+                    } else {
+                        throw new Error(data.message || "Failed execution on script server.");
+                    }
+                })
+                .catch(err => {
+                    console.error("Batch Sync Outage:", err);
+                    updateQueueStatus();
+                });
             };
         }
 
@@ -864,7 +913,6 @@
 
             const sorted = [...logs].sort((a, b) => new Date(a.time) - new Date(b.time));
             
-            // Render last 3 runners in reverse order
             const last3Logs = sorted.slice(-3).reverse();
             const last3Bibs = last3Logs.map(log => log.bib).join(', ');
             splitLastRunner.textContent = last3Bibs;
@@ -939,6 +987,13 @@
             };
         }
 
+        // Action function for the bottom-most list override button
+        function forceShowAllLogs() {
+            forceDisplayAll = true;
+            loadHistory();
+        }
+
+        // --- ⚡ INCREMENTAL DOM RENDERING ENGINE (VIRTUAL HISTORY) ---
         function loadHistory() {
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
@@ -960,14 +1015,24 @@
                 const logList = document.getElementById('logList');
                 logList.innerHTML = '';
 
-                [...logs].reverse().filter(log => {
+                // Filter logs based on search criteria
+                const filteredLogs = [...logs].reverse().filter(log => {
                     const bibMatch = log.bib.toLowerCase().includes(searchQuery);
                     const cpMatch = log.checkpoint.toLowerCase().includes(searchQuery);
                     const volMatch = log.volunteer.toLowerCase().includes(searchQuery);
                     const remarkMatch = log.remark && log.remark.toLowerCase().includes(searchQuery);
                     
                     return bibMatch || cpMatch || volMatch || remarkMatch;
-                }).forEach(log => {
+                });
+
+                const totalFilteredCount = filteredLogs.length;
+                
+                // Determine layout restriction: Limit to last 50, unless performing a search query or "Show All" is clicked
+                const isUnderSearch = searchQuery.length > 0;
+                const finalRenderList = (isUnderSearch || forceDisplayAll) ? filteredLogs : filteredLogs.slice(0, 50);
+
+                // Render dynamic elements
+                finalRenderList.forEach(log => {
                     const row = document.createElement('div');
                     row.className = 'px-4 py-3 flex flex-col justify-center hover:bg-neutral-500/10 border-b theme-border';
                     
@@ -1022,6 +1087,17 @@
                     }
                     logList.appendChild(row);
                 });
+
+                // --- ↕️ MANAGE BOTTOM SHOW ALL OVERLAY TRIGGER ---
+                const showAllWrapper = document.getElementById("showAllWrapper");
+                const hiddenLogsCount = document.getElementById("hiddenLogsCount");
+                
+                if (totalFilteredCount > 50 && !isUnderSearch && !forceDisplayAll) {
+                    showAllWrapper.classList.remove("hidden");
+                    hiddenLogsCount.textContent = totalFilteredCount - 50;
+                } else {
+                    showAllWrapper.classList.add("hidden");
+                }
             };
         }
 
