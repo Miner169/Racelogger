@@ -186,7 +186,7 @@
             <h2 class="text-[9px] font-extrabold theme-text-muted uppercase tracking-widest flex items-center gap-1">⏱️ Live Split Calculator</h2>
             <div class="grid grid-cols-2 gap-2 text-center">
                 <div class="theme-input py-1 px-2 rounded-lg border">
-                    <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Last Runner</span>
+                    <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Last 3 Runners</span>
                     <span id="splitLastRunner" class="font-extrabold bib-text-highlight text-[13px]">-</span>
                 </div>
                 <div class="theme-input py-1 px-2 rounded-lg border">
@@ -469,6 +469,25 @@
             const bib = bibInput.value.trim();
             if (!bib) return;
 
+            // --- 🛑 MANDATORY SETUP CHECK ---
+            const cpInput = document.getElementById('checkpoint');
+            const volInput = document.getElementById('volunteer');
+            const cpVal = cpInput.value.trim();
+            const volVal = volInput.value.trim();
+
+            if (!cpVal || !volVal) {
+                alert("⚠️ Setup incomplete! Please fill out the Checkpoint Name and Volunteer Initials under '1. Setup' before logging any bib entries.");
+                if (isSetupLocked) {
+                    toggleLock(); // Automatically unlock setup so they can edit
+                }
+                if (!cpVal) {
+                    cpInput.focus();
+                } else {
+                    volInput.focus();
+                }
+                return;
+            }
+
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
             const request = store.getAll();
@@ -647,15 +666,18 @@
             }
 
             const sorted = [...logs].sort((a, b) => new Date(a.time) - new Date(b.time));
-            const lastLog = sorted[sorted.length - 1];
-
-            splitLastRunner.textContent = `Bib ${lastLog.bib}`;
+            
+            // --- ⏱️ RETRIEVE AND RENDER LAST 3 RUNNER BIBS ---
+            const last3Logs = sorted.slice(-3).reverse();
+            const last3Bibs = last3Logs.map(log => log.bib).join(', ');
+            splitLastRunner.textContent = last3Bibs;
 
             if (sorted.length < 2) {
                 splitGapTime.textContent = "Leader";
                 return;
             }
 
+            const lastLog = sorted[sorted.length - 1];
             const secondLastLog = sorted[sorted.length - 2];
             const diffMs = new Date(lastLog.time) - new Date(secondLastLog.time);
             const diffSeconds = Math.floor(diffMs / 1000);
