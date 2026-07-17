@@ -29,20 +29,20 @@
             --btn-lock-border: #262626;
             
             /* High Contrast, Power-Efficient Accents */
-            --bib-color: #10b981;        /* Vibrant Emerald Green (High contrast, highly visible, low power) */
+            --bib-color: #10b981;        /* Vibrant Emerald Green */
             --bib-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
         }
 
         body.light-theme {
-            --bg-color: #d8d8dc;         /* Less bright, darker muted light gray (lowers screen power consumption) */
-            --panel-bg: #eaeaea;         /* Soft warm gray instead of stark white */
-            --text-main: #000000;        /* Pure black text for maximum readability */
-            --text-muted: #333333;       /* Bold charcoal for legible labels and subtext */
-            --border-color: #a8a8af;     /* Highly visible borders */
-            --input-bg: #ebebef;         /* Soft off-white inputs with low glare */
-            --input-text: #000000;       /* Pure black input text */
-            --input-placeholder: #555555; /* Visible, high-contrast placeholder text */
-            --header-bg: #1e2e42;        /* Low-contrast dark slate blue */
+            --bg-color: #d8d8dc;         /* Soft light gray to conserve LCD/OLED power */
+            --panel-bg: #eaeaea;         
+            --text-main: #000000;        
+            --text-muted: #333333;       
+            --border-color: #a8a8af;     
+            --input-bg: #ebebef;         
+            --input-text: #000000;       
+            --input-placeholder: #555555; 
+            --header-bg: #1e2e42;        
             --header-border: #2d3d52;
             --header-text: #93c5fd;      
             --btn-lock-bg: #dbdbdf;
@@ -50,7 +50,7 @@
             --btn-lock-border: #92929a;
             
             /* High Contrast Accents */
-            --bib-color: #065f46;        /* Deep Forest Green (Clear, sharp contrast on light background) */
+            --bib-color: #065f46;        /* Deep Forest Green */
             --bib-shadow: 1px 1px 0px #ffffff, -1px -1px 0px #ffffff, 1px -1px 0px #ffffff, -1px 1px 0px #ffffff;
         }
 
@@ -94,12 +94,16 @@
         <div class="flex items-center gap-2.5">
             <h1 class="text-base font-black tracking-wider theme-header-text">RACE LOG</h1>
             <span id="syncStatus" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">Auto-Sync</span>
-            <button id="queueBadge" onclick="attemptSync()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
+            <button id="queueBadge" onclick="toggleQueueInspector()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
                 <span id="queueCount">0</span> Pending 🔄
             </button>
         </div>
         <div class="flex items-center gap-1.5">
-            <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800 mr-1">
+            <!-- Battery Safe Mode Indicator -->
+            <div id="batteryIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2 py-0.5 rounded-full font-bold border border-neutral-800 text-neutral-400">
+                <span id="batIcon">🔋</span> <span id="batText">100%</span>
+            </div>
+            <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800">
                 <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse" id="gpsDot"></span>
                 <span id="gpsText" class="text-neutral-400">GPS OFF</span>
             </div>
@@ -131,7 +135,6 @@
                     <span id="setupSummary" class="hidden text-[11px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono font-bold uppercase"></span>
                 </h2>
                 <div class="flex items-center gap-1.5">
-                    <!-- Compact Install Help Button -->
                     <button id="pwaHelpBtn" onclick="togglePwaInstructions()" class="hidden text-[10px] bg-blue-950 hover:bg-blue-900 text-blue-400 border border-blue-800 px-2 py-1 rounded-md font-bold transition">ℹ️ Install App</button>
                     <button onclick="toggleLock()" id="lockBtn" class="text-xs theme-btn-lock border px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1">🔓 Unlock Settings</button>
                 </div>
@@ -208,6 +211,23 @@
             </div>
         </div>
 
+        <!-- 🔄 SYNC PROGRESS PANEL & QUEUE INSPECTOR -->
+        <section id="queueInspectorSection" class="hidden theme-panel p-4 rounded-xl border shadow flex flex-col gap-3 transition-all duration-300">
+            <div class="flex justify-between items-center border-b theme-border pb-2">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-xs font-bold text-yellow-600 dark:text-yellow-500 uppercase tracking-wider">Queue Inspector</h3>
+                    <span id="inspectorCount" class="text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-1.5 py-0.5 rounded font-bold">0</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="attemptSync()" class="text-[10px] bg-blue-900 hover:bg-blue-800 text-white px-2.5 py-1 rounded-md font-bold transition">Force Sync 🔄</button>
+                    <button onclick="toggleQueueInspector()" class="text-xs text-neutral-400 hover:theme-text font-bold px-1">✕</button>
+                </div>
+            </div>
+            <div id="inspectorList" class="max-h-40 overflow-y-auto divide-y theme-border flex flex-col">
+                <!-- Dynamic pending logs will show here -->
+            </div>
+        </section>
+
         <!-- Scan History -->
         <section class="flex-grow theme-panel rounded-xl border shadow flex flex-col overflow-hidden min-h-[200px]">
             <div class="px-4 py-3 border-b theme-border flex flex-col gap-2">
@@ -235,6 +255,12 @@
         let lastGeoposition = { latitude: null, longitude: null }; 
         let editingRowId = null; 
         
+        // Dynamic settings
+        let syncIntervalMs = 15000; 
+        let syncTimerId = null;
+        let gpsWatchId = null;
+        let lowBatteryThresholdActive = false;
+
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
@@ -243,9 +269,8 @@
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
 
-        // --- 🛑 ANTI-REFRESH MECHANISM FOR BROWSER USERS ---
+        // --- 🛑 ANTI-REFRESH MECHANISM ---
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-
         if (!isStandalone) {
             let touchStart;
             document.addEventListener('touchstart', function (e) {
@@ -260,11 +285,7 @@
             }, { passive: false });
 
             window.addEventListener('keydown', function(e) {
-                if (
-                    e.key === 'F5' || 
-                    (e.metaKey && e.key === 'r') || 
-                    (e.ctrlKey && e.key === 'r')
-                ) {
+                if (e.key === 'F5' || (e.metaKey && e.key === 'r') || (e.ctrlKey && e.key === 'r')) {
                     e.preventDefault();
                 }
             });
@@ -275,7 +296,77 @@
             });
         }
 
-        // --- 📲 NESTED PWA INSTRUCTIONS TRIGGER ---
+        // --- 🔋 BATTERY SAFEGUARDS ---
+        function initBatteryMonitoring() {
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    function updateBatteryStatus() {
+                        const levelPercent = Math.round(battery.level * 100);
+                        document.getElementById('batText').textContent = `${levelPercent}%`;
+                        
+                        if (battery.charging) {
+                            document.getElementById('batIcon').textContent = "⚡🔋";
+                        } else {
+                            document.getElementById('batIcon').textContent = levelPercent <= 20 ? "🪫" : "🔋";
+                        }
+
+                        // Low Battery Safeguard Trigger (< 15% battery)
+                        if (battery.level <= 0.15 && !battery.charging) {
+                            if (!lowBatteryThresholdActive) {
+                                activateBatterySafeMode();
+                            }
+                        } else {
+                            if (lowBatteryThresholdActive) {
+                                deactivateBatterySafeMode();
+                            }
+                        }
+                    }
+
+                    updateBatteryStatus();
+                    battery.addEventListener('levelchange', updateBatteryStatus);
+                    battery.addEventListener('chargingchange', updateBatteryStatus);
+                });
+            } else {
+                document.getElementById('batteryIndicator').classList.add('hidden');
+            }
+        }
+
+        function activateBatterySafeMode() {
+            lowBatteryThresholdActive = true;
+            document.getElementById('batteryIndicator').className = "flex items-center gap-1 text-[10px] bg-red-950 text-red-400 px-2 py-0.5 rounded-full font-bold border border-red-800";
+            
+            // 1. Shuts down GPS Watch hardware to save battery
+            if (gpsWatchId !== null) {
+                navigator.geolocation.clearWatch(gpsWatchId);
+                gpsWatchId = null;
+            }
+            const gpsDot = document.getElementById("gpsDot");
+            const gpsText = document.getElementById("gpsText");
+            gpsDot.className = "w-2 h-2 rounded-full bg-red-600 animate-pulse";
+            gpsText.textContent = "SAVER ACTIVE";
+
+            // 2. Reduces Cellular auto-sync frequency from 15 seconds to 1 minute
+            syncIntervalMs = 60000;
+            resetSyncTimer();
+            console.log("Battery Safeguard Triggered: GPS off, sync frequency locked to 1 minute.");
+        }
+
+        function deactivateBatterySafeMode() {
+            lowBatteryThresholdActive = false;
+            document.getElementById('batteryIndicator').className = "flex items-center gap-1 text-[10px] bg-black px-2 py-0.5 rounded-full font-bold border border-neutral-800 text-neutral-400";
+            
+            // Restore high precision tracking and standard sync frequency
+            startContinuousGPSWatch();
+            syncIntervalMs = 15000;
+            resetSyncTimer();
+        }
+
+        function resetSyncTimer() {
+            if (syncTimerId) clearInterval(syncTimerId);
+            syncTimerId = setInterval(loadHistory, syncIntervalMs);
+        }
+
+        // --- PWA INSTRUCTIONS ---
         function checkPwaDisplay() {
             const helpBtn = document.getElementById("pwaHelpBtn");
             const iosInst = document.getElementById("iosInstruction");
@@ -323,7 +414,6 @@
             }
         }
 
-        // Modified toggleTheme to ensure visual stability and immediate re-render of dynamic list
         function toggleTheme() {
             const isLight = document.body.classList.contains("light-theme");
             localStorage.setItem("theme", isLight ? "dark" : "light");
@@ -340,6 +430,7 @@
             return "PC";
         }
 
+        // Database Init
         const dbRequest = indexedDB.open("RaceLoggerDB", 1);
         dbRequest.onupgradeneeded = function(e) {
             db = e.target.result;
@@ -353,12 +444,14 @@
             updateSyncStatusLabel();
             loadSettingsState();
             loadHistory();
+            initBatteryMonitoring();
             startContinuousGPSWatch(); 
             updateQueueStatus(); 
             attemptSync();
             checkPwaDisplay(); 
             
-            setInterval(loadHistory, 15000);
+            resetSyncTimer();
+            registerServiceWorkerAndSync();
         };
 
         function toggleSettings() {
@@ -478,7 +571,7 @@
             if (!cpVal || !volVal) {
                 alert("⚠️ Setup incomplete! Please fill out the Checkpoint Name and Volunteer Initials under '1. Setup' before logging any bib entries.");
                 if (isSetupLocked) {
-                    toggleLock(); // Automatically unlock setup so they can edit
+                    toggleLock(); 
                 }
                 if (!cpVal) {
                     cpInput.focus();
@@ -495,9 +588,15 @@
             request.onsuccess = function() {
                 const logs = request.result;
                 const now = new Date();
-                const duplicate = logs.find(log => log.bib === bib && (now - new Date(log.time)) < 600000);
+                
+                // --- 📍 CHECKPOINT-SPECIFIC DUPLICATE CHECK ---
+                const duplicate = logs.find(log => 
+                    log.bib === bib && 
+                    log.checkpoint.toUpperCase() === cpVal.toUpperCase() && 
+                    (now - new Date(log.time)) < 600000
+                );
 
-                if (duplicate && !confirm(`⚠️ Bib ${bib} was logged recently. Log again?`)) {
+                if (duplicate && !confirm(`⚠️ Bib ${bib} was logged recently at ${cpVal.toUpperCase()}. Log again?`)) {
                     bibInput.value = '';
                     bibInput.focus();
                 } else {
@@ -507,6 +606,8 @@
         }
 
         function startContinuousGPSWatch() {
+            if (lowBatteryThresholdActive) return; // Prevent high precision hardware if Battery Safe mode is active
+            
             const gpsDot = document.getElementById("gpsDot");
             const gpsText = document.getElementById("gpsText");
 
@@ -515,7 +616,7 @@
                 return;
             }
 
-            navigator.geolocation.watchPosition(
+            gpsWatchId = navigator.geolocation.watchPosition(
                 (pos) => {
                     lastGeoposition.latitude = pos.coords.latitude;
                     lastGeoposition.longitude = pos.coords.longitude;
@@ -579,8 +680,15 @@
                 loadHistory();
                 triggerInlineToast(entry.bib, "Saved Locally!", entry.remark, false);
                 if (navigator.vibrate) navigator.vibrate(50);
-                if (syncUrl) syncSingleRow(entry);
+                
+                // Request modern background sync or immediate fallback sync
+                requestBackgroundSync();
             };
+        }
+
+        function toggleQueueInspector() {
+            const panel = document.getElementById("queueInspectorSection");
+            panel.classList.toggle("hidden");
         }
 
         function updateQueueStatus() {
@@ -590,17 +698,45 @@
 
             request.onsuccess = function() {
                 const logs = request.result;
-                const unsyncedCount = logs.filter(log => !log.synced).length;
+                const unsyncedLogs = logs.filter(log => !log.synced);
+                const unsyncedCount = unsyncedLogs.length;
+                
                 const badge = document.getElementById("queueBadge");
                 const countText = document.getElementById("queueCount");
+                const inspectorCount = document.getElementById("inspectorCount");
 
                 if (unsyncedCount > 0) {
                     badge.classList.remove("hidden");
                     countText.textContent = unsyncedCount;
+                    inspectorCount.textContent = unsyncedCount;
+                    renderQueueInspectorList(unsyncedLogs);
                 } else {
                     badge.classList.add("hidden");
+                    document.getElementById("queueInspectorSection").classList.add("hidden");
                 }
             };
+        }
+
+        // --- 📊 RENDER QUEUE INSPECTOR LIST ---
+        function renderQueueInspectorList(pendingLogs) {
+            const inspectorList = document.getElementById("inspectorList");
+            inspectorList.innerHTML = '';
+            
+            pendingLogs.forEach(log => {
+                const item = document.createElement("div");
+                item.className = "py-2.5 flex justify-between items-center text-xs theme-text-muted";
+                item.innerHTML = `
+                    <div class="flex flex-col">
+                        <div><strong class="text-sm font-black text-yellow-600 dark:text-yellow-500">Bib ${log.bib}</strong> at <span class="font-bold">${log.checkpoint}</span></div>
+                        <div class="text-[10px] mt-0.5">${log.time}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="syncSingleRow(${JSON.stringify(log).replace(/"/g, '&quot;')})" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-900 px-2 py-0.5 rounded font-bold hover:bg-emerald-900 transition">Sync Now</button>
+                        <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-500 hover:text-red-400 p-1 text-base">🗑️</button>
+                    </div>
+                `;
+                inspectorList.appendChild(item);
+            });
         }
 
         function syncSingleRow(row) {
@@ -655,6 +791,32 @@
 
         window.addEventListener('online', attemptSync);
 
+        // --- 📲 REGISTER SERVICE WORKER & BACKGROUND SYNC ---
+        function registerServiceWorkerAndSync() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => {
+                        console.log('Service Worker Registered successfully', reg.scope);
+                    })
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            }
+        }
+
+        function requestBackgroundSync() {
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                navigator.serviceWorker.ready.then(reg => {
+                    return reg.sync.register('sync-logs');
+                }).then(() => {
+                    console.log('Standard Background Sync Registered Successfully.');
+                }).catch(err => {
+                    console.warn('Background sync registration failed, fallback to direct sync.', err);
+                    if (syncUrl) attemptSync();
+                });
+            } else {
+                if (syncUrl) attemptSync();
+            }
+        }
+
         function calculateLiveSplits(logs) {
             const splitLastRunner = document.getElementById("splitLastRunner");
             const splitGapTime = document.getElementById("splitGapTime");
@@ -667,7 +829,7 @@
 
             const sorted = [...logs].sort((a, b) => new Date(a.time) - new Date(b.time));
             
-            // --- ⏱️ RETRIEVE AND RENDER LAST 3 RUNNER BIBS ---
+            // Render last 3 runners in reverse order
             const last3Logs = sorted.slice(-3).reverse();
             const last3Bibs = last3Logs.map(log => log.bib).join(', ');
             splitLastRunner.textContent = last3Bibs;
@@ -737,7 +899,7 @@
                 transaction.oncomplete = function() {
                     editingRowId = null;
                     loadHistory();
-                    if (syncUrl) syncSingleRow(log);
+                    requestBackgroundSync();
                 };
             };
         }
@@ -841,14 +1003,6 @@
             const transaction = db.transaction(["logs"], "readwrite");
             transaction.objectStore("logs").delete(id);
             transaction.oncomplete = function() { loadHistory(); };
-        }
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker Registered Successfully', reg.scope))
-                    .catch(err => console.log('Service Worker Registration Failed:', err));
-            });
         }
 
         // Export
