@@ -808,21 +808,46 @@
             });
         }
 
-        function attemptSync() {
-            if (!syncUrl) return;
-            const transaction = db.transaction(["logs"], "readonly");
-            const store = transaction.objectStore("logs");
-            const request = store.getAll();
-            request.onsuccess = function() {
-                const logs = request.result;
-                const unsynced = logs.filter(log => !log.synced);
-                if (unsynced.length > 0) {
-                    unsynced.forEach(log => syncSingleRow(log));
-                } else {
-                    updateQueueStatus();
-                }
-            };
-        }
+// --- ⚡ UPGRADED BATCH SYNC ENGINE ---
+function attemptSync() {
+    if (!syncUrl) return;
+    const transaction = db.transaction(["logs"], "readonly");
+    const store = transaction.objectStore("logs");
+    const request = store.getAll();
+    
+    request.onsuccess = function() {
+        const logs = request.result;
+        const unsynced = logs.filter(log => !log.synced);
+        if (unsynced.length === 0) return;
+
+        // Bundle all pending logs into a single batch
+        const payload = { 
+            action: "batch_sync", 
+            data: unsynced 
+        };
+        
+        fetch(syncUrl, {
+            method: "POST",
+            mode: "cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+        .then(async res => {
+            const data = await res.json();
+            if (data.status === "success") {
+                const writeTransaction = db.transaction(["logs"], "readwrite");
+                const writeStore = writeTransaction.objectStore("logs");
+                unsynced.forEach(log => {
+                    log.synced = true;
+                    writeStore.put(log);
+                });
+                loadHistory();
+                console.log(`Successfully synced ${data.processed} logs.`);
+            }
+        })
+        .catch(err => console.error("Batch Sync Error:", err));
+    };
+}
 
         window.addEventListener('online', attemptSync);
 
