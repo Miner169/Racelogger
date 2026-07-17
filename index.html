@@ -30,20 +30,20 @@
         }
 
         body.light-theme {
-            --bg-color: #d8d8dc;         /* Less bright, darker muted light gray */
-            --panel-bg: #eaeaea;         /* Soft warm gray instead of stark white */
-            --text-main: #000000;        /* Pure black text for maximum readability */
-            --text-muted: #333333;       /* Bold charcoal for legible labels and subtext */
-            --border-color: #a8a8af;     /* Highly visible borders */
-            --input-bg: #ebebef;         /* Soft off-white inputs with low glare */
-            --input-text: #000000;       /* Pure black input text */
-            --input-placeholder: #555555; /* Visible, high-contrast placeholder text */
-            --header-bg: #1e2e42;        /* Low-contrast dark slate blue */
-            --header-border: #2d3d52;
-            --header-text: #93c5fd;      
-            --btn-lock-bg: #dbdbdf;
-            --btn-lock-text: #000000;
-            --btn-lock-border: #92929a;
+            --bg-color: #d0d0d5;         /* Less bright, darker muted light gray */
+            --panel-bg: #e4e4e8;         /* Soft warm gray instead of stark white */
+            --text-main: #111111;        /* Pure black text for maximum readability */
+            --text-muted: #3a3a40;       /* Bold charcoal for legible labels and subtext */
+            --border-color: #97979f;     /* Highly visible borders */
+            --input-bg: #ececf0;         /* Soft off-white inputs with low glare */
+            --input-text: #111111;       /* Pure black input text */
+            --input-placeholder: #606068; /* Visible, high-contrast placeholder text */
+            --header-bg: #243447;        /* Low-contrast dark slate blue */
+            --header-border: #31475d;
+            --header-text: #b7d3ff;      
+            --btn-lock-bg: #d7d7dd;
+            --btn-lock-text: #111111;
+            --btn-lock-border: #8f8f97;
         }
 
         /* Semantic Theme Mappings */
@@ -172,11 +172,11 @@
             <div class="grid grid-cols-2 gap-2 text-center">
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Last Runner</span>
-                    <span id="splitLastRunner" class="font-extrabold text-yellow-600 dark:text-yellow-500 text-[13px]">-</span>
+                    <span id="splitLastRunner" class="font-extrabold text-orange-700 text-[13px]">-</span>
                 </div>
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Pacing Split Gap</span>
-                    <span id="splitGapTime" class="font-extrabold text-indigo-600 dark:text-indigo-400 text-[13px]">-- : --</span>
+                    <span id="splitGapTime" class="font-extrabold text-indigo-700 dark:text-indigo-400 text-[13px]">-- : --</span>
                 </div>
             </div>
         </section>
@@ -185,11 +185,11 @@
         <div class="grid grid-cols-2 gap-3">
             <div class="theme-panel py-2 px-3 rounded-xl border text-center shadow-sm">
                 <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Total Logs</div>
-                <div id="totalCount" class="text-xl font-black text-blue-600 dark:text-blue-500">0</div>
+                <div id="totalCount" class="text-xl font-black text-blue-700 dark:text-blue-500">0</div>
             </div>
             <div class="theme-panel py-2 px-3 rounded-xl border text-center shadow-sm">
                 <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Unique Runners</div>
-                <div id="uniqueCount" class="text-xl font-black text-indigo-600 dark:text-indigo-500">0</div>
+                <div id="uniqueCount" class="text-xl font-black text-indigo-700 dark:text-indigo-500">0</div>
             </div>
         </div>
 
@@ -787,7 +787,7 @@
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
                         
                         const editButtonHTML = editable 
-                            ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 hover:text-blue-500 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded transition">✏️ Edit</button>` 
+                            ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-700 hover:text-blue-500 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded transition">✏️ Edit</button>` 
                             : '';
 
                         row.innerHTML = `
