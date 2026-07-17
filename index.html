@@ -13,37 +13,45 @@
     <style>
         /* Theme Variables */
         :root {
-            --bg-color: #000000;         /* AMOLED Black */
+            --bg-color: #000000;         /* AMOLED Black for maximum power savings */
             --panel-bg: #0a0a0a;         /* Deepest gray */
-            --text-main: #f3f4f6;        /* Brightened light gray text (slate-100 equivalent) */
-            --text-muted: #9ca3af;       /* Highly visible muted gray (gray-400 equivalent) */
+            --text-main: #e5e5e5;        /* Light gray text */
+            --text-muted: #8e8e93;       /* Balanced muted gray */
             --border-color: #262626;     /* Subtle dark border */
             --input-bg: #000000;         /* Black inputs */
             --input-text: #ffffff;
-            --input-placeholder: #6b7280; /* Visible placeholder text (gray-500 equivalent) */
+            --input-placeholder: #555555;
             --header-bg: #0c1a30;        /* Deep blue */
             --header-border: #172554;
             --header-text: #60a5fa;
             --btn-lock-bg: #171717;
-            --btn-lock-text: #e5e7eb;
+            --btn-lock-text: #d4d4d4;
             --btn-lock-border: #262626;
+            
+            /* High Contrast, Power-Efficient Accents */
+            --bib-color: #10b981;        /* Vibrant Emerald Green (High contrast, highly visible, low power) */
+            --bib-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
         }
 
         body.light-theme {
-            --bg-color: #d8d8dc;         /* Less bright, darker muted light gray */
+            --bg-color: #d8d8dc;         /* Less bright, darker muted light gray (lowers screen power consumption) */
             --panel-bg: #eaeaea;         /* Soft warm gray instead of stark white */
             --text-main: #000000;        /* Pure black text for maximum readability */
-            --text-muted: #27272a;       /* Darker charcoal (zinc-800 equivalent) for legible labels */
-            --border-color: #94a3b8;     /* Highly visible borders */
+            --text-muted: #333333;       /* Bold charcoal for legible labels and subtext */
+            --border-color: #a8a8af;     /* Highly visible borders */
             --input-bg: #ebebef;         /* Soft off-white inputs with low glare */
             --input-text: #000000;       /* Pure black input text */
-            --input-placeholder: #4b5563; /* High-contrast placeholder text */
+            --input-placeholder: #555555; /* Visible, high-contrast placeholder text */
             --header-bg: #1e2e42;        /* Low-contrast dark slate blue */
             --header-border: #2d3d52;
             --header-text: #93c5fd;      
             --btn-lock-bg: #dbdbdf;
             --btn-lock-text: #000000;
             --btn-lock-border: #92929a;
+            
+            /* High Contrast Accents */
+            --bib-color: #065f46;        /* Deep Forest Green (Clear, sharp contrast on light background) */
+            --bib-shadow: 1px 1px 0px #ffffff, -1px -1px 0px #ffffff, 1px -1px 0px #ffffff, -1px 1px 0px #ffffff;
         }
 
         /* Semantic Theme Mappings */
@@ -53,6 +61,13 @@
         .theme-text-muted { color: var(--text-muted); }
         .theme-border { border-color: var(--border-color); }
         
+        /* High Contrast Bib Text Styling */
+        .bib-text-highlight {
+            color: var(--bib-color);
+            text-shadow: var(--bib-shadow);
+            font-weight: 900;
+        }
+
         .theme-input { 
             background-color: var(--input-bg); 
             border-color: var(--border-color); 
@@ -79,7 +94,7 @@
         <div class="flex items-center gap-2.5">
             <h1 class="text-base font-black tracking-wider theme-header-text">RACE LOG</h1>
             <span id="syncStatus" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">Auto-Sync</span>
-            <button id="queueBadge" onclick="attemptSync()" class="hidden text-[10px] bg-amber-950 text-amber-400 border border-amber-800 hover:bg-amber-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
+            <button id="queueBadge" onclick="attemptSync()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
                 <span id="queueCount">0</span> Pending 🔄
             </button>
         </div>
@@ -172,7 +187,7 @@
             <div class="grid grid-cols-2 gap-2 text-center">
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Last Runner</span>
-                    <span id="splitLastRunner" class="font-extrabold text-amber-600 dark:text-amber-400 text-[13px]">-</span>
+                    <span id="splitLastRunner" class="font-extrabold bib-text-highlight text-[13px]">-</span>
                 </div>
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Pacing Split Gap</span>
@@ -308,12 +323,12 @@
             }
         }
 
-        // Apply changes on toggle instantly
+        // Modified toggleTheme to ensure visual stability and immediate re-render of dynamic list
         function toggleTheme() {
             const isLight = document.body.classList.contains("light-theme");
             localStorage.setItem("theme", isLight ? "dark" : "light");
             applyTheme();
-            loadHistory(); // Re-render table items with correct colors
+            loadHistory();
         }
 
         function getDeviceType() {
@@ -365,7 +380,7 @@
         function updateSyncStatusLabel() {
             const status = document.getElementById("syncStatus");
             status.textContent = !syncUrl ? "Offline Mode" : "Auto-Sync";
-            status.className = !syncUrl ? "text-[10px] bg-amber-950 text-amber-450 border border-amber-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold";
+            status.className = !syncUrl ? "text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold";
         }
 
         function toggleLock() {
@@ -491,7 +506,7 @@
                         gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
                         gpsText.textContent = `3D LOCK (${Math.round(acc)}m)`;
                     } else {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-amber-600 animate-pulse";
+                        gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
                         gpsText.textContent = `WEAK (${Math.round(acc)}m)`;
                     }
                 },
@@ -758,20 +773,18 @@
                             </div>
                         `;
                     } else {
-                        // High-contrast Amber for remarks and highlight alerts
-                        const remarkHTML = log.remark ? `<div class="text-[11px] text-amber-600 dark:text-amber-400 font-medium italic mt-0.5">💬 ${log.remark}</div>` : '';
+                        const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
                         
                         const editButtonHTML = editable 
                             ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 hover:text-blue-500 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded transition">✏️ Edit</button>` 
                             : '';
 
-                        // Replaced bright text-yellow with high contrast text-amber for excellent legibility on light & dark themes
                         row.innerHTML = `
                             <div class="flex justify-between items-center w-full">
                                 <div class="flex-grow">
                                     <div class="flex items-center gap-2">
-                                        <span class="text-xl font-black text-amber-600 dark:text-amber-400">${log.bib}</span>
+                                        <span class="text-xl bib-text-highlight">${log.bib}</span>
                                         ${freqBadge}
                                         <span class="text-[10px] bg-neutral-900 border border-neutral-850 px-1.5 py-0.5 rounded text-neutral-300 dark:text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
                                     </div>
@@ -780,7 +793,7 @@
                                 </div>
                                 <div class="text-right flex items-center gap-2.5 shrink-0">
                                     <div class="flex flex-col items-end gap-1">
-                                        <span class="text-[10px] ${log.synced ? 'text-emerald-600 dark:text-emerald-500 font-extrabold' : 'text-amber-600 dark:text-amber-400 font-extrabold'}">${log.synced ? 'Synced' : 'Queued'}</span>
+                                        <span class="text-[10px] ${log.synced ? 'text-emerald-600 dark:text-emerald-500 font-extrabold' : 'text-yellow-600 dark:text-yellow-500 font-extrabold'}">${log.synced ? 'Synced' : 'Queued'}</span>
                                         ${editButtonHTML}
                                     </div>
                                     <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 hover:text-red-500 p-1 text-base">🗑️</button>
