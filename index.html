@@ -45,7 +45,7 @@
             --btn-lock-bg: #c7c7ce;
             --btn-lock-text: #111111;
             --btn-lock-border: #6b6b72;
-            --bib-text-color: #1e3a8a;   /* High-contrast dark blue for light theme (replaces hard-to-see yellow) */
+            --bib-text-color: #1e3a8a;   /* High-contrast dark blue for light theme */
         }
 
         /* Semantic Theme Mappings */
@@ -71,7 +71,8 @@
         .theme-bib-text { color: var(--bib-text-color); }
 
         html, body {
-            overscroll-behavior-y: contain; /* Block pull-to-refresh on browsers */
+            overscroll-behavior-y: contain; 
+            touch-action: pan-x pan-y;
         }
     </style>
 </head>
@@ -119,7 +120,6 @@
                     <span id="setupSummary" class="hidden text-[11px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono font-bold uppercase"></span>
                 </h2>
                 <div class="flex items-center gap-1.5">
-                    <!-- Compact Install Help Button -->
                     <button id="pwaHelpBtn" onclick="togglePwaInstructions()" class="hidden text-[10px] bg-blue-950 hover:bg-blue-900 text-blue-400 border border-blue-800 px-2 py-1 rounded-md font-bold transition">ℹ️ Install App</button>
                     <button onclick="toggleLock()" id="lockBtn" class="text-xs theme-btn-lock border px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1">🔓 Unlock Settings</button>
                 </div>
@@ -129,7 +129,6 @@
             <div id="pwaTutorialBlock" class="hidden text-[11px] border border-blue-900/50 rounded-lg p-3 bg-blue-950/20 text-left flex flex-col gap-2 transition-all duration-200">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400">Run Offline Safely</h4>
                 <p class="theme-text-muted leading-relaxed">Save the app directly to your home screen to prevent browser reloads and ensure reliable offline use.</p>
-                
                 <div id="iosInstruction" class="hidden theme-input p-2 rounded-lg border border-dashed">
                     <strong class="block mb-0.5 text-blue-400">iPhone / iOS:</strong>
                     1. Tap the <strong class="underline">Share icon (📤)</strong> in Safari.<br>
@@ -243,22 +242,10 @@
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
 
-        // --- 🛑 ANTI-REFRESH MECHANISM FOR BROWSER USERS ---
+        // --- 🛑 HARD KEYS BLOCKER ONLY (SAFE FOR ALL BROWSER INTERACTIONS) ---
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
         if (!isStandalone) {
-            let touchStart;
-            document.addEventListener('touchstart', function (e) {
-                if (e.touches.length === 1) touchStart = e.touches[0].clientY;
-            }, { passive: false });
-
-            document.addEventListener('touchmove', function (e) {
-                const touchMove = e.touches[0].clientY;
-                if (window.scrollY === 0 && touchMove > touchStart) {
-                    e.preventDefault();
-                }
-            }, { passive: false });
-
             window.addEventListener('keydown', function(e) {
                 if (
                     e.key === 'F5' || 
@@ -323,7 +310,6 @@
             }
         }
 
-        // Formats Date correctly to: "17 Jul 2026"
         function getCustomFormattedDate(dateObj) {
             return dateObj.toLocaleDateString('en-GB', {
                 day: 'numeric',
@@ -336,7 +322,7 @@
             const isLight = document.body.classList.contains("light-theme");
             localStorage.setItem("theme", isLight ? "dark" : "light");
             applyTheme();
-            loadHistory(); // Force dynamic reload to switch CSS variables in runtime correctly
+            loadHistory(); 
         }
 
         function getDeviceType() {
@@ -355,7 +341,61 @@
         }
 
         function downloadServiceWorker() {
-            const content = `const CACHE_NAME = 'race-logger-v1';\nconst ASSETS = ['/', '/index.html', '/manifest.json'];\nself.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS))));\nself.addEventListener('activate', e => e.waitUntil(self.clients.claim()));\nself.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));`;
+            const content = `const CACHE_NAME = 'race-logger-v1';
+const ASSETS = ['/', '/index.html', '/manifest.json'];
+
+self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS))));
+self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+
+// --- BACKGROUND SYNC API RETRY INTERFACE ---
+self.addEventListener('sync', event => {
+    if (event.tag === 'sync-logs') {
+        event.waitUntil(backgroundSyncLogs());
+    }
+});
+
+async function backgroundSyncLogs() {
+    return new Promise((resolve, reject) => {
+        const dbReq = indexedDB.open("RaceLoggerDB", 1);
+        dbReq.onerror = () => reject();
+        dbReq.onsuccess = (e) => {
+            const db = e.target.result;
+            const tx = db.transaction(["logs"], "readwrite");
+            const store = tx.objectStore("logs");
+            const getAllReq = store.getAll();
+
+            getAllReq.onsuccess = () => {
+                const logs = getAllReq.result;
+                const unsynced = logs.filter(log => !log.synced);
+                if (unsynced.length === 0) return resolve();
+
+                const syncUrl = localStorage.getItem("syncUrl") || "${DEFAULT_SYNC_URL}";
+                
+                fetch(syncUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({ action: "batch_sync", data: unsynced })
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status === "success") {
+                        const writeTx = db.transaction(["logs"], "readwrite");
+                        const writeStore = writeTx.objectStore("logs");
+                        unsynced.forEach(row => {
+                            row.synced = true;
+                            writeStore.put(row);
+                        });
+                        writeTx.oncomplete = () => resolve();
+                    } else {
+                        reject();
+                    }
+                })
+                .catch(() => reject());
+            };
+        };
+    });
+}`;
             const blob = new Blob([content], { type: "application/javascript;charset=utf-8" });
             const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "sw.js"; a.click();
         }
@@ -374,9 +414,8 @@
             loadSettingsState();
             loadHistory();
             
-            // Initial positioning and 30 minutes battery saver interval execution
             triggerBatterySavingGPSLock();
-            gpsTimerId = setInterval(triggerBatterySavingGPSLock, 1800000); // Trigger positioning every 30 minutes (1,800,000ms)
+            gpsTimerId = setInterval(triggerBatterySavingGPSLock, 1800000); 
 
             updateQueueStatus(); 
             attemptSync();
@@ -384,7 +423,6 @@
             
             historyIntervalId = setInterval(loadHistory, 15000);[cite: 3]
             
-            // Robust event bindings to aggressively trigger database syncing whenever network connection/window state gets reactivated
             window.addEventListener('online', attemptSync);
             window.addEventListener('focus', attemptSync);
             document.addEventListener("visibilitychange", () => {
@@ -502,10 +540,13 @@
             remarkLabel.textContent = "Remark (Optional)";
         }
 
+        // --- 🚦 FIX 2: CHECKPOINT-SPECIFIC DUPLICATE DETECTION WINDOW ---
         function checkDuplicateAndLog() {
             const bibInput = document.getElementById('bibInput');
             const bib = bibInput.value.trim();
             if (!bib) return;
+
+            const currentCheckpoint = (document.getElementById('checkpoint').value.trim() || 'Unknown').toUpperCase();
 
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
@@ -515,13 +556,16 @@
                 const logs = request.result;
                 const now = new Date();
                 
-                // Parse helper function to handle both formats ("DD MMM YYYY" and legacy "MM/DD/YYYY") cleanly
+                // Only flags duplicates if both the Bib matches AND it was recorded at the SAME Checkpoint within 10 minutes
                 const duplicate = logs.find(log => {
                     const logDate = new Date(log.time);
-                    return log.bib === bib && !isNaN(logDate) && (now - logDate) < 600000;
+                    return log.bib === bib && 
+                           log.checkpoint === currentCheckpoint && 
+                           !isNaN(logDate) && 
+                           (now - logDate) < 600000;
                 });
 
-                if (duplicate && !confirm(`⚠️ Bib ${bib} was logged recently. Log again?`)) {
+                if (duplicate && !confirm(`⚠️ Bib ${bib} was logged recently at ${currentCheckpoint}. Log again?`)) {
                     bibInput.value = '';
                     bibInput.focus();
                 } else {
@@ -543,7 +587,6 @@
             gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
             gpsText.textContent = "LOCKING...";
 
-            // Retrieve position and immediately close/disengage GPS hardware down
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     lastGeoposition.latitude = pos.coords.latitude;
@@ -573,11 +616,7 @@
             const remark = remarkInput.disabled ? "" : remarkInput.value.trim();
 
             const now = new Date();
-            
-            // Format custom date strictly as "17 Jul 2026"[cite: 1]
-            const datePart = getCustomFormattedDate(now); 
-
-            // Formats exact time string as "1:54:57 AM"
+            const datePart = getCustomFormattedDate(now);[cite: 1]
             const timePart = now.toLocaleTimeString('en-US', {
                 hour: 'numeric',
                 minute: '2-digit',
@@ -585,7 +624,7 @@
                 hour12: true
             }); 
 
-            const timestampStr = `${datePart} ${timePart}`; // Combined: "17 Jul 2026 1:54:57 AM"
+            const timestampStr = `${datePart} ${timePart}`; 
 
             const entry = {
                 bib: bib,
@@ -655,7 +694,6 @@
                 
                 isSyncing = true;
                 
-                // Pack everything into a clean JSON array post
                 fetch(syncUrl, {
                     method: "POST",
                     mode: "cors",
@@ -739,6 +777,19 @@
             loadHistory();
         }
 
+        // --- 🚦 FIX 3: BACKGROUND SYNC API INITIATOR ---
+        function registerBackgroundSync() {
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                navigator.serviceWorker.ready.then(reg => {
+                    return reg.sync.register('sync-logs');
+                }).then(() => {
+                    console.log('Background Sync "sync-logs" registered successfully.');
+                }).catch(err => {
+                    console.error('Background Sync registration failed:', err);
+                });
+            }
+        }
+
         function cancelEditing() {
             editingRowId = null;
             loadHistory();
@@ -768,7 +819,10 @@
                 transaction.oncomplete = function() {
                     editingRowId = null;
                     loadHistory();
-                    if (syncUrl) attemptSync();
+                    if (syncUrl) {
+                        attemptSync();
+                        registerBackgroundSync(); // Fire background sync engine as fallback
+                    }
                 };
             };
         }
@@ -872,13 +926,19 @@
             }
             const transaction = db.transaction(["logs"], "readwrite");
             transaction.objectStore("logs").delete(id);
-            transaction.oncomplete = function() { loadHistory(); };
+            transaction.oncomplete = function() { 
+                loadHistory(); 
+                registerBackgroundSync();
+            };
         }
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker Registered Successfully', reg.scope))
+                    .then(reg => {
+                        console.log('Service Worker Registered Successfully', reg.scope);
+                        registerBackgroundSync();
+                    })
                     .catch(err => console.log('Service Worker Registration Failed:', err));
             });
         }
