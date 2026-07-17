@@ -76,7 +76,8 @@
         }
     </style>
 </head>
-<body class="theme-bg theme-text min-h-screen flex flex-col font-sans select-none pb-16">
+<!-- Removed 'select-none' here to fix native tap triggers across mobile/desktop browsers -->
+<body class="theme-bg theme-text min-h-screen flex flex-col font-sans pb-16">
 
     <!-- Header Status Bar -->
     <header class="theme-header border-b px-4 py-2 shadow-md flex justify-between items-center sticky top-0 z-50">
@@ -467,7 +468,6 @@ async function backgroundSyncLogs() {
             });
         };
 
-        // --- 🔋 BATTERY MONITORING (POWER-SAVING MODE SETUP) ---
         function initPowerManagementAndGPS() {
             if ('getBattery' in navigator) {
                 navigator.getBattery().then(battery => {
@@ -492,14 +492,12 @@ async function backgroundSyncLogs() {
             
             batteryText.textContent = `${level}%${isCharging ? ' ⚡' : ''}`;
             
-            // Activate Safeguard Mode if Battery < 15% and device is not charging
             if (level <= 15 && !isCharging) {
                 if (!isLowBatteryModeActive) {
                     isLowBatteryModeActive = true;
                     batteryText.className = "text-red-500 font-extrabold animate-pulse";
                     batteryIcon.textContent = "🪫";
                     
-                    // Shut down GPS lock interval entirely to conserve power
                     if (gpsTimerId) {
                         clearInterval(gpsTimerId);
                         gpsTimerId = null;
@@ -508,16 +506,14 @@ async function backgroundSyncLogs() {
                     const gpsText = document.getElementById("gpsText");
                     gpsDot.className = "w-2 h-2 rounded-full bg-red-650";
                     gpsText.textContent = "BATTERY_OFF";
-                    lastGeoposition = { latitude: null, longitude: null }; // Reset to save overhead
+                    lastGeoposition = { latitude: null, longitude: null }; 
 
-                    // Push out the sync cycles from 15 seconds to 1 minute to stretch battery
                     syncCycleDuration = 60000;
                     startHistoryInterval();
                     
                     alert("⚠️ Low Battery Alert! GPS Tracking is now disabled and background logging cycles have been throttled to protect battery life.");
                 }
             } else {
-                // Return parameters back to default standard operation
                 if (isLowBatteryModeActive || !gpsTimerId) {
                     isLowBatteryModeActive = false;
                     batteryText.className = "text-neutral-400";
@@ -681,7 +677,7 @@ async function backgroundSyncLogs() {
         }
 
         function triggerBatterySavingGPSLock() {
-            if (isLowBatteryModeActive) return; // Prevent any GPS triggers in power savings
+            if (isLowBatteryModeActive) return; 
 
             const gpsDot = document.getElementById("gpsDot");
             const gpsText = document.getElementById("gpsText");
@@ -784,7 +780,6 @@ async function backgroundSyncLogs() {
             };
         }
 
-        // --- 🔄 MULTI-BATCH QUEUE INSPECTION & PROGRESS BAR CONTROLS ---
         function toggleQueueInspector() {
             const modal = document.getElementById("queueModal");
             const isHidden = modal.classList.contains("hidden");
@@ -866,13 +861,12 @@ async function backgroundSyncLogs() {
                 
                 isSyncing = true;
                 
-                // Initialize Visual Progress indicators
                 const progressText = document.getElementById("syncProgressText");
                 const progressBar = document.getElementById("syncProgressBar");
                 
                 progressText.textContent = `Syncing ${unsynced.length} records...`;
                 progressText.className = "text-blue-500 font-bold";
-                progressBar.style.width = "40%"; // Network transmission start
+                progressBar.style.width = "40%"; 
                 
                 fetch(syncUrl, {
                     method: "POST",
@@ -898,7 +892,6 @@ async function backgroundSyncLogs() {
                             loadHistory();
                             renderQueueList();
                             
-                            // Visual delay cleanup
                             setTimeout(() => {
                                 progressBar.style.width = "0%";
                                 progressText.textContent = "Idle";
@@ -970,6 +963,7 @@ async function backgroundSyncLogs() {
             return (now - logTime) < 300000; 
         }
 
+        // Removed touch interruption behaviors to completely restore simple tap/click actions 
         function startEditing(id) {
             editingRowId = id;
             loadHistory();
