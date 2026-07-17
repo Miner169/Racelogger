@@ -27,7 +27,7 @@
             --btn-lock-bg: #171717;
             --btn-lock-text: #d4d4d4;
             --btn-lock-border: #262626;
-            --bib-text-color: #f59e0b;   /* High-contrast Amber Orange for Dark Theme */
+            --bib-text-color: #d97706;   /* Rich amber/yellow for dark theme */
         }
 
         body.light-theme {
@@ -45,7 +45,7 @@
             --btn-lock-bg: #d7d7dd;
             --btn-lock-text: #111111;
             --btn-lock-border: #8f8f97;
-            --bib-text-color: #1e3a8a;   /* High-contrast Deep Blue for Light Theme */
+            --bib-text-color: #1e3a8a;   /* High-contrast dark blue for light theme */
         }
 
         /* Semantic Theme Mappings */
@@ -72,6 +72,7 @@
 
         html, body {
             overscroll-behavior-y: contain; /* Block pull-to-refresh on browsers */
+            touch-action: pan-x pan-y;
         }
     </style>
 </head>
@@ -82,12 +83,18 @@
         <div class="flex items-center gap-2.5">
             <h1 class="text-base font-black tracking-wider theme-header-text">RACE LOG</h1>
             <span id="syncStatus" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">Auto-Sync</span>
-            <button id="queueBadge" onclick="attemptSync()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
+            <button id="queueBadge" onclick="toggleQueueInspector()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
                 <span id="queueCount">0</span> Pending 🔄
             </button>
         </div>
         <div class="flex items-center gap-1.5">
-            <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800 mr-1">
+            <!-- 🔋 Native Battery Status Indicator -->
+            <div id="batteryIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2 py-0.5 rounded-full font-bold border border-neutral-800">
+                <span id="batteryIcon">🔋</span>
+                <span id="batteryText" class="text-neutral-400">--%</span>
+            </div>
+            <!-- GPS Status Indicator -->
+            <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800">
                 <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse" id="gpsDot"></span>
                 <span id="gpsText" class="text-neutral-400">GPS OFF</span>
             </div>
@@ -95,6 +102,37 @@
             <button onclick="toggleSettings()" class="text-gray-300 hover:text-white text-lg p-1" title="Settings">⚙️</button>
         </div>
     </header>
+
+    <!-- Queue Inspector Modal & Progress Panel -->
+    <div id="queueModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+        <div class="theme-panel p-5 rounded-2xl border w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-black uppercase tracking-wider theme-text">🔄 Queue Inspector</h3>
+                <button onclick="toggleQueueInspector()" class="text-neutral-400 hover:text-white text-sm font-bold px-2 py-1">✕ Close</button>
+            </div>
+
+            <!-- Visual Sync Progress Panel -->
+            <div class="mb-4">
+                <div class="flex justify-between text-[11px] theme-text-muted mb-1 font-bold">
+                    <span>Sync Progress Status</span>
+                    <span id="syncProgressText">Idle</span>
+                </div>
+                <div class="w-full bg-neutral-900 rounded-full h-2.5 overflow-hidden border theme-border">
+                    <div id="syncProgressBar" class="bg-blue-600 h-full w-0 transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- Live List Display Container -->
+            <div class="flex-grow overflow-y-auto mb-4 border theme-border rounded-lg p-2 bg-black/40 min-h-[150px]" id="queueInspectorList">
+                <!-- Script populates elements dynamically -->
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <button onclick="copyRawQueuePayload()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-bold py-2.5 rounded-lg transition">📋 Copy Raw Backup JSON Payload</button>
+                <button onclick="attemptSync()" class="w-full bg-blue-800 hover:bg-blue-700 text-white text-xs font-black py-2.5 rounded-lg transition uppercase tracking-wider">🔄 Force Immediate Batch Sync</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Settings Modal -->
     <div id="settingsModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
@@ -119,7 +157,6 @@
                     <span id="setupSummary" class="hidden text-[11px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono font-bold uppercase"></span>
                 </h2>
                 <div class="flex items-center gap-1.5">
-                    <!-- Compact Install Help Button -->
                     <button id="pwaHelpBtn" onclick="togglePwaInstructions()" class="hidden text-[10px] bg-blue-950 hover:bg-blue-900 text-blue-400 border border-blue-800 px-2 py-1 rounded-md font-bold transition">ℹ️ Install App</button>
                     <button onclick="toggleLock()" id="lockBtn" class="text-xs theme-btn-lock border px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1">🔓 Unlock Settings</button>
                 </div>
@@ -175,7 +212,7 @@
             <div class="grid grid-cols-2 gap-2 text-center">
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Last Runner</span>
-                    <span id="splitLastRunner" class="font-extrabold text-orange-700 text-[13px]">-</span>
+                    <span id="splitLastRunner" class="font-extrabold text-orange-700 dark:text-orange-500 text-[13px]">-</span>
                 </div>
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Pacing Split Gap</span>
@@ -222,6 +259,11 @@
         let inlineToastTimeout;
         let lastGeoposition = { latitude: null, longitude: null }; 
         let editingRowId = null; 
+        let isSyncing = false;
+        let historyIntervalId = null;
+        let gpsWatchId = null; 
+        let isLowBatteryModeActive = false;
+        let syncCycleDuration = 15000;
         
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
@@ -231,7 +273,6 @@
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
 
-        // --- 🛑 ANTI-REFRESH MECHANISM FOR BROWSER USERS ---
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
         if (!isStandalone) {
@@ -263,7 +304,6 @@
             });
         }
 
-        // --- 📲 NESTED PWA INSTRUCTIONS TRIGGER ---
         function checkPwaDisplay() {
             const helpBtn = document.getElementById("pwaHelpBtn");
             const iosInst = document.getElementById("iosInstruction");
@@ -298,7 +338,6 @@
             }
         }
 
-        // --- THEME CONTROLLER ---
         function applyTheme() {
             const currentTheme = localStorage.getItem("theme") || "dark";
             const themeBtn = document.getElementById("themeBtn");
@@ -311,7 +350,6 @@
             }
         }
 
-        // Formats Date correctly to: "17 Jul 2026"
         function getCustomFormattedDate(dateObj) {
             return dateObj.toLocaleDateString('en-GB', {
                 day: 'numeric',
@@ -324,7 +362,7 @@
             const isLight = document.body.classList.contains("light-theme");
             localStorage.setItem("theme", isLight ? "dark" : "light");
             applyTheme();
-            loadHistory(); // Re-render instantly on theme switch to apply colors
+            loadHistory();
         }
 
         function getDeviceType() {
@@ -349,13 +387,155 @@
             updateSyncStatusLabel();
             loadSettingsState();
             loadHistory();
-            startContinuousGPSWatch(); 
+            
+            // Initiate Battery Safeguard & Location Monitoring Ecosystem
+            initBatterySafeguards();
+
             updateQueueStatus(); 
             attemptSync();
             checkPwaDisplay(); 
             
-            setInterval(loadHistory, 15000);
+            startHistoryInterval();
+            
+            window.addEventListener('online', attemptSync);
+            window.addEventListener('focus', attemptSync);
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) {
+                    stopHistoryInterval();
+                } else {
+                    startHistoryInterval();
+                    loadHistory();
+                    attemptSync();
+                }
+            });
         };
+
+        // --- 🔋 BATTERY SAFEGUARDS & GEOLOCATION INTERFACE ---
+        function initBatterySafeguards() {
+            try {
+                if ('getBattery' in navigator) {
+                    navigator.getBattery().then(battery => {
+                        updateBatteryStatus(battery);
+                        battery.addEventListener('levelchange', () => updateBatteryStatus(battery));
+                        battery.addEventListener('chargingchange', () => updateBatteryStatus(battery));
+                    }).catch(e => {
+                        console.warn("Battery status API promise rejected:", e);
+                        document.getElementById("batteryText").textContent = "N/A";
+                        startGPSHardwareWatch(); 
+                    });
+                } else {
+                    document.getElementById("batteryText").textContent = "N/A";
+                    startGPSHardwareWatch(); 
+                }
+            } catch (err) {
+                console.error("Battery API interface setup exception:", err);
+                startGPSHardwareWatch();
+            }
+        }
+
+        function updateBatteryStatus(battery) {
+            const level = Math.round(battery.level * 100);
+            const isCharging = battery.charging;
+            
+            const batteryText = document.getElementById("batteryText");
+            const batteryIcon = document.getElementById("batteryIcon");
+            
+            batteryText.textContent = `${level}%${isCharging ? ' ⚡' : ''}`;
+            
+            // Threshold Check: Below 15% drop triggers low power preservation safeguards
+            if (level <= 15 && !isCharging) {
+                if (!isLowBatteryModeActive) {
+                    isLowBatteryModeActive = true;
+                    batteryText.className = "text-red-500 font-extrabold animate-pulse";
+                    batteryIcon.textContent = "🪫";
+                    
+                    // 🛑 Safeguard 1: Entirely shut down high-power GPS hardware loops
+                    stopGPSHardwareWatch();
+                    const gpsDot = document.getElementById("gpsDot");
+                    const gpsText = document.getElementById("gpsText");
+                    gpsDot.className = "w-2 h-2 rounded-full bg-red-700";
+                    gpsText.textContent = "BATTERY_OFF";
+                    lastGeoposition = { latitude: null, longitude: null }; 
+
+                    // 📉 Safeguard 2: Dynamically reduce background synchronization frequency to 1 minute
+                    syncCycleDuration = 60000;
+                    startHistoryInterval();
+                    
+                    alert("⚠️ Low Battery Alert! High-power hardware functions (GPS) have been completely powered down and cellular communication logs throttled to 1-minute cycles to conserve power.");
+                }
+            } else {
+                // Restoration Conditions met: Battery charged or connected to line power
+                if (isLowBatteryModeActive) {
+                    isLowBatteryModeActive = false;
+                    batteryText.className = "text-neutral-400";
+                    batteryIcon.textContent = "🔋";
+                    
+                    // Reset to standard high-speed 15-second tracking frequency
+                    syncCycleDuration = 15000;
+                    startHistoryInterval();
+                    
+                    // Re-engage continuous tracking watch loops
+                    startGPSHardwareWatch();
+                }
+            }
+        }
+
+        function startGPSHardwareWatch() {
+            stopGPSHardwareWatch();
+            if (isLowBatteryModeActive) return;
+
+            const gpsDot = document.getElementById("gpsDot");
+            const gpsText = document.getElementById("gpsText");
+
+            if (!navigator.geolocation) {
+                gpsText.textContent = "NO GPS HW";
+                return;
+            }
+
+            gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
+            gpsText.textContent = "SEARCHING";
+
+            gpsWatchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    lastGeoposition.latitude = pos.coords.latitude;
+                    lastGeoposition.longitude = pos.coords.longitude;
+                    
+                    const acc = pos.coords.accuracy;
+                    if (acc <= 15) {
+                        gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+                        gpsText.textContent = `3D LOCK (${Math.round(acc)}m)`;
+                    } else {
+                        gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
+                        gpsText.textContent = `WEAK (${Math.round(acc)}m)`;
+                    }
+                },
+                (err) => {
+                    gpsDot.className = "w-2 h-2 rounded-full bg-red-650 animate-pulse";
+                    gpsText.textContent = err.code === 1 ? "DENIED" : "SEARCHING";
+                    lastGeoposition = { latitude: null, longitude: null };
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+
+        function stopGPSHardwareWatch() {
+            if (gpsWatchId !== null) {
+                navigator.geolocation.clearWatch(gpsWatchId);
+                gpsWatchId = null;
+            }
+        }
+
+        function startHistoryInterval() {
+            stopHistoryInterval();
+            historyIntervalId = setInterval(loadHistory, syncCycleDuration);
+        }
+
+        function stopHistoryInterval() {
+            if (historyIntervalId) {
+                clearInterval(historyIntervalId);
+                historyIntervalId = null;
+            }
+        }
 
         function toggleSettings() {
             const modal = document.getElementById("settingsModal");
@@ -460,10 +640,13 @@
             remarkLabel.textContent = "Remark (Optional)";
         }
 
+        // --- 🎯 CHECKPOINT-SPECIFIC DUPLICATE VERIFICATION ---
         function checkDuplicateAndLog() {
             const bibInput = document.getElementById('bibInput');
             const bib = bibInput.value.trim();
             if (!bib) return;
+
+            const currentCheckpoint = (document.getElementById('checkpoint').value.trim() || 'Unknown').toUpperCase();
 
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
@@ -473,54 +656,22 @@
                 const logs = request.result;
                 const now = new Date();
                 
+                // Duplicate check validation scoped exclusively to current Active Checkpoint
                 const duplicate = logs.find(log => {
                     const logDate = new Date(log.time);
-                    return log.bib === bib && !isNaN(logDate) && (now - logDate) < 600000;
+                    return log.bib === bib && 
+                           log.checkpoint === currentCheckpoint && 
+                           !isNaN(logDate) && 
+                           (now - logDate) < 600000; // 10 minute window validation
                 });
 
-                if (duplicate && !confirm(`⚠️ Bib ${bib} was logged recently. Log again?`)) {
+                if (duplicate && !confirm(`⚠️ Bib ${bib} was logged at ${currentCheckpoint} within 10 minutes. Record duplicate log?`)) {
                     bibInput.value = '';
                     bibInput.focus();
                 } else {
                     logEntry(bib);
                 }
             };
-        }
-
-        function startContinuousGPSWatch() {
-            const gpsDot = document.getElementById("gpsDot");
-            const gpsText = document.getElementById("gpsText");
-
-            if (!navigator.geolocation) {
-                gpsText.textContent = "NO GPS HW";
-                return;
-            }
-
-            navigator.geolocation.watchPosition(
-                (pos) => {
-                    lastGeoposition.latitude = pos.coords.latitude;
-                    lastGeoposition.longitude = pos.coords.longitude;
-                    
-                    const acc = pos.coords.accuracy;
-                    if (acc <= 15) {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                        gpsText.textContent = `3D LOCK (${Math.round(acc)}m)`;
-                    } else {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
-                        gpsText.textContent = `WEAK (${Math.round(acc)}m)`;
-                    }
-                },
-                (err) => {
-                    gpsDot.className = "w-2 h-2 rounded-full bg-red-600 animate-pulse";
-                    if (err.code === 1) {
-                        gpsText.textContent = "DENIED";
-                    } else {
-                        gpsText.textContent = "SEARCHING";
-                    }
-                    lastGeoposition = { latitude: null, longitude: null };
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
         }
 
         function logEntry(bib) {
@@ -532,7 +683,6 @@
 
             const now = new Date();
             const datePart = getCustomFormattedDate(now);[cite: 1]
-
             const timePart = now.toLocaleTimeString('en-US', {
                 hour: 'numeric',
                 minute: '2-digit',
@@ -569,7 +719,10 @@
                 loadHistory();
                 triggerInlineToast(entry.bib, "Saved Locally!", entry.remark, false);
                 if (navigator.vibrate) navigator.vibrate(50);
-                if (syncUrl) syncSingleRow(entry);
+                if (syncUrl) {
+                    attemptSync();
+                    registerBackgroundSync(); 
+                }
             };
         }
 
@@ -593,57 +746,158 @@
             };
         }
 
-        function syncSingleRow(row) {
-            if (!syncUrl) return;
-
-            fetch(syncUrl, {
-                method: "POST",
-                mode: "cors",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify(row)
-            })
-            .then(async res => {
-                const text = await res.text();
-                let data;
-                try { data = JSON.parse(text); } catch(e) { 
-                    throw new Error("Invalid response style: " + text);
-                }
-                
-                if (data.status === "success") {
-                    row.synced = true;
-                    const transaction = db.transaction(["logs"], "readwrite");
-                    const store = transaction.objectStore("logs");
-                    store.put(row);
-                    transaction.oncomplete = function() { 
-                        loadHistory(); 
-                    };
-                } else {
-                    throw new Error(data.message || "Script execution error.");
-                }
-            })
-            .catch(err => {
-                console.error("Sync Failure:", err);
-                updateQueueStatus(); 
-            });
+        // --- 🔍 INTERACTIVE QUEUE INSPECTOR MODAL CONTROL ---
+        function toggleQueueInspector() {
+            const modal = document.getElementById("queueModal");
+            const isHidden = modal.classList.contains("hidden");
+            
+            if (isHidden) {
+                modal.classList.remove("hidden");
+                renderQueueList();
+            } else {
+                modal.classList.add("hidden");
+            }
         }
 
-        function attemptSync() {
-            if (!syncUrl) return;
+        function renderQueueList() {
+            const listEl = document.getElementById("queueInspectorList");
             const transaction = db.transaction(["logs"], "readonly");
-            const store = transaction.objectStore("logs");
-            const request = store.getAll();
+            const request = transaction.objectStore("logs").getAll();
+
             request.onsuccess = function() {
                 const logs = request.result;
                 const unsynced = logs.filter(log => !log.synced);
-                if (unsynced.length > 0) {
-                    unsynced.forEach(log => syncSingleRow(log));
-                } else {
-                    updateQueueStatus();
+                
+                listEl.innerHTML = "";
+                if (unsynced.length === 0) {
+                    listEl.innerHTML = `<div class="text-xs text-neutral-500 font-bold p-4 text-center">Queue clean. Everything is perfectly in sync!</div>`;
+                    return;
                 }
+
+                unsynced.forEach(log => {
+                    const el = document.createElement("div");
+                    el.className = "flex justify-between items-center border-b border-neutral-900 py-2 text-xs";
+                    el.innerHTML = `
+                        <div class="flex-grow">
+                            <span class="font-extrabold text-amber-500">Bib ${log.bib}</span>
+                            <span class="text-[9px] text-neutral-400 ml-1.5 font-bold font-mono">CP: ${log.checkpoint}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[9px] text-neutral-500 font-mono">${log.time.split(' ').slice(2).join(' ')}</span>
+                            <button onclick="deleteQueueRow(${log.id})" class="text-red-500 text-xs font-bold hover:text-red-400 px-1">✕</button>
+                        </div>
+                    `;
+                    listEl.appendChild(el);
+                });
             };
         }
 
-        window.addEventListener('online', attemptSync);
+        function deleteQueueRow(id) {
+            if (!confirm("Remove this specific record from the local outgoing sync engine queue?")) return;
+            const transaction = db.transaction(["logs"], "readwrite");
+            transaction.objectStore("logs").delete(id);
+            transaction.oncomplete = function() {
+                renderQueueList();
+                loadHistory();
+                registerBackgroundSync();
+            };
+        }
+
+        function copyRawQueuePayload() {
+            const transaction = db.transaction(["logs"], "readonly");
+            const request = transaction.objectStore("logs").getAll();
+
+            request.onsuccess = function() {
+                const logs = request.result;
+                const unsynced = logs.filter(log => !log.synced);
+                
+                if (unsynced.length === 0) {
+                    alert("No data pending in queue payload output!");
+                    return;
+                }
+
+                const payload = JSON.stringify({ action: "batch_sync", data: unsynced }, null, 2);
+                navigator.clipboard.writeText(payload).then(() => {
+                    alert("📋 Raw backup JSON structure array copied to clipboard successfully!");
+                }).catch(() => {
+                    alert("System error copying payload container to clipboard.");
+                });
+            };
+        }
+
+        // --- 📊 TRANSMISSION ENGINE & SYNC PROGRESS BAR ---
+        function attemptSync() {
+            if (!syncUrl || isSyncing || !navigator.onLine) return;
+            
+            const transaction = db.transaction(["logs"], "readonly");
+            const store = transaction.objectStore("logs");
+            const request = store.getAll();
+            
+            request.onsuccess = function() {
+                const logs = request.result;
+                const unsynced = logs.filter(log => !log.synced);
+                if (unsynced.length === 0) {
+                    updateQueueStatus();
+                    return;
+                }
+                
+                isSyncing = true;
+                
+                const progressText = document.getElementById("syncProgressText");
+                const progressBar = document.getElementById("syncProgressBar");
+                
+                progressText.textContent = `Syncing batch (${unsynced.length})...`;
+                progressText.className = "text-blue-500 font-bold animate-pulse";
+                progressBar.style.width = "40%"; 
+                
+                fetch(syncUrl, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({ action: "batch_sync", data: unsynced })
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status === "success") {
+                        progressBar.style.width = "100%";
+                        progressText.textContent = "Data Synced!";
+                        progressText.className = "text-emerald-500 font-bold";
+                        
+                        const writeTx = db.transaction(["logs"], "readwrite");
+                        const writeStore = writeTx.objectStore("logs");
+                        unsynced.forEach(row => {
+                            row.synced = true;
+                            writeStore.put(row);
+                        });
+                        writeTx.oncomplete = () => {
+                            isSyncing = false;
+                            loadHistory();
+                            renderQueueList();
+                            
+                            setTimeout(() => {
+                                progressBar.style.width = "0%";
+                                progressText.textContent = "Idle";
+                                progressText.className = "theme-text-muted";
+                            }, 1500);
+                        };
+                    } else {
+                        isSyncing = false;
+                        updateQueueStatus();
+                        progressBar.style.width = "0%";
+                        progressText.textContent = "Rejected";
+                        progressText.className = "text-red-500 font-bold";
+                    }
+                })
+                .catch(err => {
+                    console.error("Transmission connection failure:", err);
+                    isSyncing = false;
+                    updateQueueStatus();
+                    progressBar.style.width = "0%";
+                    progressText.textContent = "Network Offline";
+                    progressText.className = "text-red-400 font-bold";
+                });
+            };
+        }
 
         function calculateLiveSplits(logs) {
             const splitLastRunner = document.getElementById("splitLastRunner");
@@ -696,6 +950,19 @@
             loadHistory();
         }
 
+        // --- 🌀 NATIVE SERVICE WORKER BACKGROUND SYNC INTERACTION ---
+        function registerBackgroundSync() {
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                navigator.serviceWorker.ready.then(reg => {
+                    return reg.sync.register('sync-logs');
+                }).then(() => {
+                    console.log('Native background sync task successfully locked down.');
+                }).catch(err => {
+                    console.error('Background sync interface rejection:', err);
+                });
+            }
+        }
+
         function cancelEditing() {
             editingRowId = null;
             loadHistory();
@@ -725,12 +992,16 @@
                 transaction.oncomplete = function() {
                     editingRowId = null;
                     loadHistory();
-                    if (syncUrl) syncSingleRow(log);
+                    if (syncUrl) {
+                        attemptSync();
+                        registerBackgroundSync(); 
+                    }
                 };
             };
         }
 
         function loadHistory() {
+            if (document.hidden) return;
             const transaction = db.transaction(["logs"], "readonly");
             const store = transaction.objectStore("logs");
             const request = store.getAll();
@@ -828,18 +1099,23 @@
             }
             const transaction = db.transaction(["logs"], "readwrite");
             transaction.objectStore("logs").delete(id);
-            transaction.oncomplete = function() { loadHistory(); };
+            transaction.oncomplete = function() {
+                loadHistory();
+                registerBackgroundSync();
+            };
         }
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker Registered Successfully', reg.scope))
+                    .then(reg => {
+                        console.log('Service Worker Registered Successfully', reg.scope);
+                        registerBackgroundSync();
+                    })
                     .catch(err => console.log('Service Worker Registration Failed:', err));
             });
         }
 
-        // Export
         function exportCSV() {
             const transaction = db.transaction(["logs"], "readonly");
             const request = transaction.objectStore("logs").getAll();
