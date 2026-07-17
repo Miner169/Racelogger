@@ -27,7 +27,7 @@
             --btn-lock-bg: #171717;
             --btn-lock-text: #d4d4d4;
             --btn-lock-border: #262626;
-            --bib-text-color: #f59e0b;   /* High-Contrast Vibrant Amber for Dark Mode */
+            --bib-text-color: #f59e0b;   /* High-contrast Amber Orange for Dark Theme */
         }
 
         body.light-theme {
@@ -45,7 +45,7 @@
             --btn-lock-bg: #d7d7dd;
             --btn-lock-text: #111111;
             --btn-lock-border: #8f8f97;
-            --bib-text-color: #991b1b;   /* High-Contrast Deep Crimson for Light Mode */
+            --bib-text-color: #1e3a8a;   /* High-contrast Deep Blue for Light Theme */
         }
 
         /* Semantic Theme Mappings */
@@ -119,6 +119,7 @@
                     <span id="setupSummary" class="hidden text-[11px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono font-bold uppercase"></span>
                 </h2>
                 <div class="flex items-center gap-1.5">
+                    <!-- Compact Install Help Button -->
                     <button id="pwaHelpBtn" onclick="togglePwaInstructions()" class="hidden text-[10px] bg-blue-950 hover:bg-blue-900 text-blue-400 border border-blue-800 px-2 py-1 rounded-md font-bold transition">ℹ️ Install App</button>
                     <button onclick="toggleLock()" id="lockBtn" class="text-xs theme-btn-lock border px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1">🔓 Unlock Settings</button>
                 </div>
@@ -230,6 +231,7 @@
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
 
+        // --- 🛑 ANTI-REFRESH MECHANISM FOR BROWSER USERS ---
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
         if (!isStandalone) {
@@ -261,6 +263,7 @@
             });
         }
 
+        // --- 📲 NESTED PWA INSTRUCTIONS TRIGGER ---
         function checkPwaDisplay() {
             const helpBtn = document.getElementById("pwaHelpBtn");
             const iosInst = document.getElementById("iosInstruction");
@@ -295,6 +298,7 @@
             }
         }
 
+        // --- THEME CONTROLLER ---
         function applyTheme() {
             const currentTheme = localStorage.getItem("theme") || "dark";
             const themeBtn = document.getElementById("themeBtn");
@@ -305,9 +309,9 @@
                 document.body.classList.remove("light-theme");
                 themeBtn.textContent = "☀️";
             }
-            loadHistory(); 
         }
 
+        // Formats Date correctly to: "17 Jul 2026"
         function getCustomFormattedDate(dateObj) {
             return dateObj.toLocaleDateString('en-GB', {
                 day: 'numeric',
@@ -320,6 +324,7 @@
             const isLight = document.body.classList.contains("light-theme");
             localStorage.setItem("theme", isLight ? "dark" : "light");
             applyTheme();
+            loadHistory(); // Re-render instantly on theme switch to apply colors
         }
 
         function getDeviceType() {
@@ -344,11 +349,7 @@
             updateSyncStatusLabel();
             loadSettingsState();
             loadHistory();
-            
-            // Power-saving mode: Get current position immediately, then schedule every 30 minutes
-            triggerPowerSavingGPSLock(); 
-            setInterval(triggerPowerSavingGPSLock, 1800000); // 30 mins interval
-            
+            startContinuousGPSWatch(); 
             updateQueueStatus(); 
             attemptSync();
             checkPwaDisplay(); 
@@ -486,8 +487,7 @@
             };
         }
 
-        // Power-saving discrete positioning logic
-        function triggerPowerSavingGPSLock() {
+        function startContinuousGPSWatch() {
             const gpsDot = document.getElementById("gpsDot");
             const gpsText = document.getElementById("gpsText");
 
@@ -496,28 +496,30 @@
                 return;
             }
 
-            gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
-            gpsText.textContent = "LOCKING...";
-
-            navigator.geolocation.getCurrentPosition(
+            navigator.geolocation.watchPosition(
                 (pos) => {
                     lastGeoposition.latitude = pos.coords.latitude;
                     lastGeoposition.longitude = pos.coords.longitude;
                     
                     const acc = pos.coords.accuracy;
-                    gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                    gpsText.textContent = `3D (${Math.round(acc)}m)`;
+                    if (acc <= 15) {
+                        gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+                        gpsText.textContent = `3D LOCK (${Math.round(acc)}m)`;
+                    } else {
+                        gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
+                        gpsText.textContent = `WEAK (${Math.round(acc)}m)`;
+                    }
                 },
                 (err) => {
                     gpsDot.className = "w-2 h-2 rounded-full bg-red-600 animate-pulse";
                     if (err.code === 1) {
                         gpsText.textContent = "DENIED";
                     } else {
-                        gpsText.textContent = "OFFLINE";
+                        gpsText.textContent = "SEARCHING";
                     }
-                    // Keep previous known baseline variables instead of aggressively blanking it out
+                    lastGeoposition = { latitude: null, longitude: null };
                 },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         }
 
@@ -792,7 +794,6 @@
                             <div class="flex justify-between items-center w-full">
                                 <div class="flex-grow">
                                     <div class="flex items-center gap-2">
-                                        <!-- Applied high-contrast variable class here -->
                                         <span class="text-xl font-black theme-bib-text">${log.bib}</span>
                                         ${freqBadge}
                                         <span class="text-[10px] bg-neutral-900 border border-neutral-850 px-1.5 py-0.5 rounded text-neutral-300 dark:text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
@@ -838,6 +839,7 @@
             });
         }
 
+        // Export
         function exportCSV() {
             const transaction = db.transaction(["logs"], "readonly");
             const request = transaction.objectStore("logs").getAll();
