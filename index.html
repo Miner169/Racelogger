@@ -11,39 +11,39 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Theme Variables - Tuned for Legibility and Contrast */
+        /* Theme Variables */
         :root {
             --bg-color: #000000;         /* AMOLED Black */
             --panel-bg: #0a0a0a;         /* Deepest gray */
-            --text-main: #f5f5f7;        /* Highly legible crisp off-white */
-            --text-muted: #a1a1aa;       /* Clearly visible muted gray */
-            --border-color: #27272a;     /* Clear but subtle dark border */
-            --input-bg: #09090b;         /* Low-glare dark inputs */
+            --text-main: #f3f4f6;        /* Brightened light gray text (slate-100 equivalent) */
+            --text-muted: #9ca3af;       /* Highly visible muted gray (gray-400 equivalent) */
+            --border-color: #262626;     /* Subtle dark border */
+            --input-bg: #000000;         /* Black inputs */
             --input-text: #ffffff;
-            --input-placeholder: #71717a; /* Visible, accessible placeholder */
-            --header-bg: #0f172a;        /* Highly readable slate-blue */
-            --header-border: #1e293b;
-            --header-text: #60a5fa;      /* Vibrant blue for high dark-mode contrast */
-            --btn-lock-bg: #18181b;
-            --btn-lock-text: #e4e4e7;
-            --btn-lock-border: #27272a;
+            --input-placeholder: #6b7280; /* Visible placeholder text (gray-500 equivalent) */
+            --header-bg: #0c1a30;        /* Deep blue */
+            --header-border: #172554;
+            --header-text: #60a5fa;
+            --btn-lock-bg: #171717;
+            --btn-lock-text: #e5e7eb;
+            --btn-lock-border: #262626;
         }
 
         body.light-theme {
-            --bg-color: #f4f4f5;         /* Cleaner, softer light-gray background with zero glare */
-            --panel-bg: #ffffff;         /* Stark white panels for pristine separation */
-            --text-main: #111111;        /* Smooth, rich dark charcoal for maximum, fatigue-free reading */
-            --text-muted: #52525b;       /* Bold charcoal for highly legible labels */
-            --border-color: #d4d4d8;     /* Well-defined light borders */
-            --input-bg: #f4f4f5;         /* Soft light-gray input wells */
-            --input-text: #111111;       /* Crisp charcoal input text */
-            --input-placeholder: #71717a; /* Accessible, high-contrast placeholder */
-            --header-bg: #1e293b;        /* Professional dark slate header */
-            --header-border: #0f172a;
-            --header-text: #93c5fd;      /* Soft blue with great contrast on slate */
-            --btn-lock-bg: #e4e4e7;
-            --btn-lock-text: #111111;
-            --btn-lock-border: #a1a1aa;
+            --bg-color: #d8d8dc;         /* Less bright, darker muted light gray */
+            --panel-bg: #eaeaea;         /* Soft warm gray instead of stark white */
+            --text-main: #000000;        /* Pure black text for maximum readability */
+            --text-muted: #27272a;       /* Darker charcoal (zinc-800 equivalent) for legible labels */
+            --border-color: #94a3b8;     /* Highly visible borders */
+            --input-bg: #ebebef;         /* Soft off-white inputs with low glare */
+            --input-text: #000000;       /* Pure black input text */
+            --input-placeholder: #4b5563; /* High-contrast placeholder text */
+            --header-bg: #1e2e42;        /* Low-contrast dark slate blue */
+            --header-border: #2d3d52;
+            --header-text: #93c5fd;      
+            --btn-lock-bg: #dbdbdf;
+            --btn-lock-text: #000000;
+            --btn-lock-border: #92929a;
         }
 
         /* Semantic Theme Mappings */
@@ -79,7 +79,7 @@
         <div class="flex items-center gap-2.5">
             <h1 class="text-base font-black tracking-wider theme-header-text">RACE LOG</h1>
             <span id="syncStatus" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">Auto-Sync</span>
-            <button id="queueBadge" onclick="attemptSync()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
+            <button id="queueBadge" onclick="attemptSync()" class="hidden text-[10px] bg-amber-950 text-amber-400 border border-amber-800 hover:bg-amber-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
                 <span id="queueCount">0</span> Pending 🔄
             </button>
         </div>
@@ -172,7 +172,7 @@
             <div class="grid grid-cols-2 gap-2 text-center">
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Last Runner</span>
-                    <span id="splitLastRunner" class="font-extrabold text-yellow-600 dark:text-yellow-500 text-[13px]">-</span>
+                    <span id="splitLastRunner" class="font-extrabold text-amber-600 dark:text-amber-400 text-[13px]">-</span>
                 </div>
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Pacing Split Gap</span>
@@ -220,7 +220,7 @@
         let lastGeoposition = { latitude: null, longitude: null }; 
         let editingRowId = null; 
         
-        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
+        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
         if (!syncUrl || syncUrl.trim() === "" || syncUrl.includes("AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw")) {
@@ -308,10 +308,12 @@
             }
         }
 
+        // Apply changes on toggle instantly
         function toggleTheme() {
             const isLight = document.body.classList.contains("light-theme");
             localStorage.setItem("theme", isLight ? "dark" : "light");
             applyTheme();
+            loadHistory(); // Re-render table items with correct colors
         }
 
         function getDeviceType() {
@@ -363,7 +365,7 @@
         function updateSyncStatusLabel() {
             const status = document.getElementById("syncStatus");
             status.textContent = !syncUrl ? "Offline Mode" : "Auto-Sync";
-            status.className = !syncUrl ? "text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold";
+            status.className = !syncUrl ? "text-[10px] bg-amber-950 text-amber-450 border border-amber-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold";
         }
 
         function toggleLock() {
@@ -489,7 +491,7 @@
                         gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
                         gpsText.textContent = `3D LOCK (${Math.round(acc)}m)`;
                     } else {
-                        gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
+                        gpsDot.className = "w-2 h-2 rounded-full bg-amber-600 animate-pulse";
                         gpsText.textContent = `WEAK (${Math.round(acc)}m)`;
                     }
                 },
@@ -658,7 +660,6 @@
             }
         }
 
-        // 300,000 ms = 5 minutes
         function isEditable(logTimeStr) {
             const logTime = new Date(logTimeStr);
             const now = new Date();
@@ -670,13 +671,11 @@
             loadHistory();
         }
 
-        // Cancel Edit
         function cancelEditing() {
             editingRowId = null;
             loadHistory();
         }
 
-        // Save Edited Data to indexedDB and Sync to Server
         function saveEdit(id) {
             const newBib = document.getElementById(`edit-bib-${id}`).value.trim();
             const newRemark = document.getElementById(`edit-remark-${id}`).value.trim();
@@ -759,27 +758,29 @@
                             </div>
                         `;
                     } else {
-                        const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
+                        // High-contrast Amber for remarks and highlight alerts
+                        const remarkHTML = log.remark ? `<div class="text-[11px] text-amber-600 dark:text-amber-400 font-medium italic mt-0.5">💬 ${log.remark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
                         
                         const editButtonHTML = editable 
                             ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 hover:text-blue-500 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded transition">✏️ Edit</button>` 
                             : '';
 
+                        // Replaced bright text-yellow with high contrast text-amber for excellent legibility on light & dark themes
                         row.innerHTML = `
                             <div class="flex justify-between items-center w-full">
                                 <div class="flex-grow">
                                     <div class="flex items-center gap-2">
-                                        <span class="text-xl font-black text-yellow-600 dark:text-yellow-500">${log.bib}</span>
+                                        <span class="text-xl font-black text-amber-600 dark:text-amber-400">${log.bib}</span>
                                         ${freqBadge}
                                         <span class="text-[10px] bg-neutral-900 border border-neutral-850 px-1.5 py-0.5 rounded text-neutral-300 dark:text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
                                     </div>
                                     <div class="text-[10px] theme-text-muted mt-0.5 font-semibold">${log.time} • By: ${log.volunteer}</div>
                                     ${remarkHTML}
-                                }
+                                </div>
                                 <div class="text-right flex items-center gap-2.5 shrink-0">
                                     <div class="flex flex-col items-end gap-1">
-                                        <span class="text-[10px] ${log.synced ? 'text-emerald-600 dark:text-emerald-500 font-extrabold' : 'text-yellow-600 dark:text-yellow-500 font-extrabold'}">${log.synced ? 'Synced' : 'Queued'}</span>
+                                        <span class="text-[10px] ${log.synced ? 'text-emerald-600 dark:text-emerald-500 font-extrabold' : 'text-amber-600 dark:text-amber-400 font-extrabold'}">${log.synced ? 'Synced' : 'Queued'}</span>
                                         ${editButtonHTML}
                                     </div>
                                     <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 hover:text-red-500 p-1 text-base">🗑️</button>
