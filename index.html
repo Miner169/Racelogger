@@ -27,7 +27,7 @@
             --btn-lock-bg: #171717;
             --btn-lock-text: #d4d4d4;
             --btn-lock-border: #262626;
-            --bib-text-color: #f59e0b;   /* High-contrast amber gold for dark mode */
+            --bib-text-color: #f59e0b;   /* High-Contrast Vibrant Amber for Dark Mode */
         }
 
         body.light-theme {
@@ -45,7 +45,7 @@
             --btn-lock-bg: #d7d7dd;
             --btn-lock-text: #111111;
             --btn-lock-border: #8f8f97;
-            --bib-text-color: #1e3a8a;   /* High-contrast deep blue for light mode */
+            --bib-text-color: #991b1b;   /* High-Contrast Deep Crimson for Light Mode */
         }
 
         /* Semantic Theme Mappings */
@@ -87,12 +87,7 @@
             </button>
         </div>
         <div class="flex items-center gap-1.5">
-            <!-- 🔋 Low-Battery State Watcher Display -->
-            <div id="batteryIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2 py-0.5 rounded-full font-bold border border-neutral-800">
-                <span id="batteryIcon">🔋</span>
-                <span id="batteryText" class="text-neutral-400">--%</span>
-            </div>
-            <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800">
+            <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800 mr-1">
                 <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse" id="gpsDot"></span>
                 <span id="gpsText" class="text-neutral-400">GPS OFF</span>
             </div>
@@ -179,7 +174,7 @@
             <div class="grid grid-cols-2 gap-2 text-center">
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Last Runner</span>
-                    <span id="splitLastRunner" class="font-extrabold text-orange-700 dark:text-orange-500 text-[13px]">-</span>
+                    <span id="splitLastRunner" class="font-extrabold text-orange-700 text-[13px]">-</span>
                 </div>
                 <div class="theme-input py-1 px-2 rounded-lg border">
                     <span class="block text-[8px] theme-text-muted font-black uppercase tracking-wide">Pacing Split Gap</span>
@@ -226,10 +221,6 @@
         let inlineToastTimeout;
         let lastGeoposition = { latitude: null, longitude: null }; 
         let editingRowId = null; 
-        let gpsTimerId = null;
-        let historyIntervalId = null;
-        let isLowBatteryModeActive = false;
-        let syncCycleDuration = 15000; // Default UI loop refresh interval (15s)
         
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         
@@ -314,6 +305,7 @@
                 document.body.classList.remove("light-theme");
                 themeBtn.textContent = "☀️";
             }
+            loadHistory(); 
         }
 
         function getCustomFormattedDate(dateObj) {
@@ -328,7 +320,6 @@
             const isLight = document.body.classList.contains("light-theme");
             localStorage.setItem("theme", isLight ? "dark" : "light");
             applyTheme();
-            loadHistory();
         }
 
         function getDeviceType() {
@@ -354,130 +345,16 @@
             loadSettingsState();
             loadHistory();
             
-            // Initialize Power Engine & GPS Core
-            initPowerManagementAndGPS();
-
+            // Power-saving mode: Get current position immediately, then schedule every 30 minutes
+            triggerPowerSavingGPSLock(); 
+            setInterval(triggerPowerSavingGPSLock, 1800000); // 30 mins interval
+            
             updateQueueStatus(); 
             attemptSync();
             checkPwaDisplay(); 
             
-            startHistoryInterval();
+            setInterval(loadHistory, 15000);
         };
-
-        // --- 🔋 LOW-BATTERY STATE WATCHER ENGINE[cite: 2] ---
-        function initPowerManagementAndGPS() {
-            try {
-                if ('getBattery' in navigator) {
-                    navigator.getBattery().then(battery => {
-                        updateBatteryUI(battery);
-                        battery.addEventListener('levelchange', () => updateBatteryUI(battery));
-                        battery.addEventListener('chargingchange', () => updateBatteryUI(battery));
-                    }).catch(e => {
-                        console.warn("Battery API handling fallback:", e);
-                        document.getElementById("batteryText").textContent = "N/A";
-                    });
-                } else {
-                    document.getElementById("batteryText").textContent = "N/A";
-                }
-            } catch (err) {
-                console.error("Failed tracking hardware batteries:", err);
-            }
-            
-            // Start Power-Saving GPS cycle (Triggers once, then loops precisely every 30 minutes)
-            try {
-                triggerBatterySavingGPSLock();
-                gpsTimerId = setInterval(triggerBatterySavingGPSLock, 1800000); 
-            } catch (err) {
-                console.error("GPS initialization error:", err);
-            }
-        }
-
-        function updateBatteryUI(battery) {
-            const level = Math.round(battery.level * 100);
-            const isCharging = battery.charging;
-            
-            const batteryText = document.getElementById("batteryText");
-            const batteryIcon = document.getElementById("batteryIcon");
-            
-            batteryText.textContent = `${level}%${isCharging ? ' ⚡' : ''}`;
-            
-            // Under 15% and running off battery power[cite: 2]
-            if (level <= 15 && !isCharging) {
-                if (!isLowBatteryModeActive) {
-                    isLowBatteryModeActive = true;
-                    batteryText.className = "text-red-500 font-extrabold animate-pulse";
-                    batteryIcon.textContent = "🪫";
-                    
-                    // Kill the GPS tracking schedule to preserve life
-                    if (gpsTimerId) {
-                        clearInterval(gpsTimerId);
-                        gpsTimerId = null;
-                    }
-                    const gpsDot = document.getElementById("gpsDot");
-                    const gpsText = document.getElementById("gpsText");
-                    gpsDot.className = "w-2 h-2 rounded-full bg-red-700";
-                    gpsText.textContent = "BATTERY_OFF";
-                    lastGeoposition = { latitude: null, longitude: null }; // clear to ignore tracking load
-
-                    // Throttle the local history update checks to 60 seconds
-                    syncCycleDuration = 60000;
-                    startHistoryInterval();
-                    
-                    alert("⚠️ Low Battery Mode Activated! Positioning services have been shut down and logging intervals throttled to maximize battery longevity.");
-                }
-            } else {
-                // Restore regular operations if battery conditions improve
-                if (isLowBatteryModeActive || !gpsTimerId) {
-                    isLowBatteryModeActive = false;
-                    batteryText.className = "text-neutral-400";
-                    batteryIcon.textContent = "🔋";
-                    
-                    syncCycleDuration = 15000;
-                    startHistoryInterval();
-                    
-                    triggerBatterySavingGPSLock();
-                    if (gpsTimerId) clearInterval(gpsTimerId);
-                    gpsTimerId = setInterval(triggerBatterySavingGPSLock, 1800000); 
-                }
-            }
-        }
-
-        function startHistoryInterval() {
-            if (historyIntervalId) clearInterval(historyIntervalId);
-            historyIntervalId = setInterval(loadHistory, syncCycleDuration);
-        }
-
-        // --- ⏱️ POWER SAVING 30-MIN GPS POSITIONING CORE ---
-        function triggerBatterySavingGPSLock() {
-            if (isLowBatteryModeActive) return; 
-
-            const gpsDot = document.getElementById("gpsDot");
-            const gpsText = document.getElementById("gpsText");
-
-            if (!navigator.geolocation) {
-                gpsText.textContent = "NO GPS HW";
-                return;
-            }
-
-            gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
-            gpsText.textContent = "LOCKING...";
-
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    lastGeoposition.latitude = pos.coords.latitude;
-                    lastGeoposition.longitude = pos.coords.longitude;
-                    
-                    const acc = pos.coords.accuracy;
-                    gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                    gpsText.textContent = `OK (${Math.round(acc)}m)`;
-                },
-                (err) => {
-                    gpsDot.className = "w-2 h-2 rounded-full bg-red-600 animate-pulse";
-                    gpsText.textContent = err.code === 1 ? "DENIED" : "FAILED";
-                },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-            );
-        }
 
         function toggleSettings() {
             const modal = document.getElementById("settingsModal");
@@ -607,6 +484,41 @@
                     logEntry(bib);
                 }
             };
+        }
+
+        // Power-saving discrete positioning logic
+        function triggerPowerSavingGPSLock() {
+            const gpsDot = document.getElementById("gpsDot");
+            const gpsText = document.getElementById("gpsText");
+
+            if (!navigator.geolocation) {
+                gpsText.textContent = "NO GPS HW";
+                return;
+            }
+
+            gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
+            gpsText.textContent = "LOCKING...";
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    lastGeoposition.latitude = pos.coords.latitude;
+                    lastGeoposition.longitude = pos.coords.longitude;
+                    
+                    const acc = pos.coords.accuracy;
+                    gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+                    gpsText.textContent = `3D (${Math.round(acc)}m)`;
+                },
+                (err) => {
+                    gpsDot.className = "w-2 h-2 rounded-full bg-red-600 animate-pulse";
+                    if (err.code === 1) {
+                        gpsText.textContent = "DENIED";
+                    } else {
+                        gpsText.textContent = "OFFLINE";
+                    }
+                    // Keep previous known baseline variables instead of aggressively blanking it out
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
         }
 
         function logEntry(bib) {
@@ -880,7 +792,7 @@
                             <div class="flex justify-between items-center w-full">
                                 <div class="flex-grow">
                                     <div class="flex items-center gap-2">
-                                        <!-- Applied the high contrast theme-bib-text class -->
+                                        <!-- Applied high-contrast variable class here -->
                                         <span class="text-xl font-black theme-bib-text">${log.bib}</span>
                                         ${freqBadge}
                                         <span class="text-[10px] bg-neutral-900 border border-neutral-850 px-1.5 py-0.5 rounded text-neutral-300 dark:text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
