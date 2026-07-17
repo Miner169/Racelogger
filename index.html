@@ -76,7 +76,6 @@
         }
     </style>
 </head>
-<!-- Removed 'select-none' here to fix native tap triggers across mobile/desktop browsers -->
 <body class="theme-bg theme-text min-h-screen flex flex-col font-sans pb-16">
 
     <!-- Header Status Bar -->
@@ -375,12 +374,18 @@
         }
 
         function downloadServiceWorker() {
-            const content = `const CACHE_NAME = 'race-logger-v1';
+            const content = `const CACHE_NAME = 'race-logger-v2';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS))));
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
-self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+
+self.addEventListener('fetch', e => {
+    if (e.request.method !== 'GET' || !e.request.url.startsWith(self.location.origin)) {
+        return;
+    }
+    e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+});
 
 self.addEventListener('sync', event => {
     if (event.tag === 'sync-logs') {
@@ -469,17 +474,28 @@ async function backgroundSyncLogs() {
         };
 
         function initPowerManagementAndGPS() {
-            if ('getBattery' in navigator) {
-                navigator.getBattery().then(battery => {
-                    updateBatteryUI(battery);
-                    
-                    battery.addEventListener('levelchange', () => updateBatteryUI(battery));
-                    battery.addEventListener('chargingchange', () => updateBatteryUI(battery));
-                });
-            } else {
-                document.getElementById("batteryText").textContent = "N/A";
+            try {
+                if ('getBattery' in navigator) {
+                    navigator.getBattery().then(battery => {
+                        updateBatteryUI(battery);
+                        battery.addEventListener('levelchange', () => updateBatteryUI(battery));
+                        battery.addEventListener('chargingchange', () => updateBatteryUI(battery));
+                    }).catch(e => {
+                        console.warn("Battery API rejected:", e);
+                        document.getElementById("batteryText").textContent = "N/A";
+                    });
+                } else {
+                    document.getElementById("batteryText").textContent = "N/A";
+                }
+            } catch (err) {
+                console.error("Failed to init Battery tracking:", err);
+            }
+            
+            try {
                 triggerBatterySavingGPSLock();
                 gpsTimerId = setInterval(triggerBatterySavingGPSLock, 1800000); 
+            } catch (err) {
+                console.error("GPS initialization failed:", err);
             }
         }
 
@@ -963,7 +979,6 @@ async function backgroundSyncLogs() {
             return (now - logTime) < 300000; 
         }
 
-        // Removed touch interruption behaviors to completely restore simple tap/click actions 
         function startEditing(id) {
             editingRowId = id;
             loadHistory();
