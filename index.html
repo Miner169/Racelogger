@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Race Bib Logger</title>
     <link class="theme-manifest" rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#000000">
@@ -81,14 +81,15 @@
             overscroll-behavior-y: contain; 
         }
 
-        /* Optimize button size layout for handheld screens safely without layout shifts */
-        @media (pointer: coarse) {
-            #logActionButton {
-                height: 4.5rem !important;
-                font-size: 1.35rem !important;
-                padding-left: 2rem !important;
-                padding-right: 2rem !important;
-            }
+        /* Keyboard Docking styles for Mobile/Tablets */
+        .keyboard-docked-btn {
+            position: fixed !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            border-radius: 0 !important;
+            z-index: 9999 !important;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.5) !important;
         }
 
         @keyframes popScale {
@@ -258,7 +259,7 @@
             </div>
         </section>
 
-        <!-- Core Metric Panel (Placed between Setup and Enter Bib) -->
+        <!-- Core Metric Panel -->
         <section class="grid grid-cols-3 gap-1.5">
             <div class="theme-panel py-2 px-2 rounded-xl border text-center shadow-sm flex flex-col justify-between">
                 <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">Total Logs</div>
@@ -274,7 +275,7 @@
             </div>
         </section>
 
-        <!-- Isolated Full-Width Container for Last 4 (Placed directly above Enter Bib) -->
+        <!-- Isolated Full-Width Container for Last 4 -->
         <section class="theme-panel py-2 px-4 rounded-xl border shadow-sm text-center flex flex-col gap-0.5">
             <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">Last 4 Runners</div>
             <div id="splitLastRunner" class="font-black bib-text-highlight text-xl tracking-wider truncate">-</div>
@@ -288,7 +289,8 @@
                     <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" oninput="warmUpGPS()" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl pl-12 pr-2 focus:outline-none focus:border-blue-900 transition uppercase">
                     <button type="button" onclick="toggleKeyboardMode(this)" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-lg p-1 bg-neutral-900/80 rounded-lg border theme-border select-none shadow" title="Switch Keyboard Mode">🔢</button>
                 </div>
-                <button id="logActionButton" onclick="checkDuplicateAndLog()" class="bg-blue-800 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-lg px-8 rounded-xl shadow-lg transition duration-150 flex items-center justify-center">LOG</button>
+                <!-- Log button will handle dynamic layout shifting in JavaScript below -->
+                <button id="logActionButton" onclick="checkDuplicateAndLog()" class="bg-blue-800 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-lg px-8 rounded-xl shadow-lg transition-all duration-100 flex items-center justify-center">LOG</button>
             </div>
             <div class="mt-1 relative">
                 <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark (Optional)</label>
@@ -384,6 +386,49 @@
                 if (window.scrollY === 0 && touchMove > touchStart) e.preventDefault();
             }, { passive: false });
         }
+
+        // --- Visual Viewport Smart Phone Keyboard Anchor Logic ---
+        function handleViewportResize() {
+            const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+            if (!isTouchDevice) return; 
+
+            const btn = document.getElementById("logActionButton");
+            const inputHasFocus = (document.activeElement && (document.activeElement.id === 'bibInput' || document.activeElement.id === 'remarkInput'));
+
+            if (inputHasFocus && window.visualViewport) {
+                // Calculate position relative to the visual view window limits
+                const viewportHeight = window.visualViewport.height;
+                const windowHeight = window.innerHeight;
+                
+                // If visual space dropped significantly, the virtual keyboard is active
+                if (viewportHeight < windowHeight * 0.9) {
+                    btn.classList.add("keyboard-docked-btn");
+                    btn.style.height = "5rem"; 
+                    btn.style.fontSize = "1.5rem";
+                    
+                    // Force positioning directly at the baseline edge of the keyboard frame
+                    btn.style.top = `${window.visualViewport.offsetTop + viewportHeight - btn.offsetHeight}px`;
+                    return;
+                }
+            }
+            
+            // Clean up and restore properties to natural document hierarchy state
+            btn.classList.remove("keyboard-docked-btn");
+            btn.style.position = "";
+            btn.style.top = "";
+            btn.style.height = "";
+            btn.style.fontSize = "";
+            btn.style.width = "";
+        }
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener("resize", handleViewportResize);
+            window.visualViewport.addEventListener("scroll", handleViewportResize);
+        }
+        document.getElementById('bibInput').addEventListener('focus', handleViewportResize);
+        document.getElementById('bibInput').addEventListener('blur', () => setTimeout(handleViewportResize, 100));
+        document.getElementById('remarkInput').addEventListener('focus', handleViewportResize);
+        document.getElementById('remarkInput').addEventListener('blur', () => setTimeout(handleViewportResize, 100));
 
         function forceClearAppCache() {
             const explicitWarningPrompt = 
@@ -840,6 +885,10 @@
             document.getElementById('bibInput').value = '';
             remarkInput.value = ''; 
             shutOffGPSHardware();
+            
+            // Remove selection states to let the dynamic view dock return back smoothly
+            document.activeElement.blur();
+            setTimeout(handleViewportResize, 80);
         }
 
         function handleRemarkTyping() {
