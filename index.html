@@ -464,7 +464,7 @@
             return "PC";
         }
 
-        const dbRequest = indexedDB.open("RaceLoggerDB", 1);
+const dbRequest = indexedDB.open("RaceLoggerDB", 1);
         dbRequest.onupgradeneeded = function(e) {
             db = e.target.result;
             if (!db.objectStoreNames.contains("logs")) {
@@ -481,6 +481,16 @@
             checkPwaDisplay(); 
             resetSyncTimer();
             if (syncUrl) attemptSync();
+
+            // REGISTER THE SERVICE WORKER RIGHT HERE ON SUCCESSFUL LAUNCH
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                .then(reg => {
+                    console.log('Service Worker running cleanly inside PWA context.');
+                    // Force check for updates on launch so code fixes apply immediately
+                    reg.update();
+                }).catch(err => console.error('Worker failed:', err));
+            }
         };
 
         function toggleSettings() { document.getElementById("settingsModal").classList.toggle("hidden"); document.getElementById("syncUrlInput").value = syncUrl; }
