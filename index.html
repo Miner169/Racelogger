@@ -482,17 +482,37 @@ const dbRequest = indexedDB.open("RaceLoggerDB", 1);
             resetSyncTimer();
             if (syncUrl) attemptSync();
 
-            // REGISTER THE SERVICE WORKER RIGHT HERE ON SUCCESSFUL LAUNCH
+            // 1. REGISTER THE SERVICE WORKER STACK
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js')
                 .then(reg => {
                     console.log('Service Worker running cleanly inside PWA context.');
-                    // Force check for updates on launch so code fixes apply immediately
-                    reg.update();
+                    reg.update(); // Force look for code alterations immediately on startup
                 }).catch(err => console.error('Worker failed:', err));
             }
-        };
 
+            // 2. WIRE DIRECT INTERACTION TRIGGERS TO FORCE SYNC PASSING
+            const inputs = ['bibInput', 'remarkInput'];
+            inputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('focus', forceNetworkSyncCheck);
+                    el.addEventListener('input', forceNetworkSyncCheck);
+                }
+            });
+        };
+        
+// Self-healing direct sync trigger that runs completely independent of the phone's connection flags
+        function forceNetworkSyncCheck() {
+            if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
+            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+                const unsynced = e.target.result.filter(log => !log.synced);
+                if (unsynced.length > 0) {
+                    attemptSync();
+                }
+            };
+        }
+        
         function toggleSettings() { document.getElementById("settingsModal").classList.toggle("hidden"); document.getElementById("syncUrlInput").value = syncUrl; }
         function saveSettings() { syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; localStorage.setItem("syncUrl", syncUrl); toggleSettings(); updateSyncStatusLabel(); attemptSync(); }
         function updateSyncStatusLabel() { const s = document.getElementById("syncStatus"); s.textContent = !syncUrl ? "Offline Mode" : "Auto-Sync"; s.className = !syncUrl ? "text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold"; }
