@@ -688,57 +688,74 @@ const dbRequest = indexedDB.open("RaceLoggerDB", 1);
             });
         }
 
-        function syncSingleRow(row) {
-            if (!syncUrl || remarkDebounceTimeout) return;
-            fetch(syncUrl, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({ action: "batch_sync", data: [row] })
-            })
-            .then(async res => {
-                const data = JSON.parse(await res.text());
-                if (data.status === "success" && data.confirmedIds.includes(row.uid)) {
-                    const tx = db.transaction(["logs"], "readwrite");
-                    row.synced = true; 
-                    tx.objectStore("logs").put(row);
-                    tx.oncomplete = function() { loadHistory(); };
-                }
-            }).catch(err => console.error(err));
+function syncSingleRow(row) {
+    if (!syncUrl || remarkDebounceTimeout) return;
+    fetch(syncUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        redirect: "follow",
+        body: JSON.stringify({ action: "batch_sync", data: [row] })
+    })
+    .then(async res => {
+        const rawText = await res.text();
+        if (rawText.trim().startsWith("<")) return;
+        const data = JSON.parse(rawText);
+        if (data.status === "success" && data.confirmedIds.includes(row.uid)) {
+            const tx = db.transaction(["logs"], "readwrite");
+            row.synced = true; 
+            tx.objectStore("logs").put(row);
+            tx.oncomplete = function() { loadHistory(); };
         }
+    })
+    .catch(err => console.error("Single row sync error:", err));
+}
 
-        function attemptSync() {
-            if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
-            isSyncing = true;
+function attemptSync() {
+    if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
+    isSyncing = true;
 
-            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
-                const unsynced = e.target.result.filter(log => !log.synced);
-                if (unsynced.length === 0) { isSyncing = false; return; }
+    db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+        const unsynced = e.target.result.filter(log => !log.synced);
+        if (unsynced.length === 0) { isSyncing = false; return; }
 
-                // Text/plain structure ensures bypass of strict cross-origin PWA filters
-                fetch(syncUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "batch_sync", data: unsynced })
-                })
-                .then(async res => {
-                    const data = JSON.parse(await res.text());
-                    if (data.status === "success") {
-                        const confirmedIds = new Set(data.confirmedIds || []);
-                        const tx = db.transaction(["logs"], "readwrite");
-                        const store = tx.objectStore("logs");
-                        unsynced.forEach(log => {
-                            if (confirmedIds.has(log.uid)) { log.synced = true; store.put(log); }
-                        });
-                        tx.oncomplete = function() { loadHistory(); };
-                    }
-                })
-                .catch(err => console.error("Sync batch error:", err))
-                .finally(() => {
-                    isSyncing = false;
-                    if (syncRerunQueued) { syncRerunQueued = false; attemptSync(); }
+        fetch(syncUrl, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            redirect: "follow", // CRITICAL: Forces mobile PWA wrappers to follow Google's 302 hop
+            body: JSON.stringify({ action: "batch_sync", data: unsynced })
+        })
+        .then(async res => {
+            const rawText = await res.text();
+            
+            // Safeguard against Google returning HTML login pages instead of JSON
+            if (rawText.trim().startsWith("<")) {
+                throw new Error("Received HTML instead of JSON. Google Script permissions are blocking access.");
+            }
+
+            const data = JSON.parse(rawText);
+            if (data.status === "success") {
+                const confirmedIds = new Set(data.confirmedIds || []);
+                const tx = db.transaction(["logs"], "readwrite");
+                const store = tx.objectStore("logs");
+                unsynced.forEach(log => {
+                    if (confirmedIds.has(log.uid)) { log.synced = true; store.put(log); }
                 });
-            };
-        }
+                tx.oncomplete = function() { loadHistory(); };
+            }
+        })
+        .catch(err => {
+            console.error("Sync batch execution fault:", err);
+            // If testing, trigger a visible alert so you know exact failure reason
+            if (err.message.includes("HTML instead of JSON")) {
+                alert("⚠️ Google Script blocked the request. Verify deployment access is set to 'Anyone'.");
+            }
+        })
+        .finally(() => {
+            isSyncing = false;
+            if (syncRerunQueued) { syncRerunQueued = false; attemptSync(); }
+        });
+    };
+}
         
 // Bulletproof sync trigger that ignores broken phone "online" status flags
 function forceNetworkSyncCheck() {
