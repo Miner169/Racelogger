@@ -81,7 +81,7 @@
             overscroll-behavior-y: contain; 
         }
 
-        /* Keyboard Docking styles - Maximum clarity over background text */
+        /* Keyboard Docking styles - Striking layout style while retaining transparency */
         .keyboard-docked-btn {
             position: fixed !important;
             left: 0 !important;
@@ -89,10 +89,11 @@
             width: 100% !important;
             border-radius: 0 !important;
             z-index: 9999 !important;
-            box-shadow: 0 -4px 15px rgba(0,0,0,0.2) !important;
-            background-color: rgba(30, 64, 175, 0.15) !important; /* Extremely high transparency */
-            backdrop-filter: none !important; /* Stripped out blur so background texts stay ultra-sharp */
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 1) !important; 
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.4) !important;
+            background: linear-gradient(to right, rgba(29, 78, 216, 0.25), rgba(67, 56, 202, 0.25)) !important; /* Colorful but highly transparent */
+            border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: none !important; /* No blur so the elements underneath remain razor-sharp */
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 4px rgba(0, 0, 0, 1) !important; 
         }
 
         @keyframes popScale {
@@ -276,7 +277,8 @@
                     <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" oninput="warmUpGPS()" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl pl-12 pr-2 focus:outline-none focus:border-blue-900 transition uppercase">
                     <button type="button" onclick="toggleKeyboardMode(this)" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-lg p-1 bg-neutral-900/80 rounded-lg border theme-border select-none shadow" title="Switch Keyboard Mode">🔢</button>
                 </div>
-                <button id="logActionButton" onclick="checkDuplicateAndLog()" class="bg-blue-800 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-lg px-8 rounded-xl shadow-lg transition-all duration-100 flex items-center justify-center">LOG</button>
+                <!-- Log button styled with rich contrast gradient -->
+                <button id="logActionButton" onclick="checkDuplicateAndLog()" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-95 text-white font-extrabold text-lg px-8 rounded-xl shadow-lg transition-all duration-100 flex items-center justify-center">LOG</button>
             </div>
             <div class="mt-1 relative">
                 <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark (Optional)</label>
@@ -831,14 +833,12 @@
                 );
                 
                 if (duplicate) {
-                    // Modal interception collapses soft keyboards on mobile platforms
                     const confirmLog = confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`);
                     if (!confirmLog) {
                         bI.value = ''; 
                     } else {
                         logEntry(bib);
                     }
-                    // Forced asynchronous refocus to restore active text layout system
                     setTimeout(() => {
                         bI.focus();
                         handleViewportResize();
