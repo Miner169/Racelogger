@@ -635,10 +635,14 @@
 
 function syncSingleRow(row) {
     if (!syncUrl || remarkDebounceTimeout) return;
+
+    const formParams = new URLSearchParams();
+    formParams.append("payload", JSON.stringify({ action: "batch_sync", data: [row] }));
+
     fetch(syncUrl, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "batch_sync", data: [row] })
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formParams
     })
     .then(async res => {
         const data = JSON.parse(await res.text());
@@ -660,15 +664,17 @@ function attemptSync() {
         const unsynced = e.target.result.filter(log => !log.synced);
         if (unsynced.length === 0) { isSyncing = false; return; }
 
-        // REMOVED no-cors. Using plain text submission to bypass pre-flight blocks safely.
+        // Format as application/x-www-form-urlencoded to bypass strict iOS PWA blocks
+        const formParams = new URLSearchParams();
+        formParams.append("payload", JSON.stringify({ action: "batch_sync", data: unsynced }));
+
         fetch(syncUrl, {
             method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" }, 
-            body: JSON.stringify({ action: "batch_sync", data: unsynced })
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formParams
         })
         .then(async res => {
-            const textResponse = await res.text();
-            const data = JSON.parse(textResponse);
+            const data = JSON.parse(await res.text());
             if (data.status === "success") {
                 const confirmedIds = new Set(data.confirmedIds || []);
                 const tx = db.transaction(["logs"], "readwrite");
