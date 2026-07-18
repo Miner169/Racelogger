@@ -174,7 +174,6 @@
             <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
             <div class="flex gap-3 items-stretch">
                 <div class="flex-grow">
-                    <!-- Trigger low-power warm-up on focus or keyboard input -->
                     <input type="tel" id="bibInput" onfocus="warmUpGPS()" oninput="warmUpGPS()" inputmode="numeric" pattern="[0-9]*" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl px-2 focus:outline-none focus:border-blue-900 transition">
                 </div>
                 <button onclick="checkDuplicateAndLog()" class="bg-blue-800 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-lg px-6 rounded-xl shadow-lg transition duration-150 flex items-center justify-center">LOG</button>
@@ -254,20 +253,16 @@
         let isSetupLocked = false;
         let inlineToastTimeout;
         
-        // Cache structure holding position details and accurate JS milliseconds timestamp
         let lastGeoposition = { latitude: null, longitude: null, timestamp: 0 }; 
         let editingRowId = null; 
         
-        // Dynamic settings
         let syncIntervalMs = 15000; 
         let syncTimerId = null;
         let lowBatteryThresholdActive = false;
 
-        // --- 🔒 SYNC ENGINE STATE (prevents overlapping/racing sync requests) ---
-        let isSyncing = false;      // true while a batch_sync request is in flight
-        let syncRerunQueued = false; // true if new entries arrived mid-sync; triggers an immediate re-run
+        let isSyncing = false;      
+        let syncRerunQueued = false; 
 
-        // GPS Safe Warmup Handlers
         let gpsWarmupTimeout = null;
         let isGpsHardwareRunning = false;
 
@@ -279,7 +274,6 @@
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
 
-        // --- 🛑 ANTI-REFRESH MECHANISM ---
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         if (!isStandalone) {
             let touchStart;
@@ -306,7 +300,6 @@
             });
         }
 
-        // --- 🔋 BATTERY SAFEGUARDS ---
         function initBatteryMonitoring() {
             if ('getBattery' in navigator) {
                 navigator.getBattery().then(battery => {
@@ -320,7 +313,6 @@
                             document.getElementById('batIcon').textContent = levelPercent <= 20 ? "🪫" : "🔋";
                         }
 
-                        // Low Battery Safeguard Trigger (< 15% battery)
                         if (battery.level <= 0.15 && !battery.charging) {
                             if (!lowBatteryThresholdActive) {
                                 activateBatterySafeMode();
@@ -344,19 +336,14 @@
         function activateBatterySafeMode() {
             lowBatteryThresholdActive = true;
             document.getElementById('batteryIndicator').className = "flex items-center gap-1 text-[10px] bg-red-950 text-red-400 px-2 py-0.5 rounded-full font-bold border border-red-800";
-            
-            // Shut off warm-ups entirely during emergency battery reserve
             shutOffGPSHardware();
-            
             syncIntervalMs = 60000;
             resetSyncTimer();
-            console.log("Battery Safeguard Active: GPS disabled. Sync rate limited to 1 minute.");
         }
 
         function deactivateBatterySafeMode() {
             lowBatteryThresholdActive = false;
             document.getElementById('batteryIndicator').className = "flex items-center gap-1 text-[10px] bg-black px-2 py-0.5 rounded-full font-bold border border-neutral-800 text-neutral-400";
-            
             syncIntervalMs = 15000;
             resetSyncTimer();
         }
@@ -365,11 +352,10 @@
             if (syncTimerId) clearInterval(syncTimerId);
             syncTimerId = setInterval(function() {
                 loadHistory();
-                if (syncUrl) attemptSync(); // Safety-net retry for anything still queued
+                if (syncUrl) attemptSync(); 
             }, syncIntervalMs);
         }
 
-        // --- 🎯 SMART LOW-POWER CACHED GPS MECHANISM ---
         function warmUpGPS() {
             if (lowBatteryThresholdActive) return; 
 
@@ -383,13 +369,12 @@
                 return;
             }
 
-            // ⏱️ 10-Minute Cache Bypass check (600,000 milliseconds)
             const cacheAgeMs = Date.now() - lastGeoposition.timestamp;
             if (lastGeoposition.latitude !== null && cacheAgeMs < 600000) {
                 const minutesOld = Math.floor(cacheAgeMs / 60000);
                 gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
                 gpsText.textContent = `CACHED (${minutesOld}m old)`;
-                return; // Skips calling geolocation hardware completely
+                return; 
             }
 
             if (!isGpsHardwareRunning) {
@@ -398,7 +383,6 @@
                 gpsText.textContent = "WARMING UP...";
             }
 
-            // Request location fix with LOW POWER specifications (enableHighAccuracy: false)
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     lastGeoposition.latitude = pos.coords.latitude;
@@ -418,13 +402,12 @@
                     }
                 },
                 { 
-                    enableHighAccuracy: false, // Disables active satellite array lookup (conserves massive battery)
+                    enableHighAccuracy: false, 
                     timeout: 8000, 
-                    maximumAge: 600000         // Matches our 10 min threshold logic inside browser internal cache
+                    maximumAge: 600000         
                 }
             );
 
-            // Turn off GPS operational lights automatically after 10 seconds of keyboard inactivity
             gpsWarmupTimeout = setTimeout(shutOffGPSHardware, 10000);
         }
 
@@ -435,7 +418,6 @@
             const gpsDot = document.getElementById("gpsDot");
             const gpsText = document.getElementById("gpsText");
             
-            // If we have a fresh valid location, display green sleeping status
             const cacheAgeMs = Date.now() - lastGeoposition.timestamp;
             if (lastGeoposition.latitude !== null && cacheAgeMs < 600000) {
                 gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
@@ -446,7 +428,6 @@
             }
         }
 
-        // --- PWA INSTRUCTIONS ---
         function checkPwaDisplay() {
             const helpBtn = document.getElementById("pwaHelpBtn");
             const iosInst = document.getElementById("iosInstruction");
@@ -481,7 +462,6 @@
             }
         }
 
-        // --- THEME CONTROLLER ---
         function applyTheme() {
             const currentTheme = localStorage.getItem("theme") || "dark";
             const themeBtn = document.getElementById("themeBtn");
@@ -501,6 +481,7 @@
             loadHistory();
         }
 
+        // --- 📊 DETECT SYSTEM SPECIFICATION TYPE ---
         function getDeviceType() {
             const ua = navigator.userAgent;
             if (/tablet|ipad|playbook|silk/i.test(ua)) return "Tablet";
@@ -510,7 +491,6 @@
             return "PC";
         }
 
-        // Database Init
         const dbRequest = indexedDB.open("RaceLoggerDB", 1);
         dbRequest.onupgradeneeded = function(e) {
             db = e.target.result;
@@ -667,7 +647,6 @@
                 const logs = request.result;
                 const now = new Date();
                 
-                // --- 📍 CHECKPOINT-SPECIFIC DUPLICATE CHECK ---
                 const duplicate = logs.find(log => 
                     log.bib === bib && 
                     log.checkpoint.toUpperCase() === cpVal.toUpperCase() && 
@@ -683,10 +662,8 @@
             };
         }
 
-        // --- 🔑 UNIQUE ID GENERATOR (idempotency key for server handshake) ---
         function generateUID() {
             if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-            // Fallback for older WebViews without crypto.randomUUID
             return 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11);
         }
 
@@ -700,25 +677,24 @@
             const now = new Date();
             const timestampStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
 
-const entry = {
-    bib: bib,                       // 1. BIB
-    time: timestampStr,             // 2. Time
-    checkpoint: checkpoint.toUpperCase(), // 3. Checkpoint
-    volunteer: volunteer.toUpperCase(),   // 4. Volunteer
-    remark: remark,                 // 5. Remark
-    device: getDeviceType(),        // 6. Device
-    latitude: lastGeoposition.latitude,   // 7. Latitude
-    longitude: lastGeoposition.longitude, // 8. Longitude
-    uid: generateUID(),             // 9. UID
-    synced: false,
-    syncAttempts: 0
-};
+            const entry = {
+                bib: bib,                       // 1. BIB
+                time: timestampStr,             // 2. Time
+                checkpoint: checkpoint.toUpperCase(), // 3. Checkpoint
+                volunteer: volunteer.toUpperCase(),   // 4. Volunteer
+                remark: remark,                 // 5. Remark
+                device: getDeviceType(),        // 6. Device
+                latitude: lastGeoposition.latitude,   // 7. Latitude
+                longitude: lastGeoposition.longitude, // 8. Longitude
+                uid: generateUID(),             // 9. UID
+                synced: false,
+                syncAttempts: 0
+            };
 
             saveToDB(entry);
             bibInput.value = '';
             bibInput.focus();
             
-            // Soft-sleep indicators after logging
             shutOffGPSHardware();
         }
 
@@ -768,7 +744,6 @@ const entry = {
             };
         }
 
-        // --- 📊 RENDER QUEUE INSPECTOR LIST ---
         function renderQueueInspectorList(pendingLogs) {
             const inspectorList = document.getElementById("inspectorList");
             inspectorList.innerHTML = '';
@@ -833,98 +808,88 @@ const entry = {
             .finally(() => clearTimeout(timeoutId));
         }
 
-// --- ⚡ UPGRADED BATCH SYNC ENGINE (locked, idempotent, per-row confirmed) ---
-function attemptSync() {
-    if (!syncUrl) return;
+        function attemptSync() {
+            if (!syncUrl) return;
 
-    // 🔒 If a sync is already in flight, don't fire an overlapping request.
-    // Just flag that we should run again the instant this one finishes —
-    // this is what prevents the race that was dropping bibs during rapid entry.
-    if (isSyncing) {
-        syncRerunQueued = true;
-        return;
-    }
-
-    const transaction = db.transaction(["logs"], "readonly");
-    const store = transaction.objectStore("logs");
-    const request = store.getAll();
-
-    request.onsuccess = function() {
-        const logs = request.result;
-        const unsynced = logs.filter(log => !log.synced);
-        if (unsynced.length === 0) return;
-
-        isSyncing = true;
-
-        const payload = {
-            action: "batch_sync",
-            data: unsynced
-        };
-
-        // Abort safety net: if the script hangs (cold start, quota, etc.) don't block forever
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
-
-        fetch(syncUrl, {
-            method: "POST",
-            mode: "cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify(payload),
-            signal: controller.signal
-        })
-        .then(async res => {
-            const text = await res.text();
-            let data;
-            try { data = JSON.parse(text); } catch (e) {
-                throw new Error("Invalid server response: " + text.slice(0, 200));
-            }
-            if (data.status !== "success") {
-                throw new Error(data.message || "Script reported failure.");
+            if (isSyncing) {
+                syncRerunQueued = true;
+                return;
             }
 
-            // ✅ Server must return the list of UIDs it actually wrote/confirmed.
-            // We ONLY mark those as synced — anything not confirmed stays queued
-            // and will be retried, instead of being silently assumed successful.
-            const confirmedIds = new Set(data.confirmedIds || []);
-            const writeTransaction = db.transaction(["logs"], "readwrite");
-            const writeStore = writeTransaction.objectStore("logs");
+            const transaction = db.transaction(["logs"], "readonly");
+            const store = transaction.objectStore("logs");
+            const request = store.getAll();
 
-            let confirmedCount = 0;
-            unsynced.forEach(log => {
-                if (confirmedIds.has(log.uid)) {
-                    log.synced = true;
-                    writeStore.put(log);
-                    confirmedCount++;
-                } else {
-                    log.syncAttempts = (log.syncAttempts || 0) + 1;
-                    writeStore.put(log);
-                }
-            });
+            request.onsuccess = function() {
+                const logs = request.result;
+                const unsynced = logs.filter(log => !log.synced);
+                if (unsynced.length === 0) return;
 
-            writeTransaction.oncomplete = function() {
-                loadHistory();
-                const missed = unsynced.length - confirmedCount;
-                console.log(`Sync: ${confirmedCount}/${unsynced.length} confirmed by server.` + (missed > 0 ? ` ${missed} still pending retry.` : ''));
+                isSyncing = true;
+
+                const payload = {
+                    action: "batch_sync",
+                    data: unsynced
+                };
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+                fetch(syncUrl, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                })
+                .then(async res => {
+                    const text = await res.text();
+                    let data;
+                    try { data = JSON.parse(text); } catch (e) {
+                        throw new Error("Invalid server response: " + text.slice(0, 200));
+                    }
+                    if (data.status !== "success") {
+                        throw new Error(data.message || "Script reported failure.");
+                    }
+
+                    const confirmedIds = new Set(data.confirmedIds || []);
+                    const writeTransaction = db.transaction(["logs"], "readwrite");
+                    const writeStore = writeTransaction.objectStore("logs");
+
+                    let confirmedCount = 0;
+                    unsynced.forEach(log => {
+                        if (confirmedIds.has(log.uid)) {
+                            log.synced = true;
+                            writeStore.put(log);
+                            confirmedCount++;
+                        } else {
+                            log.syncAttempts = (log.syncAttempts || 0) + 1;
+                            writeStore.put(log);
+                        }
+                    });
+
+                    writeTransaction.oncomplete = function() {
+                        loadHistory();
+                        const missed = unsynced.length - confirmedCount;
+                        console.log(`Sync: ${confirmedCount}/${unsynced.length} confirmed by server.` + (missed > 0 ? ` ${missed} still pending retry.` : ''));
+                    };
+                })
+                .catch(err => {
+                    console.error("Batch Sync Error:", err);
+                })
+                .finally(() => {
+                    clearTimeout(timeoutId);
+                    isSyncing = false;
+                    if (syncRerunQueued) {
+                        syncRerunQueued = false;
+                        attemptSync();
+                    }
+                });
             };
-        })
-        .catch(err => {
-            console.error("Batch Sync Error:", err);
-        })
-        .finally(() => {
-            clearTimeout(timeoutId);
-            isSyncing = false;
-            // If more entries arrived (or this attempt left rows unconfirmed), go again immediately.
-            if (syncRerunQueued) {
-                syncRerunQueued = false;
-                attemptSync();
-            }
-        });
-    };
-}
+        }
 
         window.addEventListener('online', attemptSync);
 
-        // --- 📲 REGISTER SERVICE WORKER & BACKGROUND SYNC ---
         function registerServiceWorkerAndSync() {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js')
@@ -962,7 +927,6 @@ function attemptSync() {
 
             const sorted = [...logs].sort((a, b) => new Date(a.time) - new Date(b.time));
             
-            // Render last 3 runners in reverse order
             const last3Logs = sorted.slice(-3).reverse();
             const last3Bibs = last3Logs.map(log => log.bib).join(', ');
             splitLastRunner.textContent = last3Bibs;
@@ -1026,13 +990,13 @@ function attemptSync() {
                 log.originalBib = log.originalBib || log.bib; 
                 log.bib = newBib;
                 log.remark = newRemark;
-                log.synced = false; 
+                log.synced = false; // Flag to retry matching payload configuration
 
                 store.put(log);
                 transaction.oncomplete = function() {
                     editingRowId = null;
                     loadHistory();
-                    requestBackgroundSync();
+                    attemptSync(); // Fire synchronization sequence immediately
                 };
             };
         }
@@ -1127,6 +1091,7 @@ function attemptSync() {
             if (!confirm(`Delete entry for Bib ${bib}?`)) return;
             const transaction = db.transaction(["logs"], "readwrite");
             const getReq = transaction.objectStore("logs").get(id);
+            
             getReq.onsuccess = function() {
                 const log = getReq.result;
                 if (syncUrl && log) {
@@ -1135,14 +1100,19 @@ function attemptSync() {
                         mode: "cors",
                         headers: { "Content-Type": "text/plain;charset=utf-8" },
                         body: JSON.stringify({ action: "delete", uid: log.uid, bib: bib, time: time })
-                    }).catch(err => console.error(err));
+                    })
+                    .then(async res => {
+                        const responseText = await res.text();
+                        console.log("Delete status response from server:", responseText);
+                    })
+                    .catch(err => console.error("Network delete failure:", err));
                 }
             };
+            
             transaction.objectStore("logs").delete(id);
             transaction.oncomplete = function() { loadHistory(); };
         }
 
-        // Export
         function exportCSV() {
             const transaction = db.transaction(["logs"], "readonly");
             const request = transaction.objectStore("logs").getAll();
