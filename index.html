@@ -557,33 +557,34 @@
             shutOffGPSHardware();
         }
 
-        function handleRemarkTyping() {
-            if (!lastCreatedUid) return; 
-            if (remarkDebounceTimeout) clearTimeout(remarkDebounceTimeout);
+function handleRemarkTyping() {
+    if (!lastCreatedUid) return; 
+    if (remarkDebounceTimeout) clearTimeout(remarkDebounceTimeout);
 
-            remarkDebounceTimeout = setTimeout(() => {
-                const currentRemark = document.getElementById('remarkInput').value.trim();
-                const tx = db.transaction(["logs"], "readwrite");
-                const store = tx.objectStore("logs");
-                
-                store.getAll().onsuccess = function(e) {
-                    const logs = e.target.result;
-                    const logToUpdate = logs.find(l => l.uid === lastCreatedUid);
-                    if (logToUpdate) {
-                        logToUpdate.remark = currentRemark;
-                        logToUpdate.synced = false; 
-                        store.put(logToUpdate);
-                        tx.oncomplete = function() {
-                            remarkDebounceTimeout = null;
-                            loadHistory();
-                            attemptSync(); 
-                        };
-                    } else {
-                        remarkDebounceTimeout = null;
-                    }
+    // Increase wait time to 2500ms so it doesn't fire while you are actively typing
+    remarkDebounceTimeout = setTimeout(() => {
+        const currentRemark = document.getElementById('remarkInput').value.trim();
+        const tx = db.transaction(["logs"], "readwrite");
+        const store = tx.objectStore("logs");
+        
+        store.getAll().onsuccess = function(e) {
+            const logs = e.target.result;
+            const logToUpdate = logs.find(l => l.uid === lastCreatedUid);
+            if (logToUpdate) {
+                logToUpdate.remark = currentRemark;
+                logToUpdate.synced = false; 
+                store.put(logToUpdate);
+                tx.oncomplete = function() {
+                    remarkDebounceTimeout = null;
+                    loadHistory();
+                    attemptSync(); 
                 };
-            }, 1200); 
-        }
+            } else {
+                remarkDebounceTimeout = null;
+            }
+        };
+    }, 2500); 
+}
 
         function toggleQueueInspector() { document.getElementById("queueInspectorSection").classList.toggle("hidden"); }
 
