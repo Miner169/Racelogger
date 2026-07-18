@@ -752,50 +752,51 @@
             };
         }
 
-        function testCloudConnection() {
-            const inputUrl = document.getElementById("syncUrlInput").value.trim();
-            const feedback = document.getElementById("testConnectionStatusFeedback");
-            const btn = document.getElementById("connectionTesterBtn");
+function testCloudConnection() {
+    const inputUrl = document.getElementById("syncUrlInput").value.trim();
+    const feedback = document.getElementById("testConnectionStatusFeedback");
+    const btn = document.getElementById("connectionTesterBtn");
 
-            if(!inputUrl) {
-                feedback.textContent = "❌ Error: URL Field is empty.";
+    if(!inputUrl) {
+        feedback.textContent = "❌ Error: URL Field is empty.";
+        feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
+        return;
+    }
+
+    feedback.textContent = "⏳ Testing ping connection request...";
+    feedback.className = "text-[10px] text-neutral-400 font-bold block leading-tight mt-1";
+    btn.disabled = true;
+
+    fetch(inputUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "ping" })
+    })
+    .then(async response => {
+        const txt = await response.text();
+        try {
+            const parsed = JSON.parse(txt);
+            // Turn green if it returns success OR if the script naturally rejects the unknown test action
+            if (parsed.status === "success" || parsed.message.includes("Unknown action")) {
+                feedback.textContent = "✅ Connected Successfully! Script reached the backend server.";
+                feedback.className = "text-[10px] text-emerald-500 font-bold block leading-tight mt-1";
+            } else {
+                feedback.textContent = `❌ Script error context: ${txt.slice(0, 60)}`;
                 feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
-                return;
             }
-
-            feedback.textContent = "⏳ Testing ping connection request...";
-            feedback.className = "text-[10px] text-neutral-400 font-bold block leading-tight mt-1";
-            btn.disabled = true;
-
-            fetch(inputUrl, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({ action: "ping" })
-            })
-            .then(async response => {
-                const txt = await response.text();
-                try {
-                    const parsed = JSON.parse(txt);
-                    if(parsed.status === "success") {
-                        feedback.textContent = "✅ Connected Successfully! Script returned valid framework status.";
-                        feedback.className = "text-[10px] text-emerald-500 font-bold block leading-tight mt-1";
-                    } else {
-                        feedback.textContent = `❌ Script error context: ${txt.slice(0, 60)}`;
-                        feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
-                    }
-                } catch(e) {
-                    feedback.textContent = `❌ Response format issue (Not JSON). Endpoint mismatched.`;
-                    feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
-                }
-            })
-            .catch(err => {
-                feedback.textContent = `❌ Endpoint Fault: Unable to resolve request. Verify URL format structure.`;
-                feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
-            })
-            .finally(() => {
-                btn.disabled = false;
-            });
+        } catch(e) {
+            feedback.textContent = `❌ Response format issue (Not JSON). Endpoint mismatched.`;
+            feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
         }
+    })
+    .catch(err => {
+        feedback.textContent = `❌ Endpoint Fault: Unable to resolve request. Verify URL format structure.`;
+        feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
+    })
+    .finally(() => {
+        btn.disabled = false;
+    });
+}
 
         function importBackupJSONDataFile(event) {
             const file = event.target.files[0];
