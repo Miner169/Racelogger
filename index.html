@@ -1,4 +1,4 @@
-<script>const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";</script>
+<script>const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";</script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -268,7 +268,7 @@
             <div id="setupFields" class="grid grid-cols-2 gap-2 transition-all duration-300">
                 <div>
                     <label class="block text-[10px] theme-text-muted mb-0.5 font-bold">Checkpoint Name</label>
-                    <input type="text" id="checkpoint" placeholder="e.g. CP 1" class="w-full theme-input border rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-955 uppercase font-semibold">
+                    <input type="text" id="checkpoint" placeholder="e.g. CP 1" oninput="loadHistory()" class="w-full theme-input border rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-955 uppercase font-semibold">
                 </div>
                 <div>
                     <label class="block text-[10px] theme-text-muted mb-0.5 font-bold">Volunteer Initials</label>
@@ -697,6 +697,46 @@
             return `${device} ${containerMode}`;
         }
 
+        // --- Ownership tracking (for "2-way sync, edit/delete only your own entries") ---
+
+        // A short ID unique to this browser/device, persisted in localStorage.
+        function getOrCreateDeviceId() {
+            let id = localStorage.getItem("deviceId");
+            if (!id) {
+                id = generateUID().slice(0, 8);
+                localStorage.setItem("deviceId", id);
+            }
+            return id;
+        }
+
+        // Embeds this device's ID into the "device" field that gets synced to the sheet,
+        // so other devices that pull this record down can tell who created it.
+        function buildDeviceString() {
+            return `${getDeviceType()}::${getOrCreateDeviceId()}`;
+        }
+
+        // Human-readable part only (for display / CSV export) — strips the embedded ID.
+        function getDeviceLabel(deviceString) {
+            if (!deviceString) return '';
+            return deviceString.split('::')[0];
+        }
+
+        // Extracts the embedded creator device ID, if present.
+        function parseCreatorId(deviceString) {
+            if (!deviceString || deviceString.indexOf('::') === -1) return null;
+            return deviceString.split('::')[1];
+        }
+
+        // True if this device created the log entry (or it's a legacy entry from
+        // before ownership tracking existed, in which case anyone may still edit/delete it).
+        function isOwnEntry(log) {
+            const myId = getOrCreateDeviceId();
+            if (log.creatorId) return log.creatorId === myId;
+            const parsedId = parseCreatorId(log.device);
+            if (parsedId) return parsedId === myId;
+            return true;
+        }
+
         const dbRequest = indexedDB.open("RaceLoggerDB", 1);
         dbRequest.onupgradeneeded = function(e) {
             db = e.target.result;
@@ -1021,7 +1061,8 @@ function testCloudConnection() {
                 checkpoint: checkpoint.toUpperCase(),
                 volunteer: volunteer.toUpperCase(),
                 remark: remarkInput.value.trim(),
-                device: getDeviceType(),
+                device: buildDeviceString(),
+                creatorId: getOrCreateDeviceId(),
                 latitude: lastGeoposition.latitude,
                 longitude: lastGeoposition.longitude,
                 uid: generateUID(),
@@ -1233,6 +1274,7 @@ function testCloudConnection() {
                             volunteer: serverRecord.volunteer,
                             remark: serverRecord.remark || "",
                             device: serverRecord.device || "",
+                            creatorId: parseCreatorId(serverRecord.device),
                             latitude: serverRecord.latitude,
                             longitude: serverRecord.longitude,
                             uid: serverRecord.uid,
@@ -1279,7 +1321,17 @@ function testCloudConnection() {
         // Trash icon is only shown for entries logged within the last 30 minutes.
         function isDeletable(logTimeStr) { return (new Date() - parseCustomOrIsoDate(logTimeStr)) < 1800000; }
 
-        function startEditing(id) { editingRowId = id; loadHistory(); }
+        function startEditing(id) {
+            db.transaction(["logs"], "readonly").objectStore("logs").get(id).onsuccess = function(e) {
+                const log = e.target.result;
+                if (!log || !isOwnEntry(log)) {
+                    alert("⚠️ You can only edit entries logged from this device.");
+                    return;
+                }
+                editingRowId = id;
+                loadHistory();
+            };
+        }
         function cancelEditing() { editingRowId = null; loadHistory(); }
 
         function saveEdit(id) {
@@ -1373,10 +1425,12 @@ function testCloudConnection() {
                     } else {
                         const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-955 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
-                        const editButtonHTML = (isEditable(log.time) || log.remake) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
+                        const ownEntry = isOwnEntry(log);
+                        // Edit/Delete only ever render for the device that created the entry.
+                        const editButtonHTML = (ownEntry && (isEditable(log.time) || log.remake)) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
 
-                        // Trash icon only rendered if the log is still within the 30-minute deletable window.
-                        const deleteButtonHTML = isDeletable(log.time) ? `<button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 p-1 text-base">🗑️</button>` : '';
+                        // Trash icon only rendered if this device owns the entry AND it's still within the 30-minute deletable window.
+                        const deleteButtonHTML = (ownEntry && isDeletable(log.time)) ? `<button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 p-1 text-base">🗑️</button>` : '';
 
                         let statusText = log.synced ? 'Synced' : 'Queued';
                         let statusClass = log.synced ? 'text-emerald-600 font-extrabold' : 'text-yellow-600 font-extrabold';
@@ -1405,11 +1459,15 @@ function testCloudConnection() {
         }
 
         function deleteRow(id, bib, time) {
-            if (!confirm(`Delete entry for Bib ${bib}?`)) return;
             const txReadOnly = db.transaction(["logs"], "readonly");
             txReadOnly.objectStore("logs").get(id).onsuccess = function(e) {
                 const log = e.target.result;
                 if (!log) return;
+                if (!isOwnEntry(log)) {
+                    alert("⚠️ You can only delete entries logged from this device.");
+                    return;
+                }
+                if (!confirm(`Delete entry for Bib ${bib}?`)) return;
                 if (!syncUrl) {
                     const txWrite = db.transaction(["logs"], "readwrite");
                     txWrite.objectStore("logs").delete(id);
@@ -1436,7 +1494,7 @@ function testCloudConnection() {
                 const logs = e.target.result;
                 if (logs.length === 0) { alert("⚠️ No logs available to export yet!"); return; }
                 let csvContent = "ID,Bib,Time,Checkpoint,Volunteer,Remark,Device\r\n";
-                logs.forEach(l => { csvContent += `${l.id},"${l.bib}","${l.time}","${l.checkpoint}","${l.volunteer}","${l.remark || ''}","${l.device}"\r\n`; });
+                logs.forEach(l => { csvContent += `${l.id},"${l.bib}","${l.time}","${l.checkpoint}","${l.volunteer}","${l.remark || ''}","${getDeviceLabel(l.device)}"\r\n`; });
                 
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
