@@ -35,9 +35,15 @@ self.addEventListener("fetch", (event) => {
   }
 
   // 2. If the request is going outside your local domain (e.g., Google Script), do not touch it.
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return; 
+  if (event.request.url.includes('script.google.com')) {
+        return; 
+    }
   }
+    // Only handle GET requests for your own files
+    if (event.request.method === 'GET') {
+        event.respondWith(caches.match(event.request).then(response => response || fetch(event.request)));
+    }
+});
 
   // 3. Only serve local static files from cache
   event.respondWith(
