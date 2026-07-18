@@ -1,4 +1,4 @@
-<script>const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";</script>
+<script>const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";</script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -549,7 +549,7 @@
                 loadHistory();
                 if (syncUrl && !remarkDebounceTimeout) {
                     attemptSync(); 
-                    checkServerModifications(); 
+                    pullServerRecords(); 
                 }
             }, actualTimerLoop);
         }
@@ -715,7 +715,7 @@
             resetSyncTimer();
             if (syncUrl && syncIntervalMs > 0) {
                 attemptSync();
-                checkServerModifications(); 
+                pullServerRecords(); 
             }
 
             ['bibInput', 'remarkInput'].forEach(id => {
@@ -887,7 +887,7 @@ function testCloudConnection() {
             resetSyncTimer();
             if (syncUrl && syncIntervalMs > 0) {
                 attemptSync(); 
-                checkServerModifications(); 
+                pullServerRecords(); 
             }
         } 
 
@@ -958,41 +958,44 @@ function testCloudConnection() {
             clearTimeout(successToastTimeout);
         }
 
-function checkDuplicateAndLog() {
-    const bI = document.getElementById('bibInput');
-    const bib = bI.value.trim().toUpperCase();
-    if (!bib) return;
-    
-    const cpV = (document.getElementById('checkpoint')?.value || '').trim();
-    const volV = (document.getElementById('volunteer')?.value || '').trim();
-    
-    if (!cpV || !volV) { 
-        alert("⚠️ Setup incomplete! Please fill Checkpoint and Volunteer fields first."); 
-        bI.focus();
-        return; 
-    }
-
-    db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
-        const duplicate = e.target.result.find(log => 
-            log.bib === bib && 
-            log.checkpoint.toUpperCase() === cpV.toUpperCase() && 
-            (new Date() - parseCustomOrIsoDate(log.time)) < (dupWindow * 60 * 1000)
-        );
-        
-        if (duplicate) {
-            const confirmLog = confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`);
-            if (!confirmLog) {
-                bI.value = ''; 
-            } else {
-                logEntry(bib);
+        function checkDuplicateAndLog() {
+            const bI = document.getElementById('bibInput');
+            const bib = bI.value.trim().toUpperCase();
+            if (!bib) return;
+            
+            const cpV = (document.getElementById('checkpoint')?.value || '').trim();
+            const volV = (document.getElementById('volunteer')?.value || '').trim();
+            
+            if (!cpV || !volV) { 
+                alert("⚠️ Setup incomplete! Please fill Checkpoint and Volunteer fields first."); 
+                bI.focus();
+                return; 
             }
-            bI.focus();
-            handleViewportResize();
-        } else { 
-            logEntry(bib); 
+
+            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+                const duplicate = e.target.result.find(log => 
+                    log.bib === bib && 
+                    log.checkpoint.toUpperCase() === cpV.toUpperCase() && 
+                    (new Date() - parseCustomOrIsoDate(log.time)) < (dupWindow * 60 * 1000)
+                );
+                
+                if (duplicate) {
+                    const confirmLog = confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`);
+                    if (!confirmLog) {
+                        bI.value = ''; 
+                    } else {
+                        logEntry(bib);
+                    }
+                    // Focus synchronously so the mobile keyboard stays open.
+                    bI.focus();
+                    setTimeout(() => {
+                        handleViewportResize();
+                    }, 80);
+                } else { 
+                    logEntry(bib); 
+                }
+            };
         }
-    };
-}
 
         function generateUID() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11); }
 
@@ -1004,52 +1007,52 @@ function checkDuplicateAndLog() {
             return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()} ${pad(hours)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
         }
 
-function logEntry(bib) {
-    if (remarkDebounceTimeout) { clearTimeout(remarkDebounceTimeout); remarkDebounceTimeout = null; }
+        function logEntry(bib) {
+            if (remarkDebounceTimeout) { clearTimeout(remarkDebounceTimeout); remarkDebounceTimeout = null; }
 
-    const checkpoint = document.getElementById('checkpoint').value.trim();
-    const volunteer = document.getElementById('volunteer').value.trim();
-    const remarkInput = document.getElementById('remarkInput');
-    const bibInput = document.getElementById('bibInput');
-    
-    const entry = {
-        bib: bib.toUpperCase(),
-        time: getFormattedTimestamp(), 
-        checkpoint: checkpoint.toUpperCase(),
-        volunteer: volunteer.toUpperCase(),
-        remark: remarkInput.value.trim(),
-        device: getDeviceType(),
-        latitude: lastGeoposition.latitude,
-        longitude: lastGeoposition.longitude,
-        uid: generateUID(),
-        synced: false,
-        remake: false,
-        syncAttempts: 0
-    };
+            const checkpoint = document.getElementById('checkpoint').value.trim();
+            const volunteer = document.getElementById('volunteer').value.trim();
+            const remarkInput = document.getElementById('remarkInput');
+            const bibInput = document.getElementById('bibInput');
+            
+            const entry = {
+                bib: bib.toUpperCase(),
+                time: getFormattedTimestamp(), 
+                checkpoint: checkpoint.toUpperCase(),
+                volunteer: volunteer.toUpperCase(),
+                remark: remarkInput.value.trim(),
+                device: getDeviceType(),
+                latitude: lastGeoposition.latitude,
+                longitude: lastGeoposition.longitude,
+                uid: generateUID(),
+                synced: false,
+                remake: false,
+                syncAttempts: 0
+            };
 
-    lastCreatedUid = entry.uid;
-    const tx = db.transaction(["logs"], "readwrite");
-    tx.objectStore("logs").add(entry).onsuccess = function() {
-        document.getElementById('searchBar').value = '';
-        loadHistory();
-        if (vibrateEnabled && navigator.vibrate) navigator.vibrate(50);
-        playSuccessSound();
-        triggerSuccessToast(); 
-        if (syncIntervalMs > 0) attemptSync();
-    };
-    
-    bibInput.value = '';
-    remarkInput.value = ''; 
-    shutOffGPSHardware();
-    
-    // Focus synchronously — keeps the keyboard open on mobile.
-    // (Wrapping this in setTimeout is what was closing the keyboard.)
-    bibInput.focus();
-    
-    setTimeout(() => {
-        handleViewportResize();
-    }, 80);
-}
+            lastCreatedUid = entry.uid;
+            const tx = db.transaction(["logs"], "readwrite");
+            tx.objectStore("logs").add(entry).onsuccess = function() {
+                document.getElementById('searchBar').value = '';
+                loadHistory();
+                if (vibrateEnabled && navigator.vibrate) navigator.vibrate(50);
+                playSuccessSound();
+                triggerSuccessToast(); 
+                if (syncIntervalMs > 0) attemptSync();
+            };
+            
+            bibInput.value = '';
+            remarkInput.value = ''; 
+            shutOffGPSHardware();
+            
+            // Focus synchronously (NOT inside setTimeout) so mobile browsers
+            // keep the keyboard open for the next bib entry.
+            bibInput.focus();
+            
+            setTimeout(() => {
+                handleViewportResize();
+            }, 80);
+        }
 
         function handleRemarkTyping() {
             if (!lastCreatedUid) return; 
@@ -1187,62 +1190,65 @@ function logEntry(bib) {
             };
         }
 
-async function pullServerRecords() {
-    if (!syncUrl) return;
-    try {
-        const response = await fetch(syncUrl);
-        const result = await response.json();
-        if (result.status !== "success") return;
+        // Two-way sync: pulls the full Racelog sheet down and merges in any
+        // records this device doesn't have locally yet (e.g. logged by another
+        // device at the same checkpoint), plus flags any that were removed
+        // server-side after this device already marked them synced.
+        async function pullServerRecords() {
+            if (!syncUrl) return;
+            try {
+                const response = await fetch(syncUrl);
+                const result = await response.json();
+                if (result.status !== "success") return;
 
-        const serverRecords = result.data || [];
-        const serverMap = new Map(serverRecords.map(r => [r.uid, r]));
+                const serverRecords = result.data || [];
+                const serverMap = new Map(serverRecords.map(r => [r.uid, r]));
 
-        const tx = db.transaction(["logs"], "readwrite");
-        const store = tx.objectStore("logs");
+                const tx = db.transaction(["logs"], "readwrite");
+                const store = tx.objectStore("logs");
 
-        store.getAll().onsuccess = function(e) {
-            const localLogs = e.target.result;
-            const localUids = new Set(localLogs.map(l => l.uid));
-            let changed = false;
+                store.getAll().onsuccess = function(e) {
+                    const localLogs = e.target.result;
+                    const localUids = new Set(localLogs.map(l => l.uid));
+                    let changed = false;
 
-            // 1. If a locally-synced log no longer exists on the server, flag it
-            localLogs.forEach(localLog => {
-                const match = serverMap.get(localLog.uid);
-                if (localLog.synced && (!match || match.bib === "")) {
-                    localLog.synced = false;
-                    localLog.remake = true;
-                    store.put(localLog);
-                    changed = true;
-                }
-            });
+                    // 1. If a locally-synced log no longer exists on the server, flag it for remake.
+                    localLogs.forEach(localLog => {
+                        const match = serverMap.get(localLog.uid);
+                        if (localLog.synced && (!match || match.bib === "")) {
+                            localLog.synced = false;
+                            localLog.remake = true;
+                            store.put(localLog);
+                            changed = true;
+                        }
+                    });
 
-            // 2. Pull down any server record this device doesn't have yet —
-            // e.g. logged by another device at the same checkpoint.
-            serverRecords.forEach(serverRecord => {
-                if (!serverRecord.uid || localUids.has(serverRecord.uid)) return;
-                store.add({
-                    bib: serverRecord.bib,
-                    time: serverRecord.time,
-                    checkpoint: serverRecord.checkpoint,
-                    volunteer: serverRecord.volunteer,
-                    remark: serverRecord.remark || "",
-                    device: serverRecord.device || "",
-                    latitude: serverRecord.latitude,
-                    longitude: serverRecord.longitude,
-                    uid: serverRecord.uid,
-                    synced: true,
-                    remake: false,
-                    syncAttempts: 0
-                });
-                changed = true;
-            });
+                    // 2. Pull down any server record this device is missing.
+                    serverRecords.forEach(serverRecord => {
+                        if (!serverRecord.uid || localUids.has(serverRecord.uid)) return;
+                        store.add({
+                            bib: serverRecord.bib,
+                            time: serverRecord.time,
+                            checkpoint: serverRecord.checkpoint,
+                            volunteer: serverRecord.volunteer,
+                            remark: serverRecord.remark || "",
+                            device: serverRecord.device || "",
+                            latitude: serverRecord.latitude,
+                            longitude: serverRecord.longitude,
+                            uid: serverRecord.uid,
+                            synced: true,
+                            remake: false,
+                            syncAttempts: 0
+                        });
+                        changed = true;
+                    });
 
-            if (changed) tx.oncomplete = function() { loadHistory(); };
-        };
-    } catch (e) {
-        console.error(e);
-    }
-}
+                    if (changed) tx.oncomplete = function() { loadHistory(); };
+                };
+            } catch (e) {
+                console.error(e);
+            }
+        }
 
         function parseCustomOrIsoDate(timeStr) {
             if (!timeStr) return new Date();
@@ -1269,6 +1275,10 @@ async function pullServerRecords() {
         }
 
         function isEditable(logTimeStr) { return (new Date() - parseCustomOrIsoDate(logTimeStr)) < 300000; }
+
+        // Trash icon is only shown for entries logged within the last 30 minutes.
+        function isDeletable(logTimeStr) { return (new Date() - parseCustomOrIsoDate(logTimeStr)) < 1800000; }
+
         function startEditing(id) { editingRowId = id; loadHistory(); }
         function cancelEditing() { editingRowId = null; loadHistory(); }
 
@@ -1287,7 +1297,7 @@ async function pullServerRecords() {
                     editingRowId = null; 
                     loadHistory(); 
                     if (syncIntervalMs > 0) attemptSync(); 
-                    setTimeout(() => document.getElementById('bibInput').focus(), 80);
+                    document.getElementById('bibInput').focus();
                 };
             };
         }
@@ -1365,6 +1375,9 @@ async function pullServerRecords() {
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-955 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
                         const editButtonHTML = (isEditable(log.time) || log.remake) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
 
+                        // Trash icon only rendered if the log is still within the 30-minute deletable window.
+                        const deleteButtonHTML = isDeletable(log.time) ? `<button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 p-1 text-base">🗑️</button>` : '';
+
                         let statusText = log.synced ? 'Synced' : 'Queued';
                         let statusClass = log.synced ? 'text-emerald-600 font-extrabold' : 'text-yellow-600 font-extrabold';
                         if (log.remake) { statusText = 'REMAKE REQ'; statusClass = 'text-red-500 font-black animate-pulse'; }
@@ -1382,7 +1395,7 @@ async function pullServerRecords() {
                                 </div>
                                 <div class="text-right flex items-center gap-2.5 shrink-0">
                                     <div class="flex flex-col items-end gap-1"><span class="text-[10px] ${statusClass}">${statusText}</span>${editButtonHTML}</div>
-                                    <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 p-1 text-base">🗑️</button>
+                                    ${deleteButtonHTML}
                                 </div>
                             </div>`;
                     }
