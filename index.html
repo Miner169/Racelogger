@@ -709,8 +709,37 @@
                 });
             };
         }
+        
+// Bulletproof sync trigger that ignores broken phone "online" status flags
+function forceNetworkSyncCheck() {
+    if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
 
-        window.addEventListener('online', attemptSync);
+    // Direct check: look directly at IndexedDB to see if anything is even waiting
+    db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+        const unsynced = e.target.result.filter(log => !log.synced);
+        if (unsynced.length > 0) {
+            console.log(`PWA Container: Found ${unsynced.length} queued records. Forcing transmission connection...`);
+            attemptSync();
+        }
+    };
+}
+
+// 1. Trigger sync immediately the exact moment a user interacts with the app input field
+document.getElementById('bibInput').addEventListener('focus', forceNetworkSyncCheck);
+document.getElementById('bibInput').addEventListener('input', forceNetworkSyncCheck);
+document.getElementById('remarkInput').addEventListener('focus', forceNetworkSyncCheck);
+
+// 2. Change the background timer framework to ignore online states and try anyway
+function resetSyncTimer() {
+    if (syncTimerId) clearInterval(syncTimerId);
+    syncTimerId = setInterval(function() {
+        loadHistory();
+        // Force attemptSync to run regardless of what the phone thinks its internet status is
+        if (syncUrl && !remarkDebounceTimeout) {
+            attemptSync(); 
+        }
+    }, syncIntervalMs);
+}
 
         function calculateLiveSplits(logs) {
             const splitLastRunner = document.getElementById("splitLastRunner"), splitGapTime = document.getElementById("splitGapTime");
