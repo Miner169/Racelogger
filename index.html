@@ -16,6 +16,7 @@
         :root {
             --bg-color: #000000;         
             --panel-bg: #0a0a0a;         
+            --card-tint: #121212;
             --text-main: #e5e5e5;        
             --text-muted: #8e8e93;       
             --border-color: #262626;     
@@ -35,6 +36,7 @@
         body.light-theme {
             --bg-color: #d8d8dc;         
             --panel-bg: #eaeaea;         
+            --card-tint: #f5f5f7;
             --text-main: #000000;        
             --text-muted: #333333;       
             --border-color: #a8a8af;     
@@ -53,6 +55,7 @@
 
         .theme-bg { background-color: var(--bg-color); transition: background-color 0.15s ease; }
         .theme-panel { background-color: var(--panel-bg); border-color: var(--border-color); transition: all 0.15s ease; }
+        .theme-card { background-color: var(--card-tint); border-color: var(--border-color); border-width: 1px; border-radius: 0.75rem; padding: 1rem; display: flex; flex-col; gap: 0.75rem; }
         .theme-text { color: var(--text-main); }
         .theme-text-muted { color: var(--text-muted); }
         .theme-border { border-color: var(--border-color); }
@@ -73,7 +76,6 @@
             opacity: 1;
         }
 
-        /* Responsive Safe Area Padding for mobile OS Status Bars */
         .theme-header { 
             background-color: var(--header-bg); 
             border-color: var(--header-border); 
@@ -86,7 +88,6 @@
             overscroll-behavior-y: contain; 
         }
 
-        /* Keyboard Docking styles - Striking layout style while retaining transparency */
         .keyboard-docked-btn {
             position: fixed !important;
             left: 0 !important;
@@ -113,7 +114,7 @@
 </head>
 <body class="theme-bg theme-text min-h-screen flex flex-col font-sans select-none pb-16">
 
-    <!-- Header Status Bar with Dynamic Hardware Offset Protection -->
+    <!-- Header Status Bar -->
     <header class="theme-header border-b px-4 pb-2 shadow-md flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-2.5">
             <h1 class="text-base font-black tracking-wider theme-header-text">RACE LOG</h1>
@@ -134,55 +135,59 @@
 
     <!-- Settings Modal -->
     <div id="settingsModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
-        <div class="theme-panel p-6 rounded-2xl border w-full max-w-md max-h-[85vh] overflow-y-auto shadow-2xl flex flex-col gap-4">
+        <div class="theme-panel p-5 rounded-2xl border w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-4">
             <div>
-                <h3 class="text-lg font-bold mb-1 theme-text">⚙️ App Settings</h3>
+                <h3 class="text-lg font-bold mb-0.5 theme-text">⚙️ App Settings</h3>
                 <p class="text-[11px] theme-text-muted">Configure cloud connection, hardware feedback, and database options.</p>
             </div>
             
-            <div>
-                <label class="block text-xs theme-text-muted mb-1 font-bold">Google Apps Script Web App URL</label>
-                <input type="text" id="syncUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full theme-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+            <!-- Card 1: Cloud Architecture Integration -->
+            <div class="theme-card flex flex-col gap-2">
+                <label class="block text-xs theme-text-muted font-bold">Google Apps Script Web App URL</label>
+                <div class="flex gap-2">
+                    <input type="text" id="syncUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="flex-grow theme-input border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-900">
+                    <button type="button" onclick="testCloudConnection()" id="connectionTesterBtn" class="bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs px-3 rounded-lg transition shrink-0">Test ⚡</button>
+                </div>
+                <div id="testConnectionStatusFeedback" class="text-[10px] font-bold hidden leading-tight"></div>
             </div>
 
-            <hr class="theme-border">
-
-            <!-- Hardware Alerts & Signals -->
-            <div>
-                <h4 class="text-xs font-bold text-blue-500 uppercase tracking-wider mb-2">🔊 Hardware Alerts & Signals</h4>
+            <!-- Card 2: Hardware Settings -->
+            <div class="theme-card flex flex-col gap-3">
+                <h4 class="text-xs font-bold text-blue-500 uppercase tracking-wider">🔊 Hardware Alerts & Signals</h4>
                 <div class="flex flex-col gap-2.5 text-xs">
-                    <label class="flex items-center gap-2 cursor-pointer select-none">
-                        <input type="checkbox" id="vibrateToggle" class="rounded border-neutral-800 bg-neutral-950 text-blue-600 focus:ring-0 w-4 h-4">
-                        <span class="theme-text font-medium">Enable Device Vibration on Log Success</span>
+                    <label class="flex justify-between items-center cursor-pointer select-none">
+                        <span class="flex items-center gap-2">
+                            <input type="checkbox" id="vibrateToggle" class="rounded border-neutral-800 bg-neutral-950 text-blue-600 focus:ring-0 w-4 h-4">
+                            <span class="theme-text font-medium">Enable Device Vibration on Log Success</span>
+                        </span>
+                        <span onclick="triggerHardwareHapticPulseTest()" class="text-[10px] text-blue-400 font-bold underline px-1 hover:text-blue-300">[Test 📳]</span>
                     </label>
-                    <label class="flex items-center gap-2 cursor-pointer select-none">
-                        <input type="checkbox" id="soundToggle" class="rounded border-neutral-800 bg-neutral-950 text-blue-600 focus:ring-0 w-4 h-4">
-                        <span class="theme-text font-medium">Enable Audio Chime Bleep on Log Success</span>
+                    <label class="flex justify-between items-center cursor-pointer select-none">
+                        <span class="flex items-center gap-2">
+                            <input type="checkbox" id="soundToggle" class="rounded border-neutral-800 bg-neutral-950 text-blue-600 focus:ring-0 w-4 h-4">
+                            <span class="theme-text font-medium">Enable Audio Chime Bleep on Log Success</span>
+                        </span>
+                        <span onclick="triggerHardwareAudioBleepTest()" class="text-[10px] text-blue-400 font-bold underline px-1 hover:text-blue-300">[Test 🔊]</span>
                     </label>
+                </div>
+                <div class="mt-1">
+                    <label class="block text-[10px] theme-text-muted mb-1 font-bold">GPS Satellites Quality Profile</label>
+                    <select id="gpsQualitySelect" class="w-full theme-input border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none">
+                        <option value="low">🔋 Maximum Battery Saver (Low Precision Mapping)</option>
+                        <option value="high">🛰️ High Precision Tracking (Uses Elevated Energy)</option>
+                    </select>
                 </div>
             </div>
 
-            <!-- Positioning Accuracy Grid -->
-            <div>
-                <label class="block text-[10px] theme-text-muted mb-1 font-bold">GPS Satellites Quality Profile</label>
-                <select id="gpsQualitySelect" class="w-full theme-input border rounded-lg px-2.5 py-2 text-xs focus:outline-none">
-                    <option value="low">🔋 Maximum Battery Saver (Low Precision Mapping)</option>
-                    <option value="high">🛰️ High Precision Tracking (Uses Elevated Energy)</option>
-                </select>
-            </div>
-
-            <hr class="theme-border">
-
-            <!-- Timing Limits & Performance Engine -->
-            <div>
-                <h4 class="text-xs font-bold text-yellow-600 dark:text-yellow-500 uppercase tracking-wider mb-2">⏱️ Race Rules & Timing Engines</h4>
-                <div class="grid grid-cols-2 gap-3 mb-2">
+            <!-- Card 3: Race Parameters Layout -->
+            <div class="theme-card flex flex-col gap-3">
+                <h4 class="text-xs font-bold text-yellow-600 dark:text-yellow-500 uppercase tracking-wider">⏱️ Race Rules & Timing Engines</h4>
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[10px] theme-text-muted mb-1 font-bold">Auto-Sync Loop</label>
                         <select id="syncIntervalSelect" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs focus:outline-none">
                             <option value="15000">Every 15 Seconds</option>
                             <option value="60000">Every 1 Minute</option>
-                            <option value="0">Manual Execution Only</option>
                         </select>
                     </div>
                     <div>
@@ -194,7 +199,7 @@
                     </div>
                 </div>
 
-                <div class="mb-2">
+                <div>
                     <label class="block text-[10px] theme-text-muted mb-1 font-bold">Local History Display Capacity</label>
                     <select id="historyLimitSelect" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs focus:outline-none">
                         <option value="20" selected>Show Latest 20 Logs</option>
@@ -203,32 +208,36 @@
                     </select>
                 </div>
 
-                <label class="flex items-center gap-2 cursor-pointer select-none mt-2">
+                <label class="flex items-center gap-2 cursor-pointer select-none pt-1">
                     <input type="checkbox" id="batterySaverManualToggle" class="rounded border-neutral-800 bg-neutral-950 text-red-600 focus:ring-0 w-4 h-4">
                     <span class="text-xs font-bold text-red-500">Force Low Battery Conservation Plan Instantly</span>
                 </label>
             </div>
 
-            <hr class="theme-border">
-
-            <!-- Diagnostics Data Storage Operations -->
-            <div>
-                <h4 class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-2">💾 Emergency Diagnostics & Extractions</h4>
-                <button onclick="exportJSON()" class="w-full bg-neutral-900 hover:bg-neutral-800 text-emerald-400 border border-neutral-800 font-bold py-2 rounded-lg text-xs transition">📥 Extract Raw JSON Diagnostics File</button>
+            <!-- Card 4: Extractions Container -->
+            <div class="theme-card flex flex-col gap-2">
+                <h4 class="text-xs font-bold text-emerald-500 uppercase tracking-wider">💾 Emergency Diagnostics & Backups</h4>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="exportJSON()" class="bg-neutral-900 hover:bg-neutral-800 text-emerald-400 border border-neutral-800 font-bold py-2 rounded-lg text-xs transition">📥 Export JSON</button>
+                    <label class="bg-neutral-900 hover:bg-neutral-800 text-cyan-400 border border-neutral-800 font-bold py-2 rounded-lg text-xs transition text-center cursor-pointer select-none">
+                        📤 Import JSON
+                        <input type="file" id="jsonFileInputTrigger" accept=".json" onchange="importBackupJSONDataFile(event)" class="hidden">
+                    </label>
+                </div>
             </div>
 
-            <!-- Storage Destructive Action Zone -->
-            <div class="border-t theme-border pt-3 mt-1">
-                <h4 class="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">⚠️ Destructive Action Frameworks</h4>
+            <!-- Card 5: Danger Zones Counter Box -->
+            <div class="theme-card border-red-900/40 flex flex-col gap-2">
+                <h4 class="text-xs font-bold text-red-500 uppercase tracking-wider">⚠️ Destructive Action Frameworks</h4>
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="forceClearAppCache()" class="bg-neutral-900 hover:bg-neutral-800 text-neutral-400 border border-neutral-800 font-bold py-2 rounded-lg text-[10px] transition">Reset App Shell Caches</button>
-                    <button onclick="clearDatabaseFromSettings()" class="bg-red-950 hover:bg-red-950/70 text-red-400 border border-red-900/40 font-bold py-2 rounded-lg text-[10px] transition">Wipe Entire Database</button>
+                    <button type="button" onclick="forceClearAppCache()" class="bg-neutral-900 hover:bg-neutral-800 text-neutral-400 border border-neutral-800 font-bold py-2 rounded-lg text-[10px] transition">Reset App Shell Caches</button>
+                    <button type="button" id="wipeEntireDatabaseActionBtn" onclick="clearDatabaseFromSettings()" class="bg-red-950 hover:bg-red-950/70 text-red-400 border border-red-900/40 font-bold py-2 rounded-lg text-[10px] transition truncate">Wipe Database (0)</button>
                 </div>
             </div>
 
             <div class="flex gap-2 justify-end border-t theme-border pt-3 mt-1">
-                <button onclick="toggleSettings()" class="bg-neutral-900 hover:bg-neutral-800 text-neutral-300 px-4 py-2 rounded-lg text-sm font-semibold">Cancel</button>
-                <button onclick="saveSettings()" class="bg-blue-800 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">Save Settings</button>
+                <button type="button" onclick="toggleSettings()" class="bg-neutral-900 hover:bg-neutral-800 text-neutral-300 px-4 py-2 rounded-lg text-sm font-semibold">Cancel</button>
+                <button type="button" onclick="saveSettings()" class="bg-blue-800 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">Save Settings</button>
             </div>
         </div>
     </div>
@@ -614,6 +623,31 @@
             }
         }
 
+        function triggerHardwareAudioBleepTest() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
+                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {
+                alert("Audio test blocked or unsupported by browser context.");
+            }
+        }
+
+        function triggerHardwareHapticPulseTest() {
+            if (navigator.vibrate) {
+                navigator.vibrate([60, 40, 60]);
+            } else {
+                alert("Haptic hardware vibration not supported on this container engine.");
+            }
+        }
+
         function checkPwaDisplay() {
             if (isStandalone) return;
             document.getElementById("pwaHelpBtn").classList.remove("hidden");
@@ -702,8 +736,116 @@
         }
         
         function toggleSettings() { 
-            document.getElementById("settingsModal").classList.toggle("hidden"); 
-            document.getElementById("syncUrlInput").value = syncUrl; 
+            const isHidden = document.getElementById("settingsModal").classList.toggle("hidden"); 
+            if(!isHidden) {
+                document.getElementById("syncUrlInput").value = syncUrl;
+                document.getElementById("testConnectionStatusFeedback").className = "hidden";
+                updateSettingsWipeCounterFootprint();
+            }
+        }
+
+        function updateSettingsWipeCounterFootprint() {
+            if (!db) return;
+            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+                const recordsCount = e.target.result ? e.target.result.length : 0;
+                document.getElementById("wipeEntireDatabaseActionBtn").textContent = `Wipe Database (${recordsCount})`;
+            };
+        }
+
+        function testCloudConnection() {
+            const inputUrl = document.getElementById("syncUrlInput").value.trim();
+            const feedback = document.getElementById("testConnectionStatusFeedback");
+            const btn = document.getElementById("connectionTesterBtn");
+
+            if(!inputUrl) {
+                feedback.textContent = "❌ Error: URL Field is empty.";
+                feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
+                return;
+            }
+
+            feedback.textContent = "⏳ Testing ping connection request...";
+            feedback.className = "text-[10px] text-neutral-400 font-bold block leading-tight mt-1";
+            btn.disabled = true;
+
+            fetch(inputUrl, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ action: "ping" })
+            })
+            .then(async response => {
+                const txt = await response.text();
+                try {
+                    const parsed = JSON.parse(txt);
+                    if(parsed.status === "success") {
+                        feedback.textContent = "✅ Connected Successfully! Script returned valid framework status.";
+                        feedback.className = "text-[10px] text-emerald-500 font-bold block leading-tight mt-1";
+                    } else {
+                        feedback.textContent = `❌ Script error context: ${txt.slice(0, 60)}`;
+                        feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
+                    }
+                } catch(e) {
+                    feedback.textContent = `❌ Response format issue (Not JSON). Endpoint mismatched.`;
+                    feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
+                }
+            })
+            .catch(err => {
+                feedback.textContent = `❌ Endpoint Fault: Unable to resolve request. Verify URL format structure.`;
+                feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
+            })
+            .finally(() => {
+                btn.disabled = false;
+            });
+        }
+
+        function importBackupJSONDataFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (!Array.isArray(importedData)) {
+                        alert("❌ Validation error: Root JSON container structure must be an Array.");
+                        return;
+                    }
+
+                    if (importedData.length === 0) {
+                        alert("⚠️ Target loaded array database is completely empty.");
+                        return;
+                    }
+
+                    const confirmInject = confirm(`⚠️ Are you sure you want to load ${importedData.length} records back into local database? Existing matching items will merge.`);
+                    if (!confirmInject) return;
+
+                    const tx = db.transaction(["logs"], "readwrite");
+                    const store = tx.objectStore("logs");
+
+                    store.getAll().onsuccess = function(ev) {
+                        const existingLogs = ev.target.result || [];
+                        const existingUids = new Set(existingLogs.map(l => l.uid));
+                        let itemsAdded = 0;
+
+                        importedData.forEach(item => {
+                            if (item.uid && !existingUids.has(item.uid)) {
+                                delete item.id; 
+                                store.add(item);
+                                itemsAdded++;
+                            }
+                        });
+
+                        tx.oncomplete = function() {
+                            alert(`✅ Database reload finished successfully! Restored ${itemsAdded} unique logs.`);
+                            loadHistory();
+                            updateSettingsWipeCounterFootprint();
+                        };
+                    };
+                } catch(err) {
+                    alert("❌ Failed to parse payload matrix. Ensure file is a standard formatted JSON backup dump.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; 
         }
 
         function saveSettings() { 
@@ -776,7 +918,7 @@
 
         function updateSyncStatusLabel() { 
             const s = document.getElementById("syncStatus"); 
-            s.textContent = !syncUrl ? "Offline Mode" : (syncIntervalMs === 0 ? "Manual Sync" : "Auto-Sync"); 
+            s.textContent = !syncUrl ? "Offline Mode" : "Auto-Sync"; 
             s.className = !syncUrl ? "text-[10px] bg-yellow-955 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold"; 
         }
         
@@ -1136,6 +1278,7 @@
         }
         
         function loadHistory() {
+            if (!db) return;
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const logs = e.target.result;
                 const query = document.getElementById('searchBar').value.toLowerCase().trim();
@@ -1222,7 +1365,7 @@
                 if (!syncUrl) {
                     const txWrite = db.transaction(["logs"], "readwrite");
                     txWrite.objectStore("logs").delete(id);
-                    txWrite.oncomplete = function() { loadHistory(); };
+                    txWrite.oncomplete = function() { loadHistory(); updateSettingsWipeCounterFootprint(); };
                     return;
                 }
                 fetch(syncUrl, {
@@ -1234,7 +1377,7 @@
                     if (data.status === "success") {
                         const txWrite = db.transaction(["logs"], "readwrite");
                         txWrite.objectStore("logs").delete(id);
-                        txWrite.oncomplete = function() { loadHistory(); };
+                        txWrite.oncomplete = function() { loadHistory(); updateSettingsWipeCounterFootprint(); };
                     }
                 }).catch(() => alert("Could not delete from Sheet. Check connection."));
             };
