@@ -534,16 +534,30 @@ const dbRequest = indexedDB.open("RaceLoggerDB", 1);
 
         function loadSettingsState() { isSetupLocked = localStorage.getItem("settingsLocked") === "true"; document.getElementById("checkpoint").value = localStorage.getItem("checkpointVal") || ""; document.getElementById("volunteer").value = localStorage.getItem("volunteerVal") || ""; applyLockState(); }
 
-        function triggerInlineToast(bib, statusText, remarkText = "", isError = false) {
-            const rI = document.getElementById('remarkInput'), rL = document.getElementById('remarkLabel');
-            clearTimeout(inlineToastTimeout);
-            let txt = isError ? `⚠️ Bib ${bib}: ${statusText}` : `✅ Bib ${bib}: ${statusText}`;
-            if (remarkText) txt += ` (${remarkText})`;
-            rI.value = txt; rI.disabled = true;
-            if (isError) { rI.className = "w-full bg-red-950 border-red-900 text-red-300 rounded-lg px-3 py-2 text-sm font-bold text-center"; rL.className = "block text-xs text-red-400 mb-1 font-bold"; rL.textContent = "Status Alert"; }
-            else { rI.className = "w-full bg-emerald-950 border-emerald-900 text-emerald-300 rounded-lg px-3 py-2 text-sm font-bold text-center"; rL.className = "block text-xs text-emerald-400 mb-1 font-bold"; rL.textContent = "Last Action Status"; }
-            inlineToastTimeout = setTimeout(() => { clearInlineToast(); }, 3000);
-        }
+function triggerInlineToast(bib, statusText, remarkText = "", isError = false) {
+    const remarkInput = document.getElementById('remarkInput');
+    const remarkLabel = document.getElementById('remarkLabel');
+    clearTimeout(inlineToastTimeout);
+
+    // CHANGE: Use only remarkText if it exists, otherwise just the status
+    let displayText = remarkText ? remarkText : statusText;
+
+    remarkInput.value = displayText;
+    remarkInput.disabled = true;
+    
+    // ... rest of your function remains the same ...
+    if (isError) {
+        remarkInput.className = "w-full bg-red-950 border-red-900 text-red-300 rounded-lg px-3 py-2 text-sm font-bold text-center";
+        remarkLabel.className = "block text-xs text-red-400 mb-1 font-bold";
+        remarkLabel.textContent = "Status Alert";
+    } else {
+        remarkInput.className = "w-full bg-emerald-950 border-emerald-900 text-emerald-300 rounded-lg px-3 py-2 text-sm font-bold text-center";
+        remarkLabel.className = "block text-xs text-emerald-400 mb-1 font-bold";
+        remarkLabel.textContent = "Last Action Status";
+    }
+
+    inlineToastTimeout = setTimeout(() => { clearInlineToast(); }, 4000);
+}
 
         function clearInlineToast() {
             if (remarkDebounceTimeout) return; 
