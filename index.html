@@ -239,7 +239,7 @@
                 </div>
             </div>
 
-            <div id="pwaTutorialBlock" class="hidden text-[11px] border border-blue-900/50 rounded-lg p-3 bg-blue-950/20 text-left flex flex-col gap-2 transition-all duration-200">
+            <div id="pwaTutorialBlock" class="hidden text-[11px] border border-blue-900/50 rounded-lg p-3 bg-blue-955/20 text-left flex flex-col gap-2 transition-all duration-200">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400">Run Offline Safely</h4>
                 <p class="theme-text-muted leading-relaxed">Save this app directly to your home screen container to lock your database configuration setup and avoid accidental page reloads.</p>
                 <div id="dynamicBrowserGuide" class="theme-input p-2.5 rounded-lg border border-dashed text-neutral-300 font-medium">
@@ -621,7 +621,7 @@
             } else {
                 block.classList.add("hidden");
                 btn.textContent = "ℹ️ Install App";
-                btn.className = "text-[9px] bg-blue-950 text-blue-400 border border-blue-800 px-1.5 py-0.5 rounded font-bold";
+                btn.className = "text-[9px] bg-blue-955 text-blue-400 border border-blue-800 px-1.5 py-0.5 rounded font-bold";
             }
         }
 
@@ -850,6 +850,7 @@
             const checkpoint = document.getElementById('checkpoint').value.trim();
             const volunteer = document.getElementById('volunteer').value.trim();
             const remarkInput = document.getElementById('remarkInput');
+            const bibInput = document.getElementById('bibInput');
             
             const entry = {
                 bib: bib.toUpperCase(),
@@ -877,11 +878,12 @@
                 if (syncIntervalMs > 0) attemptSync();
             };
             
-            document.getElementById('bibInput').value = '';
+            bibInput.value = '';
             remarkInput.value = ''; 
             shutOffGPSHardware();
             
-            document.activeElement.blur();
+            // Keep focus inside the box so typing mode isn't dropped
+            bibInput.focus();
             setTimeout(handleViewportResize, 80);
         }
 
@@ -944,7 +946,7 @@
                         <div class="text-[10px] mt-0.5">${formatLogTime(log.time)} ${log.remark ? `• 💬 ${log.remark}` : ''}</div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick='syncSingleRow(${JSON.stringify(log)})' class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-bold hover:bg-emerald-900">Sync</button>
+                        <button onclick='syncSingleRow(${JSON.stringify(log)})' class="text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-bold hover:bg-emerald-900">Sync</button>
                         <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-500 text-base">🗑️</button>
                     </div>`;
                 list.appendChild(item);
@@ -1157,7 +1159,7 @@
                             </div>`;
                     } else {
                         const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
-                        const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
+                        const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-955 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
                         const editButtonHTML = (isEditable(log.time) || log.remake) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
 
                         let statusText = log.synced ? 'Synced' : 'Queued';
