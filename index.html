@@ -81,7 +81,7 @@
             overscroll-behavior-y: contain; 
         }
 
-        /* Keyboard Docking styles for Mobile/Tablets - Highly transparent glass look */
+        /* Keyboard Docking styles - Maximum clarity over background text */
         .keyboard-docked-btn {
             position: fixed !important;
             left: 0 !important;
@@ -89,10 +89,10 @@
             width: 100% !important;
             border-radius: 0 !important;
             z-index: 9999 !important;
-            box-shadow: 0 -4px 15px rgba(0,0,0,0.3) !important;
-            background-color: rgba(30, 64, 175, 0.35) !important; /* Low opacity blue for clear view underneath */
-            backdrop-filter: blur(2px) !important;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 1px rgba(0, 0, 0, 1) !important; /* Makes "LOG" text clear on any background */
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2) !important;
+            background-color: rgba(30, 64, 175, 0.15) !important; /* Extremely high transparency */
+            backdrop-filter: none !important; /* Stripped out blur so background texts stay ultra-sharp */
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 1) !important; 
         }
 
         @keyframes popScale {
@@ -262,7 +262,7 @@
             </div>
         </section>
 
-        <!-- Isolated Full-Width Container for Last 4 (Relocated Here Above Enter Bib) -->
+        <!-- Isolated Full-Width Container for Last 4 -->
         <section class="theme-panel py-2 px-4 rounded-xl border shadow-sm text-center flex flex-col gap-0.5">
             <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">Last 4 Runners</div>
             <div id="splitLastRunner" class="font-black bib-text-highlight text-xl tracking-wider truncate">-</div>
@@ -771,7 +771,7 @@
         function updateSyncStatusLabel() { 
             const s = document.getElementById("syncStatus"); 
             s.textContent = !syncUrl ? "Offline Mode" : (syncIntervalMs === 0 ? "Manual Sync" : "Auto-Sync"); 
-            s.className = !syncUrl ? "text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold"; 
+            s.className = !syncUrl ? "text-[10px] bg-yellow-955 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold"; 
         }
         
         function toggleLock() { isSetupLocked = !isSetupLocked; localStorage.setItem("settingsLocked", isSetupLocked); applyLockState(); }
@@ -819,6 +819,7 @@
             
             if (!cpV || !volV) { 
                 alert("⚠️ Setup incomplete! Please fill Checkpoint and Volunteer fields first."); 
+                setTimeout(() => bI.focus(), 50);
                 return; 
             }
 
@@ -830,13 +831,18 @@
                 );
                 
                 if (duplicate) {
+                    // Modal interception collapses soft keyboards on mobile platforms
                     const confirmLog = confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`);
                     if (!confirmLog) {
                         bI.value = ''; 
                     } else {
                         logEntry(bib);
                     }
-                    bI.focus();
+                    // Forced asynchronous refocus to restore active text layout system
+                    setTimeout(() => {
+                        bI.focus();
+                        handleViewportResize();
+                    }, 80);
                 } else { 
                     logEntry(bib); 
                 }
@@ -891,8 +897,10 @@
             remarkInput.value = ''; 
             shutOffGPSHardware();
             
-            bibInput.focus();
-            setTimeout(handleViewportResize, 80);
+            setTimeout(() => {
+                bibInput.focus();
+                handleViewportResize();
+            }, 80);
         }
 
         function handleRemarkTyping() {
@@ -1094,7 +1102,12 @@
                 const log = e.target.result;
                 log.bib = newBib; log.remark = newRemark; log.synced = false; log.remake = false; 
                 store.put(log);
-                tx.oncomplete = function() { editingRowId = null; loadHistory(); if (syncIntervalMs > 0) attemptSync(); };
+                tx.oncomplete = function() { 
+                    editingRowId = null; 
+                    loadHistory(); 
+                    if (syncIntervalMs > 0) attemptSync(); 
+                    setTimeout(() => document.getElementById('bibInput').focus(), 80);
+                };
             };
         }
 
@@ -1223,7 +1236,6 @@
             };
         }
 
-        // CSV mapping structures optimized for offline data reliability
         function exportCSV() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const logs = e.target.result;
