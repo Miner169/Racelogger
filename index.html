@@ -386,8 +386,9 @@
         let batterySaverManual = false;
         let historyLimit = '20';
         
+        // Strictly adhere to the primary script engine variable tracking 
         let syncUrl = localStorage.getItem("syncUrl");
-        if (!syncUrl || syncUrl.trim() === "" || syncUrl.includes("AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw")) {
+        if (!syncUrl || syncUrl.trim() === "") {
             syncUrl = DEFAULT_SYNC_URL;
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
@@ -404,7 +405,6 @@
             }, { passive: false });
         }
 
-        // --- Visual Viewport Smart Phone Keyboard Anchor Logic ---
         function handleViewportResize() {
             const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
             if (!isTouchDevice) return; 
