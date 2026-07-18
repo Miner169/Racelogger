@@ -81,7 +81,7 @@
             overscroll-behavior-y: contain; 
         }
 
-        /* Keyboard Docking styles for Mobile/Tablets - Semi transparent to see content beneath */
+        /* Keyboard Docking styles for Mobile/Tablets - Highly transparent glass look */
         .keyboard-docked-btn {
             position: fixed !important;
             left: 0 !important;
@@ -89,9 +89,10 @@
             width: 100% !important;
             border-radius: 0 !important;
             z-index: 9999 !important;
-            box-shadow: 0 -4px 15px rgba(0,0,0,0.5) !important;
-            background-color: rgba(30, 64, 175, 0.8) !important; /* Semi-transparent blue */
-            backdrop-filter: blur(4px) !important;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.3) !important;
+            background-color: rgba(30, 64, 175, 0.35) !important; /* Low opacity blue for clear view underneath */
+            backdrop-filter: blur(2px) !important;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 1px rgba(0, 0, 0, 1) !important; /* Makes "LOG" text clear on any background */
         }
 
         @keyframes popScale {
@@ -644,7 +645,6 @@
             loadHistory();
         }
 
-        // Removed sensitive location inference references in diagnostic outputs to adhere strictly to localized data handling.
         function getDeviceType() {
             const ua = navigator.userAgent;
             const containerMode = isStandalone ? "PWA" : "APP";
@@ -836,7 +836,6 @@
                     } else {
                         logEntry(bib);
                     }
-                    // Immediately focus typing box back regardless of choice so user keyboard stays up
                     bI.focus();
                 } else { 
                     logEntry(bib); 
@@ -892,7 +891,6 @@
             remarkInput.value = ''; 
             shutOffGPSHardware();
             
-            // Keep focus inside the box so typing mode isn't dropped
             bibInput.focus();
             setTimeout(handleViewportResize, 80);
         }
@@ -1081,7 +1079,6 @@
             splitGapTime.textContent = mins > 0 ? `+${mins}m ${secs}s` : `+${secs}s`;
         }
 
-        /* Adjusting editing time boundary structures explicitly to secure offline storage schemas */
         function isEditable(logTimeStr) { return (new Date() - parseCustomOrIsoDate(logTimeStr)) < 300000; }
         function startEditing(id) { editingRowId = id; loadHistory(); }
         function cancelEditing() { editingRowId = null; loadHistory(); }
@@ -1226,6 +1223,7 @@
             };
         }
 
+        // CSV mapping structures optimized for offline data reliability
         function exportCSV() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const logs = e.target.result;
