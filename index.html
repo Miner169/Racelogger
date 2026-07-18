@@ -474,19 +474,37 @@
             rL.className = "block text-xs theme-text-muted mb-1 font-bold"; rL.textContent = "Remark (Optional)";
         }
 
-        function checkDuplicateAndLog() {
-            const bI = document.getElementById('bibInput'), bib = bI.value.trim();
-            if (!bib) return;
-            const cpV = document.getElementById('checkpoint').value.trim(), volV = document.getElementById('volunteer').value.trim();
-            if (!cpV || !volV) { alert("⚠️ Setup incomplete! Please fill Checkpoint and Volunteer fields first."); return; }
+function checkDuplicateAndLog() {
+    const bI = document.getElementById('bibInput');
+    const bib = bI.value.trim();
+    if (!bib) return;
+    
+    const cpEl = document.getElementById('checkpoint');
+    const volEl = document.getElementById('volunteer');
+    const cpV = cpEl ? cpEl.value.trim() : '';
+    const volV = volEl ? volEl.value.trim() : '';
+    
+    if (!cpV || !volV) { 
+        alert("⚠️ Setup incomplete! Please fill Checkpoint and Volunteer fields first."); 
+        return; 
+    }
 
-            const transaction = db.transaction(["logs"], "readonly");
-            transaction.objectStore("logs").getAll().onsuccess = function(e) {
-                const duplicate = e.target.result.find(log => log.bib === bib && log.checkpoint.toUpperCase() === cpV.toUpperCase() && (new Date() - new Date(log.time)) < 600000);
-                if (duplicate && !confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`)) { bI.value = ''; bI.focus(); } 
-                else { logEntry(bib); }
-            };
+    const transaction = db.transaction(["logs"], "readonly");
+    transaction.objectStore("logs").getAll().onsuccess = function(e) {
+        const duplicate = e.target.result.find(log => 
+            log.bib === bib && 
+            log.checkpoint.toUpperCase() === cpV.toUpperCase() && 
+            (new Date() - new Date(log.time)) < 600000
+        );
+        if (duplicate && !confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`)) { 
+            bI.value = ''; 
+            bI.focus(); 
+        } 
+        else { 
+            logEntry(bib); 
         }
+    };
+}
 
         function generateUID() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11); }
 
