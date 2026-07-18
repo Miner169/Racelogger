@@ -636,39 +636,39 @@
             }).catch(err => console.error(err));
         }
 
-        function attemptSync() {
-            if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
-            isSyncing = true;
+function attemptSync() {
+    if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
+    isSyncing = true;
 
-            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
-                const unsynced = e.target.result.filter(log => !log.synced);
-                if (unsynced.length === 0) { isSyncing = false; return; }
+    db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+        const unsynced = e.target.result.filter(log => !log.synced);
+        if (unsynced.length === 0) { isSyncing = false; return; }
 
-                fetch(syncUrl, {
-                    method: "POST",
-                    mode: "cors",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "batch_sync", data: unsynced })
-                })
-                .then(async res => {
-                    const data = JSON.parse(await res.text());
-                    if (data.status === "success") {
-                        const confirmedIds = new Set(data.confirmedIds || []);
-                        const tx = db.transaction(["logs"], "readwrite");
-                        const store = tx.objectStore("logs");
-                        unsynced.forEach(log => {
-                            if (confirmedIds.has(log.uid)) { log.synced = true; store.put(log); }
-                        });
-                        tx.oncomplete = function() { loadHistory(); };
-                    }
-                })
-                .catch(err => console.error("Sync batch error:", err))
-                .finally(() => {
-                    isSyncing = false;
-                    if (syncRerunQueued) { syncRerunQueued = false; attemptSync(); }
+        fetch(syncUrl, {
+            method: "POST",
+            mode: "cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ action: "batch_sync", data: unsynced })
+        })
+        .then(async res => {
+            const data = JSON.parse(await res.text());
+            if (data.status === "success") {
+                const confirmedIds = new Set(data.confirmedIds || []);
+                const tx = db.transaction(["logs"], "readwrite");
+                const store = tx.objectStore("logs");
+                unsynced.forEach(log => {
+                    if (confirmedIds.has(log.uid)) { log.synced = true; store.put(log); }
                 });
-            };
-        }
+                tx.oncomplete = function() { loadHistory(); };
+            }
+        })
+        .catch(err => console.error("Sync batch error:", err))
+        .finally(() => {
+            isSyncing = false;
+            if (syncRerunQueued) { syncRerunQueued = false; attemptSync(); }
+        });
+    };
+}
 
         window.addEventListener('online', attemptSync);
 
