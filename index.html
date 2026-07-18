@@ -259,6 +259,12 @@
             </div>
         </section>
 
+        <!-- Isolated Full-Width Container for Last 4 (Relocated Here Above Enter Bib) -->
+        <section class="theme-panel py-2 px-4 rounded-xl border shadow-sm text-center flex flex-col gap-0.5">
+            <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">Last 4 Runners</div>
+            <div id="splitLastRunner" class="font-black bib-text-highlight text-xl tracking-wider truncate">-</div>
+        </section>
+
         <!-- Fast Entry Log Form -->
         <section class="theme-panel p-4 rounded-xl border shadow flex flex-col gap-3">
             <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
@@ -273,12 +279,6 @@
                 <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark (Optional)</label>
                 <input type="text" id="remarkInput" onfocus="warmUpGPS();" oninput="handleRemarkTyping()" placeholder="e.g. Missed helper, penalty, etc." class="w-full theme-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 transition-all duration-200">
             </div>
-        </section>
-
-        <!-- Isolated Full-Width Container for Last 4 -->
-        <section class="theme-panel py-2 px-4 rounded-xl border shadow-sm text-center flex flex-col gap-0.5">
-            <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">Last 4 Runners</div>
-            <div id="splitLastRunner" class="font-black bib-text-highlight text-xl tracking-wider truncate">-</div>
         </section>
 
         <!-- Sync Progress & Queue Inspector -->
@@ -296,7 +296,7 @@
             <div id="inspectorList" class="max-h-40 overflow-y-auto divide-y theme-border flex flex-col"></div>
         </section>
 
-        <!-- Core Metric Panel (Relocated Here Above Scan History) -->
+        <!-- Core Metric Panel -->
         <section class="grid grid-cols-3 gap-1.5">
             <div class="theme-panel py-2 px-2 rounded-xl border text-center shadow-sm flex flex-col justify-between">
                 <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">Total Logs</div>
@@ -648,7 +648,7 @@
             let device = "PC";
             if (/tablet|ipad|playbook|silk/i.test(ua)) {
                 device = "Tablet";
-            } else if (/Mobile|Android|IP(hone|od)|IEMobile|BlackBerry|Kindle|Opera Mini/i.test(ua)) {
+            } else if (/Mobile|Android|IP(hone|od)|IEMobile|BlackBerry|Kindle/i.test(ua)) {
                 device = /iPhone|iPod/i.test(ua) ? "iPhone" : "Android Mobile";
             }
             return `${device} ${containerMode}`;
@@ -869,7 +869,6 @@
             lastCreatedUid = entry.uid;
             const tx = db.transaction(["logs"], "readwrite");
             tx.objectStore("logs").add(entry).onsuccess = function() {
-                // Clear the search bar values after a row matches log framework requirements
                 document.getElementById('searchBar').value = '';
                 loadHistory();
                 if (vibrateEnabled && navigator.vibrate) navigator.vibrate(50);
