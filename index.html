@@ -958,43 +958,41 @@ function testCloudConnection() {
             clearTimeout(successToastTimeout);
         }
 
-        function checkDuplicateAndLog() {
-            const bI = document.getElementById('bibInput');
-            const bib = bI.value.trim().toUpperCase();
-            if (!bib) return;
-            
-            const cpV = (document.getElementById('checkpoint')?.value || '').trim();
-            const volV = (document.getElementById('volunteer')?.value || '').trim();
-            
-            if (!cpV || !volV) { 
-                alert("⚠️ Setup incomplete! Please fill Checkpoint and Volunteer fields first."); 
-                setTimeout(() => bI.focus(), 50);
-                return; 
-            }
+function checkDuplicateAndLog() {
+    const bI = document.getElementById('bibInput');
+    const bib = bI.value.trim().toUpperCase();
+    if (!bib) return;
+    
+    const cpV = (document.getElementById('checkpoint')?.value || '').trim();
+    const volV = (document.getElementById('volunteer')?.value || '').trim();
+    
+    if (!cpV || !volV) { 
+        alert("⚠️ Setup incomplete! Please fill Checkpoint and Volunteer fields first."); 
+        bI.focus();
+        return; 
+    }
 
-            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
-                const duplicate = e.target.result.find(log => 
-                    log.bib === bib && 
-                    log.checkpoint.toUpperCase() === cpV.toUpperCase() && 
-                    (new Date() - parseCustomOrIsoDate(log.time)) < (dupWindow * 60 * 1000)
-                );
-                
-                if (duplicate) {
-                    const confirmLog = confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`);
-                    if (!confirmLog) {
-                        bI.value = ''; 
-                    } else {
-                        logEntry(bib);
-                    }
-                    setTimeout(() => {
-                        bI.focus();
-                        handleViewportResize();
-                    }, 80);
-                } else { 
-                    logEntry(bib); 
-                }
-            };
+    db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+        const duplicate = e.target.result.find(log => 
+            log.bib === bib && 
+            log.checkpoint.toUpperCase() === cpV.toUpperCase() && 
+            (new Date() - parseCustomOrIsoDate(log.time)) < (dupWindow * 60 * 1000)
+        );
+        
+        if (duplicate) {
+            const confirmLog = confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`);
+            if (!confirmLog) {
+                bI.value = ''; 
+            } else {
+                logEntry(bib);
+            }
+            bI.focus();
+            handleViewportResize();
+        } else { 
+            logEntry(bib); 
         }
+    };
+}
 
         function generateUID() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11); }
 
@@ -1006,49 +1004,52 @@ function testCloudConnection() {
             return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()} ${pad(hours)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
         }
 
-        function logEntry(bib) {
-            if (remarkDebounceTimeout) { clearTimeout(remarkDebounceTimeout); remarkDebounceTimeout = null; }
+function logEntry(bib) {
+    if (remarkDebounceTimeout) { clearTimeout(remarkDebounceTimeout); remarkDebounceTimeout = null; }
 
-            const checkpoint = document.getElementById('checkpoint').value.trim();
-            const volunteer = document.getElementById('volunteer').value.trim();
-            const remarkInput = document.getElementById('remarkInput');
-            const bibInput = document.getElementById('bibInput');
-            
-            const entry = {
-                bib: bib.toUpperCase(),
-                time: getFormattedTimestamp(), 
-                checkpoint: checkpoint.toUpperCase(),
-                volunteer: volunteer.toUpperCase(),
-                remark: remarkInput.value.trim(),
-                device: getDeviceType(),
-                latitude: lastGeoposition.latitude,
-                longitude: lastGeoposition.longitude,
-                uid: generateUID(),
-                synced: false,
-                remake: false,
-                syncAttempts: 0
-            };
+    const checkpoint = document.getElementById('checkpoint').value.trim();
+    const volunteer = document.getElementById('volunteer').value.trim();
+    const remarkInput = document.getElementById('remarkInput');
+    const bibInput = document.getElementById('bibInput');
+    
+    const entry = {
+        bib: bib.toUpperCase(),
+        time: getFormattedTimestamp(), 
+        checkpoint: checkpoint.toUpperCase(),
+        volunteer: volunteer.toUpperCase(),
+        remark: remarkInput.value.trim(),
+        device: getDeviceType(),
+        latitude: lastGeoposition.latitude,
+        longitude: lastGeoposition.longitude,
+        uid: generateUID(),
+        synced: false,
+        remake: false,
+        syncAttempts: 0
+    };
 
-            lastCreatedUid = entry.uid;
-            const tx = db.transaction(["logs"], "readwrite");
-            tx.objectStore("logs").add(entry).onsuccess = function() {
-                document.getElementById('searchBar').value = '';
-                loadHistory();
-                if (vibrateEnabled && navigator.vibrate) navigator.vibrate(50);
-                playSuccessSound();
-                triggerSuccessToast(); 
-                if (syncIntervalMs > 0) attemptSync();
-            };
-            
-            bibInput.value = '';
-            remarkInput.value = ''; 
-            shutOffGPSHardware();
-            
-            setTimeout(() => {
-                bibInput.focus();
-                handleViewportResize();
-            }, 80);
-        }
+    lastCreatedUid = entry.uid;
+    const tx = db.transaction(["logs"], "readwrite");
+    tx.objectStore("logs").add(entry).onsuccess = function() {
+        document.getElementById('searchBar').value = '';
+        loadHistory();
+        if (vibrateEnabled && navigator.vibrate) navigator.vibrate(50);
+        playSuccessSound();
+        triggerSuccessToast(); 
+        if (syncIntervalMs > 0) attemptSync();
+    };
+    
+    bibInput.value = '';
+    remarkInput.value = ''; 
+    shutOffGPSHardware();
+    
+    // Focus synchronously — keeps the keyboard open on mobile.
+    // (Wrapping this in setTimeout is what was closing the keyboard.)
+    bibInput.focus();
+    
+    setTimeout(() => {
+        handleViewportResize();
+    }, 80);
+}
 
         function handleRemarkTyping() {
             if (!lastCreatedUid) return; 
