@@ -1,3 +1,4 @@
+<script>const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";</script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -266,7 +267,7 @@
         // ==========================================
         // GLOBAL CONFIGURATION SETTINGS
         // ==========================================
-        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec"; //[cite: 2]
+        // (DEFAULT_SYNC_URL is now declared on Line 1)
 
         let db;
         let isSetupLocked = false;
@@ -444,7 +445,7 @@
                 loadHistory();
                 if (syncUrl && !remarkDebounceTimeout) {
                     attemptSync(); 
-                    checkServerModifications(); //[cite: 2]
+                    checkServerModifications(); 
                 }
             }, syncIntervalMs);
         }
@@ -520,6 +521,7 @@
             }
         }
 
+        // Keep Theme, Database init, and all functions intact exactly as coded...
         function applyTheme() {
             const currentTheme = localStorage.getItem("theme") || "dark";
             if (currentTheme === "light") {
@@ -569,7 +571,7 @@
             resetSyncTimer();
             if (syncUrl) {
                 attemptSync();
-                checkServerModifications(); //[cite: 2]
+                checkServerModifications(); 
             }
 
             if ('serviceWorker' in navigator) {
@@ -601,7 +603,7 @@
         }
         
         function toggleSettings() { document.getElementById("settingsModal").classList.toggle("hidden"); document.getElementById("syncUrlInput").value = syncUrl; }
-        function saveSettings() { syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; localStorage.setItem("syncUrl", syncUrl); toggleSettings(); updateSyncStatusLabel(); attemptSync(); checkServerModifications(); } //[cite: 2]
+        function saveSettings() { syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; localStorage.setItem("syncUrl", syncUrl); toggleSettings(); updateSyncStatusLabel(); attemptSync(); checkServerModifications(); } 
         function updateSyncStatusLabel() { const s = document.getElementById("syncStatus"); s.textContent = !syncUrl ? "Offline Mode" : "Auto-Sync"; s.className = !syncUrl ? "text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold"; }
         function toggleLock() { isSetupLocked = !isSetupLocked; localStorage.setItem("settingsLocked", isSetupLocked); applyLockState(); }
 
@@ -895,11 +897,11 @@
             if (!syncUrl) return;
             
             try {
-                const response = await fetch(syncUrl); //[cite: 2]
+                const response = await fetch(syncUrl);
                 const result = await response.json();
                 
                 if (result.status === "success") {
-                    const serverLogs = result.data; //[cite: 2]
+                    const serverLogs = result.data;
                     
                     const tx = db.transaction(["logs"], "readwrite");
                     const store = tx.objectStore("logs");
@@ -909,8 +911,8 @@
                         let changed = false;
                         
                         localLogs.forEach(localLog => {
-                            const match = serverLogs.find(s => s.uid === localLog.uid); //[cite: 2]
-                            if (localLog.synced && (!match || match.bib === "")) { //[cite: 2]
+                            const match = serverLogs.find(s => s.uid === localLog.uid);
+                            if (localLog.synced && (!match || match.bib === "")) {
                                 localLog.synced = false;
                                 localLog.remake = true;
                                 store.put(localLog);
