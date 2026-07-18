@@ -637,15 +637,17 @@ function syncSingleRow(row) {
     if (!syncUrl || remarkDebounceTimeout) return;
     fetch(syncUrl, {
         method: "POST",
-        mode: "no-cors",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: "batch_sync", data: [row] })
     })
-    .then(() => {
-        const tx = db.transaction(["logs"], "readwrite");
-        row.synced = true; 
-        tx.objectStore("logs").put(row);
-        tx.oncomplete = function() { loadHistory(); };
+    .then(async res => {
+        const data = JSON.parse(await res.text());
+        if (data.status === "success" && data.confirmedIds.includes(row.uid)) {
+            const tx = db.transaction(["logs"], "readwrite");
+            row.synced = true; 
+            tx.objectStore("logs").put(row);
+            tx.oncomplete = function() { loadHistory(); };
+        }
     })
     .catch(err => console.error(err));
 }
@@ -658,23 +660,24 @@ function attemptSync() {
         const unsynced = e.target.result.filter(log => !log.synced);
         if (unsynced.length === 0) { isSyncing = false; return; }
 
-        // Change mode to 'no-cors' to prevent iOS PWA wrapper from blocking the request
+        // REMOVED no-cors. Using plain text submission to bypass pre-flight blocks safely.
         fetch(syncUrl, {
             method: "POST",
-            mode: "no-cors", 
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            headers: { "Content-Type": "text/plain;charset=utf-8" }, 
             body: JSON.stringify({ action: "batch_sync", data: unsynced })
         })
-        .then(() => {
-            // In 'no-cors' mode, we won't get a readable response body, 
-            // but a successful network trip means Google received the data.
-            const tx = db.transaction(["logs"], "readwrite");
-            const store = tx.objectStore("logs");
-            unsynced.forEach(log => {
-                log.synced = true; 
-                store.put(log);
-            });
-            tx.oncomplete = function() { loadHistory(); };
+        .then(async res => {
+            const textResponse = await res.text();
+            const data = JSON.parse(textResponse);
+            if (data.status === "success") {
+                const confirmedIds = new Set(data.confirmedIds || []);
+                const tx = db.transaction(["logs"], "readwrite");
+                const store = tx.objectStore("logs");
+                unsynced.forEach(log => {
+                    if (confirmedIds.has(log.uid)) { log.synced = true; store.put(log); }
+                });
+                tx.oncomplete = function() { loadHistory(); };
+            }
         })
         .catch(err => console.error("Sync batch error:", err))
         .finally(() => {
