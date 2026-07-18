@@ -690,15 +690,24 @@ const dbRequest = indexedDB.open("RaceLoggerDB", 1);
 
 function syncSingleRow(row) {
     if (!syncUrl || remarkDebounceTimeout) return;
+    
     fetch(syncUrl, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        redirect: "follow",
+        // redirect: "follow", // Remove this to prevent domain-hop handshake issues
         body: JSON.stringify({ action: "batch_sync", data: [row] })
     })
     .then(async res => {
         const rawText = await res.text();
-        if (rawText.trim().startsWith("<")) return;
+        
+        // Log the actual response so we can see what Google is saying
+        console.log("Raw Response from Google:", rawText); 
+        
+        if (rawText.trim().startsWith("<")) {
+            console.error("Sync blocked: Google returned HTML (likely login page)");
+            return;
+        }
+        
         const data = JSON.parse(rawText);
         if (data.status === "success" && data.confirmedIds.includes(row.uid)) {
             const tx = db.transaction(["logs"], "readwrite");
@@ -707,7 +716,9 @@ function syncSingleRow(row) {
             tx.oncomplete = function() { loadHistory(); };
         }
     })
-    .catch(err => console.error("Single row sync error:", err));
+    .catch(err => {
+        console.error("Single row sync error - check connection or permissions:", err);
+    });
 }
 
 function attemptSync() {
