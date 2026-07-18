@@ -73,7 +73,12 @@
             opacity: 1;
         }
 
-        .theme-header { background-color: var(--header-bg); border-color: var(--header-border); }
+        /* Responsive Safe Area Padding for mobile OS Status Bars */
+        .theme-header { 
+            background-color: var(--header-bg); 
+            border-color: var(--header-border); 
+            padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem) !important;
+        }
         .theme-header-text { color: var(--header-text); }
         .theme-btn-lock { background-color: var(--btn-lock-bg); border-color: var(--btn-lock-border); color: var(--btn-lock-text); }
 
@@ -90,9 +95,9 @@
             border-radius: 0 !important;
             z-index: 9999 !important;
             box-shadow: 0 -4px 20px rgba(0,0,0,0.4) !important;
-            background: linear-gradient(to right, rgba(29, 78, 216, 0.25), rgba(67, 56, 202, 0.25)) !important; /* Colorful but highly transparent */
+            background: linear-gradient(to right, rgba(29, 78, 216, 0.25), rgba(67, 56, 202, 0.25)) !important; 
             border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-            backdrop-filter: none !important; /* No blur so the elements underneath remain razor-sharp */
+            backdrop-filter: none !important; 
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 4px rgba(0, 0, 0, 1) !important; 
         }
 
@@ -108,8 +113,8 @@
 </head>
 <body class="theme-bg theme-text min-h-screen flex flex-col font-sans select-none pb-16">
 
-    <!-- Header Status Bar -->
-    <header class="theme-header border-b px-4 py-2 shadow-md flex justify-between items-center sticky top-0 z-50">
+    <!-- Header Status Bar with Dynamic Hardware Offset Protection -->
+    <header class="theme-header border-b px-4 pb-2 shadow-md flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-2.5">
             <h1 class="text-base font-black tracking-wider theme-header-text">RACE LOG</h1>
             <span id="syncStatus" class="text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">Auto-Sync</span>
@@ -159,7 +164,7 @@
 
             <!-- Positioning Accuracy Grid -->
             <div>
-                <label class="block text-xs theme-text-muted mb-1 font-bold">GPS Satellites Quality Profile</label>
+                <label class="block text-[10px] theme-text-muted mb-1 font-bold">GPS Satellites Quality Profile</label>
                 <select id="gpsQualitySelect" class="w-full theme-input border rounded-lg px-2.5 py-2 text-xs focus:outline-none">
                     <option value="low">🔋 Maximum Battery Saver (Low Precision Mapping)</option>
                     <option value="high">🛰️ High Precision Tracking (Uses Elevated Energy)</option>
@@ -277,7 +282,6 @@
                     <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" oninput="warmUpGPS()" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl pl-12 pr-2 focus:outline-none focus:border-blue-900 transition uppercase">
                     <button type="button" onclick="toggleKeyboardMode(this)" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-lg p-1 bg-neutral-900/80 rounded-lg border theme-border select-none shadow" title="Switch Keyboard Mode">🔢</button>
                 </div>
-                <!-- Log button styled with rich contrast gradient -->
                 <button id="logActionButton" onclick="checkDuplicateAndLog()" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-95 text-white font-extrabold text-lg px-8 rounded-xl shadow-lg transition-all duration-100 flex items-center justify-center">LOG</button>
             </div>
             <div class="mt-1 relative">
@@ -291,7 +295,7 @@
             <div class="flex justify-between items-center border-b theme-border pb-2">
                 <div class="flex items-center gap-2">
                     <h3 class="text-xs font-bold text-yellow-600 dark:text-yellow-500 uppercase tracking-wider">Queue Inspector</h3>
-                    <span id="inspectorCount" class="text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-1.5 py-0.5 rounded font-bold">0</span>
+                    <span id="inspectorCount" class="text-[10px] bg-yellow-955 text-yellow-400 border border-yellow-800 px-1.5 py-0.5 rounded font-bold">0</span>
                 </div>
                 <div class="flex gap-2">
                     <button onclick="attemptSync()" class="text-[10px] bg-blue-900 hover:bg-blue-800 text-white px-2.5 py-1 rounded-md font-bold transition">Force Sync 🔄</button>
