@@ -688,20 +688,27 @@
         function startEditing(id) { editingRowId = id; loadHistory(); }
         function cancelEditing() { editingRowId = null; loadHistory(); }
 
-        function saveEdit(id) {
-            const newBib = document.getElementById(`edit-bib-${id}`).value.trim();
-            const newRemark = document.getElementById(`edit-remark-${id}`).value.trim();
-            if (!newBib) { alert("Bib required!"); return; }
+function saveEdit(id) {
+    const newBib = document.getElementById(`edit-bib-${id}`).value.trim();
+    const newRemark = document.getElementById(`edit-remark-${id}`).value.trim();
+    if (!newBib) { alert("Bib required!"); return; }
 
-            const tx = db.transaction(["logs"], "readwrite");
-            const store = tx.objectStore("logs");
-            store.get(id).onsuccess = function(e) {
-                const log = e.target.result;
-                log.bib = newBib; log.remark = newRemark; log.synced = false;
-                store.put(log);
-                tx.oncomplete = function() { editingRowId = null; loadHistory(); attemptSync(); };
-            };
-        }
+    const tx = db.transaction(["logs"], "readwrite");
+    const store = tx.objectStore("logs");
+    store.get(id).onsuccess = function(e) {
+        const log = e.target.result;
+        log.bib = newBib; 
+        log.remark = newRemark; 
+        log.synced = false; // Tells the PWA it must update Google Sheets
+
+        store.put(log);
+        tx.oncomplete = function() { 
+            editingRowId = null; 
+            loadHistory(); 
+            attemptSync(); // Immediately triggers deployment update stream
+        };
+    };
+}
 
         function loadHistory() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
