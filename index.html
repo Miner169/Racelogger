@@ -620,7 +620,7 @@ function triggerInlineToast(bib, statusText, remarkText = "", isError = false) {
 
             const entry = {
                 bib: bib.toUpperCase(),
-                time: now.toLocaleDateString() + ' ' + now.toLocaleTimeString(),
+                time: now.toISOString(),
                 checkpoint: checkpoint.toUpperCase(),
                 volunteer: volunteer.toUpperCase(),
                 remark: remark,
@@ -851,6 +851,24 @@ function resetSyncTimer() {
             };
         }
 
+        function formatLogTime(isoString) {
+    const date = new Date(isoString);
+    // Format: 18/7/2026 10:47:11 PM
+    const formattedDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
+    // Calculate "time ago"
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    let timeAgo = "";
+    if (diffInSeconds < 60) timeAgo = "Just now";
+    else if (diffInSeconds < 3600) timeAgo = Math.floor(diffInSeconds / 60) + " mins ago";
+    else if (diffInSeconds < 86400) timeAgo = Math.floor(diffInSeconds / 3600) + " hrs ago";
+    else timeAgo = Math.floor(diffInSeconds / 86400) + " days ago";
+
+    return `${formattedDate} (${timeAgo})`;
+}
+        
         function loadHistory() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const logs = e.target.result;
@@ -898,7 +916,7 @@ function resetSyncTimer() {
                                         ${freqBadge}
                                         <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
                                     </div>
-                                    <div class="text-[10px] theme-text-muted mt-0.5 font-semibold">${log.time} • By: ${log.volunteer}</div>
+                                    <div class="text-[10px] theme-text-muted mt-0.5 font-semibold">${formatLogTime(log.time)} • By: ${log.volunteer}</div>
                                     ${remarkHTML}
                                 </div>
                                 <div class="text-right flex items-center gap-2.5 shrink-0">
