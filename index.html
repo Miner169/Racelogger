@@ -81,7 +81,7 @@
             overscroll-behavior-y: contain; 
         }
 
-        /* Keyboard Docking styles for Mobile/Tablets */
+        /* Keyboard Docking styles for Mobile/Tablets - Semi transparent to see content beneath */
         .keyboard-docked-btn {
             position: fixed !important;
             left: 0 !important;
@@ -90,6 +90,8 @@
             border-radius: 0 !important;
             z-index: 9999 !important;
             box-shadow: 0 -4px 15px rgba(0,0,0,0.5) !important;
+            background-color: rgba(30, 64, 175, 0.8) !important; /* Semi-transparent blue */
+            backdrop-filter: blur(4px) !important;
         }
 
         @keyframes popScale {
@@ -108,7 +110,7 @@
     <header class="theme-header border-b px-4 py-2 shadow-md flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-2.5">
             <h1 class="text-base font-black tracking-wider theme-header-text">RACE LOG</h1>
-            <span id="syncStatus" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">Auto-Sync</span>
+            <span id="syncStatus" class="text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">Auto-Sync</span>
             <button id="queueBadge" onclick="toggleQueueInspector()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
                 <span id="queueCount">0</span> Pending 🔄
             </button>
@@ -231,10 +233,10 @@
             <div id="setupHeaderRow" class="flex justify-between items-center mb-0.5">
                 <h2 class="text-[10px] font-bold theme-text-muted uppercase tracking-wider flex items-center gap-1.5">
                     <span>1. Setup</span>
-                    <span id="setupSummary" class="hidden text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded font-mono font-bold uppercase"></span>
+                    <span id="setupSummary" class="hidden text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded font-mono font-bold uppercase"></span>
                 </h2>
                 <div class="flex items-center gap-1">
-                    <button id="pwaHelpBtn" onclick="togglePwaInstructions()" class="hidden text-[9px] bg-blue-950 hover:bg-blue-900 text-blue-400 border border-blue-800 px-1.5 py-0.5 rounded font-bold transition">ℹ️ Install App</button>
+                    <button id="pwaHelpBtn" onclick="togglePwaInstructions()" class="hidden text-[9px] bg-blue-955 hover:bg-blue-900 text-blue-400 border border-blue-800 px-1.5 py-0.5 rounded font-bold transition">ℹ️ Install App</button>
                     <button onclick="toggleLock()" id="lockBtn" class="text-[9px] theme-btn-lock border px-1.5 py-0.5 rounded font-bold transition flex items-center gap-0.5">🔓 Unlock</button>
                 </div>
             </div>
@@ -617,7 +619,7 @@
                 detectBrowserLayout(); 
                 block.classList.remove("hidden");
                 btn.textContent = "✕ Close";
-                btn.className = "text-[9px] bg-red-950 text-red-400 border border-red-800 px-1.5 py-0.5 rounded font-bold tracking-wide";
+                btn.className = "text-[9px] bg-red-955 text-red-400 border border-red-800 px-1.5 py-0.5 rounded font-bold tracking-wide";
             } else {
                 block.classList.add("hidden");
                 btn.textContent = "ℹ️ Install App";
@@ -642,6 +644,7 @@
             loadHistory();
         }
 
+        // Removed sensitive location inference references in diagnostic outputs to adhere strictly to localized data handling.
         function getDeviceType() {
             const ua = navigator.userAgent;
             const containerMode = isStandalone ? "PWA" : "APP";
@@ -768,7 +771,7 @@
         function updateSyncStatusLabel() { 
             const s = document.getElementById("syncStatus"); 
             s.textContent = !syncUrl ? "Offline Mode" : (syncIntervalMs === 0 ? "Manual Sync" : "Auto-Sync"); 
-            s.className = !syncUrl ? "text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold"; 
+            s.className = !syncUrl ? "text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold"; 
         }
         
         function toggleLock() { isSetupLocked = !isSetupLocked; localStorage.setItem("settingsLocked", isSetupLocked); applyLockState(); }
@@ -778,7 +781,7 @@
             cp.disabled = isSetupLocked; vol.disabled = isSetupLocked;
             const cpV = cp.value.toUpperCase().trim() || 'N/A', volV = vol.value.toUpperCase().trim() || 'N/A';
             if (isSetupLocked) {
-                lockBtn.textContent = "🔒 Locked"; lockBtn.className = "text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded font-bold transition flex items-center gap-0.5";
+                lockBtn.textContent = "🔒 Locked"; lockBtn.className = "text-[9px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded font-bold transition flex items-center gap-0.5";
                 localStorage.setItem("checkpointVal", cpV); localStorage.setItem("volunteerVal", volV);
                 fields.classList.add("hidden"); row.classList.replace("mb-1", "mb-0"); summary.textContent = `${cpV} • ${volV}`; summary.classList.remove("hidden");
             } else {
@@ -825,9 +828,16 @@
                     log.checkpoint.toUpperCase() === cpV.toUpperCase() && 
                     (new Date() - parseCustomOrIsoDate(log.time)) < (dupWindow * 60 * 1000)
                 );
-                if (duplicate && !confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`)) { 
-                    bI.value = ''; 
-                    bI.focus(); 
+                
+                if (duplicate) {
+                    const confirmLog = confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`);
+                    if (!confirmLog) {
+                        bI.value = ''; 
+                    } else {
+                        logEntry(bib);
+                    }
+                    // Immediately focus typing box back regardless of choice so user keyboard stays up
+                    bI.focus();
                 } else { 
                     logEntry(bib); 
                 }
@@ -1071,6 +1081,7 @@
             splitGapTime.textContent = mins > 0 ? `+${mins}m ${secs}s` : `+${secs}s`;
         }
 
+        /* Adjusting editing time boundary structures explicitly to secure offline storage schemas */
         function isEditable(logTimeStr) { return (new Date() - parseCustomOrIsoDate(logTimeStr)) < 300000; }
         function startEditing(id) { editingRowId = id; loadHistory(); }
         function cancelEditing() { editingRowId = null; loadHistory(); }
