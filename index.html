@@ -13,28 +13,26 @@
     <style>
         /* Theme Variables */
         :root {
-            --bg-color: #000000;         /* AMOLED Black for maximum power savings */
-            --panel-bg: #0a0a0a;         /* Deepest gray */
-            --text-main: #e5e5e5;        /* Light gray text */
-            --text-muted: #8e8e93;       /* Balanced muted gray */
-            --border-color: #262626;     /* Subtle dark border */
-            --input-bg: #000000;         /* Black inputs */
+            --bg-color: #000000;         
+            --panel-bg: #0a0a0a;         
+            --text-main: #e5e5e5;        
+            --text-muted: #8e8e93;       
+            --border-color: #262626;     
+            --input-bg: #000000;         
             --input-text: #ffffff;
             --input-placeholder: #555555;
-            --header-bg: #0c1a30;        /* Deep blue */
+            --header-bg: #0c1a30;        
             --header-border: #172554;
             --header-text: #60a5fa;
             --btn-lock-bg: #171717;
             --btn-lock-text: #d4d4d4;
             --btn-lock-border: #262626;
-            
-            /* High Contrast, Power-Efficient Accents */
-            --bib-color: #10b981;        /* Vibrant Emerald Green */
+            --bib-color: #10b981;        
             --bib-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
         }
 
         body.light-theme {
-            --bg-color: #d8d8dc;         /* Soft light gray to conserve LCD/OLED power */
+            --bg-color: #d8d8dc;         
             --panel-bg: #eaeaea;         
             --text-main: #000000;        
             --text-muted: #333333;       
@@ -48,20 +46,16 @@
             --btn-lock-bg: #dbdbdf;
             --btn-lock-text: #000000;
             --btn-lock-border: #92929a;
-            
-            /* High Contrast Accents */
-            --bib-color: #065f46;        /* Deep Forest Green */
+            --bib-color: #065f46;        
             --bib-shadow: 1px 1px 0px #ffffff, -1px -1px 0px #ffffff, 1px -1px 0px #ffffff, -1px 1px 0px #ffffff;
         }
 
-        /* Semantic Theme Mappings */
         .theme-bg { background-color: var(--bg-color); transition: background-color 0.15s ease; }
         .theme-panel { background-color: var(--panel-bg); border-color: var(--border-color); transition: all 0.15s ease; }
         .theme-text { color: var(--text-main); }
         .theme-text-muted { color: var(--text-muted); }
         .theme-border { border-color: var(--border-color); }
         
-        /* High Contrast Bib Text Styling */
         .bib-text-highlight {
             color: var(--bib-color);
             text-shadow: var(--bib-shadow);
@@ -83,7 +77,7 @@
         .theme-btn-lock { background-color: var(--btn-lock-bg); border-color: var(--btn-lock-border); color: var(--btn-lock-text); }
 
         html, body {
-            overscroll-behavior-y: contain; /* Block pull-to-refresh on browsers */
+            overscroll-behavior-y: contain; 
         }
     </style>
 </head>
@@ -99,7 +93,6 @@
             </button>
         </div>
         <div class="flex items-center gap-1.5">
-            <!-- Battery Safe Mode Indicator -->
             <div id="batteryIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2 py-0.5 rounded-full font-bold border border-neutral-800 text-neutral-400">
                 <span id="batIcon">🔋</span> <span id="batText">100%</span>
             </div>
@@ -144,16 +137,15 @@
             <div id="pwaTutorialBlock" class="hidden text-[11px] border border-blue-900/50 rounded-lg p-3 bg-blue-950/20 text-left flex flex-col gap-2 transition-all duration-200">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400">Run Offline Safely</h4>
                 <p class="theme-text-muted leading-relaxed">Save the app directly to your home screen to prevent browser reloads and ensure reliable offline use.</p>
-                
                 <div id="iosInstruction" class="hidden theme-input p-2 rounded-lg border border-dashed">
                     <strong class="block mb-0.5 text-blue-400">iPhone / iOS:</strong>
-                    1. Tap the <strong class="underline">Share icon (📤)</strong> in Safari.<br>
-                    2. Scroll and choose <strong class="underline">"Add to Home Screen"</strong>.
+                    1. Tap the Share icon (📤) in Safari.<br>
+                    2. Choose "Add to Home Screen".
                 </div>
                 <div id="androidInstruction" class="hidden theme-input p-2 rounded-lg border border-dashed">
                     <strong class="block mb-0.5 text-emerald-400">Android / Chrome:</strong>
-                    1. Tap the <strong class="underline">Menu (3 dots ⋮)</strong>.<br>
-                    2. Choose <strong class="underline">"Install App"</strong> or <strong class="underline">"Add to Home Screen"</strong>.
+                    1. Tap the Menu (3 dots ⋮).<br>
+                    2. Choose "Install App" or "Add to Home Screen".
                 </div>
             </div>
 
@@ -180,11 +172,11 @@
             </div>
             <div class="mt-1 relative">
                 <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark (Optional)</label>
-                <input type="text" id="remarkInput" onfocus="clearInlineToast(); warmUpGPS();" placeholder="e.g. Missed helper, penalty, etc." class="w-full theme-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 transition-all duration-200">
+                <input type="text" id="remarkInput" onfocus="clearInlineToast(); warmUpGPS();" oninput="handleRemarkTyping()" placeholder="e.g. Missed helper, penalty, etc." class="w-full theme-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 transition-all duration-200">
             </div>
         </section>
 
-        <!-- ⏱️ COMPACT SPLIT TIME CALCULATOR PANEL -->
+        <!-- Live Split Calculator Panel -->
         <section class="theme-panel p-2.5 rounded-xl border shadow flex flex-col gap-1.5">
             <h2 class="text-[9px] font-extrabold theme-text-muted uppercase tracking-widest flex items-center gap-1">⏱️ Live Split Calculator</h2>
             <div class="grid grid-cols-2 gap-2 text-center">
@@ -211,7 +203,7 @@
             </div>
         </div>
 
-        <!-- 🔄 SYNC PROGRESS PANEL & QUEUE INSPECTOR -->
+        <!-- Sync Progress & Queue Inspector -->
         <section id="queueInspectorSection" class="hidden theme-panel p-4 rounded-xl border shadow flex flex-col gap-3 transition-all duration-300">
             <div class="flex justify-between items-center border-b theme-border pb-2">
                 <div class="flex items-center gap-2">
@@ -223,9 +215,7 @@
                     <button onclick="toggleQueueInspector()" class="text-xs text-neutral-400 hover:theme-text font-bold px-1">✕</button>
                 </div>
             </div>
-            <div id="inspectorList" class="max-h-40 overflow-y-auto divide-y theme-border flex flex-col">
-                <!-- Dynamic pending logs will show here -->
-            </div>
+            <div id="inspectorList" class="max-h-40 overflow-y-auto divide-y theme-border flex flex-col"></div>
         </section>
 
         <!-- Scan History -->
@@ -252,6 +242,8 @@
         let db;
         let isSetupLocked = false;
         let inlineToastTimeout;
+        let remarkDebounceTimeout = null;
+        let lastCreatedUid = null; 
         
         let lastGeoposition = { latitude: null, longitude: null, timestamp: 0 }; 
         let editingRowId = null; 
@@ -267,8 +259,8 @@
         let isGpsHardwareRunning = false;
 
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
-        
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
+        
         if (!syncUrl || syncUrl.trim() === "" || syncUrl.includes("AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw")) {
             syncUrl = DEFAULT_SYNC_URL;
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
@@ -280,24 +272,10 @@
             document.addEventListener('touchstart', function (e) {
                 if (e.touches.length === 1) touchStart = e.touches[0].clientY;
             }, { passive: false });
-
             document.addEventListener('touchmove', function (e) {
                 const touchMove = e.touches[0].clientY;
-                if (window.scrollY === 0 && touchMove > touchStart) {
-                    e.preventDefault();
-                }
+                if (window.scrollY === 0 && touchMove > touchStart) e.preventDefault();
             }, { passive: false });
-
-            window.addEventListener('keydown', function(e) {
-                if (e.key === 'F5' || (e.metaKey && e.key === 'r') || (e.ctrlKey && e.key === 'r')) {
-                    e.preventDefault();
-                }
-            });
-
-            window.addEventListener('beforeunload', function (e) {
-                e.preventDefault();
-                e.returnValue = ''; 
-            });
         }
 
         function initBatteryMonitoring() {
@@ -306,24 +284,13 @@
                     function updateBatteryStatus() {
                         const levelPercent = Math.round(battery.level * 100);
                         document.getElementById('batText').textContent = `${levelPercent}%`;
-                        
-                        if (battery.charging) {
-                            document.getElementById('batIcon').textContent = "⚡🔋";
-                        } else {
-                            document.getElementById('batIcon').textContent = levelPercent <= 20 ? "🪫" : "🔋";
-                        }
-
+                        document.getElementById('batIcon').textContent = battery.charging ? "⚡🔋" : (levelPercent <= 20 ? "🪫" : "🔋");
                         if (battery.level <= 0.15 && !battery.charging) {
-                            if (!lowBatteryThresholdActive) {
-                                activateBatterySafeMode();
-                            }
+                            if (!lowBatteryThresholdActive) activateBatterySafeMode();
                         } else {
-                            if (lowBatteryThresholdActive) {
-                                deactivateBatterySafeMode();
-                            }
+                            if (lowBatteryThresholdActive) deactivateBatterySafeMode();
                         }
                     }
-
                     updateBatteryStatus();
                     battery.addEventListener('levelchange', updateBatteryStatus);
                     battery.addEventListener('chargingchange', updateBatteryStatus);
@@ -352,74 +319,53 @@
             if (syncTimerId) clearInterval(syncTimerId);
             syncTimerId = setInterval(function() {
                 loadHistory();
-                if (syncUrl) attemptSync(); 
+                if (syncUrl && !remarkDebounceTimeout) attemptSync(); 
             }, syncIntervalMs);
         }
 
         function warmUpGPS() {
             if (lowBatteryThresholdActive) return; 
-
             const gpsDot = document.getElementById("gpsDot");
             const gpsText = document.getElementById("gpsText");
-
             if (gpsWarmupTimeout) clearTimeout(gpsWarmupTimeout);
 
             if (!navigator.geolocation) {
                 gpsText.textContent = "NO GPS HW";
                 return;
             }
-
-            const cacheAgeMs = Date.now() - lastGeoposition.timestamp;
-            if (lastGeoposition.latitude !== null && cacheAgeMs < 600000) {
-                const minutesOld = Math.floor(cacheAgeMs / 60000);
+            if (lastGeoposition.latitude !== null && (Date.now() - lastGeoposition.timestamp) < 600000) {
                 gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                gpsText.textContent = `CACHED (${minutesOld}m old)`;
+                gpsText.textContent = `GPS READY`;
                 return; 
             }
-
             if (!isGpsHardwareRunning) {
                 isGpsHardwareRunning = true;
                 gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
                 gpsText.textContent = "WARMING UP...";
             }
-
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     lastGeoposition.latitude = pos.coords.latitude;
                     lastGeoposition.longitude = pos.coords.longitude;
                     lastGeoposition.timestamp = Date.now();
-                    
-                    const acc = pos.coords.accuracy;
                     gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                    gpsText.textContent = `LP FIX (${Math.round(acc)}m)`;
+                    gpsText.textContent = `LP FIX (${Math.round(pos.coords.accuracy)}m)`;
                 },
                 (err) => {
                     gpsDot.className = "w-2 h-2 rounded-full bg-red-600";
-                    if (err.code === 1) {
-                        gpsText.textContent = "DENIED";
-                    } else {
-                        gpsText.textContent = "SEARCHING";
-                    }
+                    gpsText.textContent = err.code === 1 ? "DENIED" : "SEARCHING";
                 },
-                { 
-                    enableHighAccuracy: false, 
-                    timeout: 8000, 
-                    maximumAge: 600000         
-                }
+                { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
             );
-
             gpsWarmupTimeout = setTimeout(shutOffGPSHardware, 10000);
         }
 
         function shutOffGPSHardware() {
             isGpsHardwareRunning = false;
             if (gpsWarmupTimeout) clearTimeout(gpsWarmupTimeout);
-            
             const gpsDot = document.getElementById("gpsDot");
             const gpsText = document.getElementById("gpsText");
-            
-            const cacheAgeMs = Date.now() - lastGeoposition.timestamp;
-            if (lastGeoposition.latitude !== null && cacheAgeMs < 600000) {
+            if (lastGeoposition.latitude !== null && (Date.now() - lastGeoposition.timestamp) < 600000) {
                 gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
                 gpsText.textContent = "GPS READY";
             } else {
@@ -429,66 +375,44 @@
         }
 
         function checkPwaDisplay() {
-            const helpBtn = document.getElementById("pwaHelpBtn");
-            const iosInst = document.getElementById("iosInstruction");
-            const androidInst = document.getElementById("androidInstruction");
-
-            if (isStandalone) {
-                helpBtn.classList.add("hidden");
-                return;
-            }
-
-            helpBtn.classList.remove("hidden");
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            
-            if (isIOS) {
-                iosInst.classList.remove("hidden");
+            if (isStandalone) return;
+            document.getElementById("pwaHelpBtn").classList.remove("hidden");
+            if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+                document.getElementById("iosInstruction").classList.remove("hidden");
             } else {
-                androidInst.classList.remove("hidden");
+                document.getElementById("androidInstruction").classList.remove("hidden");
             }
         }
 
         function togglePwaInstructions() {
-            const tutorialBlock = document.getElementById("pwaTutorialBlock");
-            const helpBtn = document.getElementById("pwaHelpBtn");
-            if (tutorialBlock.classList.contains("hidden")) {
-                tutorialBlock.classList.remove("hidden");
-                helpBtn.textContent = "✕ Close Help";
-                helpBtn.className = "text-[10px] bg-red-950 hover:bg-red-900 text-red-400 border border-red-800 px-2 py-1 rounded-md font-bold transition";
+            const block = document.getElementById("pwaTutorialBlock");
+            const btn = document.getElementById("pwaHelpBtn");
+            if (block.classList.contains("hidden")) {
+                block.classList.remove("hidden");
+                btn.textContent = "✕ Close Help";
+                btn.className = "text-[10px] bg-red-950 text-red-400 border border-red-800 px-2 py-1 rounded-md font-bold";
             } else {
-                tutorialBlock.classList.add("hidden");
-                helpBtn.textContent = "ℹ️ Install App";
-                helpBtn.className = "text-[10px] bg-blue-950 hover:bg-blue-900 text-blue-400 border border-blue-800 px-2 py-1 rounded-md font-bold transition";
+                block.classList.add("hidden");
+                btn.textContent = "ℹ️ Install App";
+                btn.className = "text-[10px] bg-blue-950 text-blue-400 border border-blue-800 px-2 py-1 rounded-md font-bold";
             }
         }
 
         function applyTheme() {
             const currentTheme = localStorage.getItem("theme") || "dark";
-            const themeBtn = document.getElementById("themeBtn");
             if (currentTheme === "light") {
                 document.body.classList.add("light-theme");
-                themeBtn.textContent = "🌙";
+                document.getElementById("themeBtn").textContent = "🌙";
             } else {
                 document.body.classList.remove("light-theme");
-                themeBtn.textContent = "☀️";
+                document.getElementById("themeBtn").textContent = "☀️";
             }
         }
 
         function toggleTheme() {
-            const isLight = document.body.classList.contains("light-theme");
-            localStorage.setItem("theme", isLight ? "dark" : "light");
+            localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "dark" : "light");
             applyTheme();
             loadHistory();
-        }
-
-        // --- 📊 DETECT SYSTEM SPECIFICATION TYPE ---
-        function getDeviceType() {
-            const ua = navigator.userAgent;
-            if (/tablet|ipad|playbook|silk/i.test(ua)) return "Tablet";
-            if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Opera Mini/i.test(ua)) {
-                return /iPhone|iPod/i.test(ua) ? "iPhone" : "Android Mobile";
-            }
-            return "PC";
         }
 
         const dbRequest = indexedDB.open("RaceLoggerDB", 1);
@@ -505,272 +429,172 @@
             loadSettingsState();
             loadHistory();
             initBatteryMonitoring();
-            updateQueueStatus(); 
-            attemptSync();
             checkPwaDisplay(); 
-            
             resetSyncTimer();
-            registerServiceWorkerAndSync();
+            if (syncUrl) attemptSync();
         };
 
-        function toggleSettings() {
-            const modal = document.getElementById("settingsModal");
-            document.getElementById("syncUrlInput").value = syncUrl;
-            modal.classList.toggle("hidden");
-        }
-
-        function saveSettings() {
-            const inputVal = document.getElementById("syncUrlInput").value.trim();
-            const newUrl = inputVal || DEFAULT_SYNC_URL;
-            localStorage.setItem("syncUrl", newUrl);
-            syncUrl = newUrl;
-            toggleSettings();
-            updateSyncStatusLabel();
-            attemptSync();
-        }
-
-        function updateSyncStatusLabel() {
-            const status = document.getElementById("syncStatus");
-            status.textContent = !syncUrl ? "Offline Mode" : "Auto-Sync";
-            status.className = !syncUrl ? "text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold";
-        }
-
-        function toggleLock() {
-            isSetupLocked = !isSetupLocked;
-            localStorage.setItem("settingsLocked", isSetupLocked);
-            applyLockState();
-        }
+        function toggleSettings() { document.getElementById("settingsModal").classList.toggle("hidden"); document.getElementById("syncUrlInput").value = syncUrl; }
+        function saveSettings() { syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; localStorage.setItem("syncUrl", syncUrl); toggleSettings(); updateSyncStatusLabel(); attemptSync(); }
+        function updateSyncStatusLabel() { const s = document.getElementById("syncStatus"); s.textContent = !syncUrl ? "Offline Mode" : "Auto-Sync"; s.className = !syncUrl ? "text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold"; }
+        function toggleLock() { isSetupLocked = !isSetupLocked; localStorage.setItem("settingsLocked", isSetupLocked); applyLockState(); }
 
         function applyLockState() {
-            const cpInput = document.getElementById("checkpoint");
-            const volInput = document.getElementById("volunteer");
-            const lockBtn = document.getElementById("lockBtn");
-            const setupFields = document.getElementById("setupFields");
-            const setupSummary = document.getElementById("setupSummary");
-            const setupHeaderRow = document.getElementById("setupHeaderRow");
-
-            cpInput.disabled = isSetupLocked;
-            volInput.disabled = isSetupLocked;
-
-            const cpVal = cpInput.value.toUpperCase().trim() || 'N/A';
-            const volVal = volInput.value.toUpperCase().trim() || 'N/A';
-
+            const cp = document.getElementById("checkpoint"), vol = document.getElementById("volunteer"), lockBtn = document.getElementById("lockBtn"), fields = document.getElementById("setupFields"), summary = document.getElementById("setupSummary"), row = document.getElementById("setupHeaderRow");
+            cp.disabled = isSetupLocked; vol.disabled = isSetupLocked;
+            const cpV = cp.value.toUpperCase().trim() || 'N/A', volV = vol.value.toUpperCase().trim() || 'N/A';
             if (isSetupLocked) {
-                lockBtn.textContent = "🔒 Settings Locked";
-                lockBtn.className = "text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
-                localStorage.setItem("checkpointVal", cpVal);
-                localStorage.setItem("volunteerVal", volVal);
-                setupFields.classList.add("hidden"); 
-                setupHeaderRow.classList.replace("mb-3", "mb-0"); 
-                setupSummary.textContent = `${cpVal} • ${volVal}`; 
-                setupSummary.classList.remove("hidden"); 
+                lockBtn.textContent = "🔒 Settings Locked"; lockBtn.className = "text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
+                localStorage.setItem("checkpointVal", cpV); localStorage.setItem("volunteerVal", volV);
+                fields.classList.add("hidden"); row.classList.replace("mb-3", "mb-0"); summary.textContent = `${cpV} • ${volV}`; summary.classList.remove("hidden");
             } else {
-                lockBtn.textContent = "🔓 Unlock Settings";
-                lockBtn.className = "text-xs theme-btn-lock border px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
-                setupFields.classList.remove("hidden"); 
-                setupHeaderRow.classList.replace("mb-0", "mb-3"); 
-                setupSummary.classList.add("hidden"); 
+                lockBtn.textContent = "🔓 Unlock Settings"; lockBtn.className = "text-xs theme-btn-lock border px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
+                fields.classList.remove("hidden"); row.classList.replace("mb-0", "mb-3"); summary.classList.add("hidden");
             }
         }
 
-        function loadSettingsState() {
-            isSetupLocked = localStorage.getItem("settingsLocked") === "true";
-            document.getElementById("checkpoint").value = localStorage.getItem("checkpointVal") || "";
-            document.getElementById("volunteer").value = localStorage.getItem("volunteerVal") || "";
-            applyLockState();
-        }
+        function loadSettingsState() { isSetupLocked = localStorage.getItem("settingsLocked") === "true"; document.getElementById("checkpoint").value = localStorage.getItem("checkpointVal") || ""; document.getElementById("volunteer").value = localStorage.getItem("volunteerVal") || ""; applyLockState(); }
 
         function triggerInlineToast(bib, statusText, remarkText = "", isError = false) {
-            const remarkInput = document.getElementById('remarkInput');
-            const remarkLabel = document.getElementById('remarkLabel');
+            const rI = document.getElementById('remarkInput'), rL = document.getElementById('remarkLabel');
             clearTimeout(inlineToastTimeout);
-
-            let displayText = isError ? `⚠️ Bib ${bib}: ${statusText}` : `✅ Bib ${bib}: ${statusText}`;
-            if (remarkText) displayText += ` (${remarkText})`;
-
-            remarkInput.value = displayText;
-            remarkInput.disabled = true;
-            
-            if (isError) {
-                remarkInput.className = "w-full bg-red-950 border-red-900 text-red-300 rounded-lg px-3 py-2 text-sm font-bold text-center";
-                remarkLabel.className = "block text-xs text-red-400 mb-1 font-bold";
-                remarkLabel.textContent = "Status Alert";
-            } else {
-                remarkInput.className = "w-full bg-emerald-950 border-emerald-900 text-emerald-300 rounded-lg px-3 py-2 text-sm font-bold text-center";
-                remarkLabel.className = "block text-xs text-emerald-400 mb-1 font-bold";
-                remarkLabel.textContent = "Last Action Status";
-            }
-
-            inlineToastTimeout = setTimeout(() => { clearInlineToast(); }, 4000);
+            let txt = isError ? `⚠️ Bib ${bib}: ${statusText}` : `✅ Bib ${bib}: ${statusText}`;
+            if (remarkText) txt += ` (${remarkText})`;
+            rI.value = txt; rI.disabled = true;
+            if (isError) { rI.className = "w-full bg-red-950 border-red-900 text-red-300 rounded-lg px-3 py-2 text-sm font-bold text-center"; rL.className = "block text-xs text-red-400 mb-1 font-bold"; rL.textContent = "Status Alert"; }
+            else { rI.className = "w-full bg-emerald-950 border-emerald-900 text-emerald-300 rounded-lg px-3 py-2 text-sm font-bold text-center"; rL.className = "block text-xs text-emerald-400 mb-1 font-bold"; rL.textContent = "Last Action Status"; }
+            inlineToastTimeout = setTimeout(() => { clearInlineToast(); }, 3000);
         }
 
         function clearInlineToast() {
-            const remarkInput = document.getElementById('remarkInput');
-            const remarkLabel = document.getElementById('remarkLabel');
-            clearTimeout(inlineToastTimeout);
-            remarkInput.disabled = false;
-            remarkInput.value = "";
-            remarkInput.placeholder = "e.g. Missed helper, penalty, etc.";
-            remarkInput.className = "w-full theme-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900";
-            remarkLabel.className = "block text-xs theme-text-muted mb-1 font-bold";
-            remarkLabel.textContent = "Remark (Optional)";
+            if (remarkDebounceTimeout) return; 
+            const rI = document.getElementById('remarkInput'), rL = document.getElementById('remarkLabel');
+            clearTimeout(inlineToastTimeout); rI.disabled = false; rI.value = ""; rI.placeholder = "e.g. Missed helper, penalty, etc.";
+            rI.className = "w-full theme-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900";
+            rL.className = "block text-xs theme-text-muted mb-1 font-bold"; rL.textContent = "Remark (Optional)";
         }
 
         function checkDuplicateAndLog() {
-            const bibInput = document.getElementById('bibInput');
-            const bib = bibInput.value.trim();
+            const bI = document.getElementById('bibInput'), bib = bI.value.trim();
             if (!bib) return;
-
-            const cpInput = document.getElementById('checkpoint');
-            const volInput = document.getElementById('volunteer');
-            const cpVal = cpInput.value.trim();
-            const volVal = volInput.value.trim();
-
-            if (!cpVal || !volVal) {
-                alert("⚠️ Setup incomplete! Please fill out the Checkpoint Name and Volunteer Initials under '1. Setup' before logging any bib entries.");
-                if (isSetupLocked) {
-                    toggleLock(); 
-                }
-                if (!cpVal) {
-                    cpInput.focus();
-                } else {
-                    volInput.focus();
-                }
-                return;
-            }
+            const cpV = document.getElementById('checkpoint').value.trim(), volV = document.getElementById('volunteer').value.trim();
+            if (!cpV || !volV) { alert("⚠️ Setup incomplete! Please fill Checkpoint and Volunteer fields first."); return; }
 
             const transaction = db.transaction(["logs"], "readonly");
-            const store = transaction.objectStore("logs");
-            const request = store.getAll();
-
-            request.onsuccess = function() {
-                const logs = request.result;
-                const now = new Date();
-                
-                const duplicate = logs.find(log => 
-                    log.bib === bib && 
-                    log.checkpoint.toUpperCase() === cpVal.toUpperCase() && 
-                    (now - new Date(log.time)) < 600000
-                );
-
-                if (duplicate && !confirm(`⚠️ Bib ${bib} was logged recently at ${cpVal.toUpperCase()}. Log again?`)) {
-                    bibInput.value = '';
-                    bibInput.focus();
-                } else {
-                    logEntry(bib);
-                }
+            transaction.objectStore("logs").getAll().onsuccess = function(e) {
+                const duplicate = e.target.result.find(log => log.bib === bib && log.checkpoint.toUpperCase() === cpV.toUpperCase() && (new Date() - new Date(log.time)) < 600000);
+                if (duplicate && !confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`)) { bI.value = ''; bI.focus(); } 
+                else { logEntry(bib); }
             };
         }
 
-        function generateUID() {
-            if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-            return 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11);
-        }
+        function generateUID() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11); }
 
         function logEntry(bib) {
-            const bibInput = document.getElementById('bibInput');
+            const checkpoint = document.getElementById('checkpoint').value.trim();
+            const volunteer = document.getElementById('volunteer').value.trim();
             const remarkInput = document.getElementById('remarkInput');
-            const checkpoint = document.getElementById('checkpoint').value.trim() || 'Unknown';
-            const volunteer = document.getElementById('volunteer').value.trim() || 'Unknown';
             const remark = remarkInput.disabled ? "" : remarkInput.value.trim();
-
             const now = new Date();
-            const timestampStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+            
+            const generatedUid = generateUID();
+            lastCreatedUid = generatedUid; 
 
             const entry = {
-                bib: bib,                       // 1. BIB
-                time: timestampStr,             // 2. Time
-                checkpoint: checkpoint.toUpperCase(), // 3. Checkpoint
-                volunteer: volunteer.toUpperCase(),   // 4. Volunteer
-                remark: remark,                 // 5. Remark
-                device: getDeviceType(),        // 6. Device
-                latitude: lastGeoposition.latitude,   // 7. Latitude
-                longitude: lastGeoposition.longitude, // 8. Longitude
-                uid: generateUID(),             // 9. UID
+                bib: bib,
+                time: now.toLocaleDateString() + ' ' + now.toLocaleTimeString(),
+                checkpoint: checkpoint.toUpperCase(),
+                volunteer: volunteer.toUpperCase(),
+                remark: remark,
+                device: getDeviceType(),
+                latitude: lastGeoposition.latitude,
+                longitude: lastGeoposition.longitude,
+                uid: generatedUid,
                 synced: false,
                 syncAttempts: 0
             };
 
-            saveToDB(entry);
-            bibInput.value = '';
-            bibInput.focus();
-            
+            const tx = db.transaction(["logs"], "readwrite");
+            tx.objectStore("logs").add(entry).onsuccess = function(e) {
+                loadHistory();
+                if (navigator.vibrate) navigator.vibrate(50);
+                
+                // If remark input field is empty, fire synchronization pipelines right away
+                if (!remark) {
+                    attemptSync();
+                } else {
+                    triggerInlineToast(entry.bib, "Logged with Remark!", remark, false);
+                }
+            };
+            document.getElementById('bibInput').value = '';
+            document.getElementById('bibInput').focus();
             shutOffGPSHardware();
         }
 
-        function saveToDB(entry) {
-            const transaction = db.transaction(["logs"], "readwrite");
-            const store = transaction.objectStore("logs");
-            const request = store.add(entry);
+        // Debounce pipeline blocks high-frequency typing from initiating broken sync rows until the user finishes writing
+        function handleRemarkTyping() {
+            if (!lastCreatedUid) return; 
+            if (remarkDebounceTimeout) clearTimeout(remarkDebounceTimeout);
 
-            request.onsuccess = function(e) {
-                entry.id = e.target.result;
-                loadHistory();
-                triggerInlineToast(entry.bib, "Saved Locally!", entry.remark, false);
-                if (navigator.vibrate) navigator.vibrate(50);
+            remarkDebounceTimeout = setTimeout(() => {
+                const currentRemark = document.getElementById('remarkInput').value.trim();
+                const tx = db.transaction(["logs"], "readwrite");
+                const store = tx.objectStore("logs");
                 
-                requestBackgroundSync();
-            };
+                store.getAll().onsuccess = function(e) {
+                    const logs = e.target.result;
+                    const logToUpdate = logs.find(l => l.uid === lastCreatedUid);
+                    if (logToUpdate) {
+                        logToUpdate.remark = currentRemark;
+                        logToUpdate.synced = false; 
+                        store.put(logToUpdate);
+                        tx.oncomplete = function() {
+                            remarkDebounceTimeout = null;
+                            loadHistory();
+                            attemptSync(); 
+                        };
+                    } else {
+                        remarkDebounceTimeout = null;
+                    }
+                };
+            }, 1200); 
         }
 
-        function toggleQueueInspector() {
-            const panel = document.getElementById("queueInspectorSection");
-            panel.classList.toggle("hidden");
-        }
+        function toggleQueueInspector() { document.getElementById("queueInspectorSection").classList.toggle("hidden"); }
 
         function updateQueueStatus() {
-            const transaction = db.transaction(["logs"], "readonly");
-            const store = transaction.objectStore("logs");
-            const request = store.getAll();
-
-            request.onsuccess = function() {
-                const logs = request.result;
-                const unsyncedLogs = logs.filter(log => !log.synced);
-                const unsyncedCount = unsyncedLogs.length;
-                
-                const badge = document.getElementById("queueBadge");
-                const countText = document.getElementById("queueCount");
-                const inspectorCount = document.getElementById("inspectorCount");
-
-                if (unsyncedCount > 0) {
-                    badge.classList.remove("hidden");
-                    countText.textContent = unsyncedCount;
-                    inspectorCount.textContent = unsyncedCount;
-                    renderQueueInspectorList(unsyncedLogs);
+            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+                const unsynced = e.target.result.filter(log => !log.synced);
+                const badge = document.getElementById("queueBadge"), countText = document.getElementById("queueCount"), inspectorCount = document.getElementById("inspectorCount");
+                if (unsynced.length > 0) {
+                    badge.classList.remove("hidden"); countText.textContent = unsynced.length; inspectorCount.textContent = unsynced.length;
+                    renderQueueInspectorList(unsynced);
                 } else {
-                    badge.classList.add("hidden");
-                    document.getElementById("queueInspectorSection").classList.add("hidden");
+                    badge.classList.add("hidden"); document.getElementById("queueInspectorSection").classList.add("hidden");
                 }
             };
         }
 
         function renderQueueInspectorList(pendingLogs) {
-            const inspectorList = document.getElementById("inspectorList");
-            inspectorList.innerHTML = '';
-            
+            const list = document.getElementById("inspectorList"); list.innerHTML = '';
             pendingLogs.forEach(log => {
                 const item = document.createElement("div");
                 item.className = "py-2.5 flex justify-between items-center text-xs theme-text-muted";
                 item.innerHTML = `
                     <div class="flex flex-col">
                         <div><strong class="text-sm font-black text-yellow-600 dark:text-yellow-500">Bib ${log.bib}</strong> at <span class="font-bold">${log.checkpoint}</span></div>
-                        <div class="text-[10px] mt-0.5">${log.time}</div>
+                        <div class="text-[10px] mt-0.5">${log.time} ${log.remark ? `• 💬 ${log.remark}` : ''}</div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="syncSingleRow(${JSON.stringify(log).replace(/"/g, '&quot;')})" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-900 px-2 py-0.5 rounded font-bold hover:bg-emerald-900 transition">Sync Now</button>
-                        <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-500 hover:text-red-400 p-1 text-base">🗑️</button>
-                    </div>
-                `;
-                inspectorList.appendChild(item);
+                        <button onclick='syncSingleRow(${JSON.stringify(log)})' class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-900 px-2 py-0.5 rounded font-bold hover:bg-emerald-900">Sync</button>
+                        <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-500 text-base">A🗑️</button>
+                    </div>`;
+                list.appendChild(item);
             });
         }
 
         function syncSingleRow(row) {
-            if (!syncUrl) return;
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 25000);
-
+            if (!syncUrl || remarkDebounceTimeout) return;
             fetch(syncUrl, {
                 method: "POST",
                 mode: "cors",
@@ -778,288 +602,120 @@
                 body: JSON.stringify({ action: "batch_sync", data: [row] })
             })
             .then(async res => {
-                const text = await res.text();
-                let data;
-                try { data = JSON.parse(text); } catch(e) { 
-                    throw new Error("Invalid response style: " + text);
+                const data = JSON.parse(await res.text());
+                if (data.status === "success" && data.confirmedIds.includes(row.uid)) {
+                    const tx = db.transaction(["logs"], "readwrite");
+                    row.synced = true; tx.objectStore("logs").put(row);
+                    tx.oncomplete = function() { loadHistory(); };
                 }
-                
-                if (data.status !== "success") {
-                    throw new Error(data.message || "Script execution error.");
-                }
-
-                const confirmedIds = new Set(data.confirmedIds || []);
-                if (!confirmedIds.has(row.uid)) {
-                    throw new Error("Server did not confirm this row — will retry.");
-                }
-
-                row.synced = true;
-                const transaction = db.transaction(["logs"], "readwrite");
-                const store = transaction.objectStore("logs");
-                store.put(row);
-                transaction.oncomplete = function() { 
-                    loadHistory(); 
-                };
-            })
-            .catch(err => {
-                console.error("Sync Failure:", err);
-                updateQueueStatus(); 
-            })
-            .finally(() => clearTimeout(timeoutId));
+            }).catch(err => console.error(err));
         }
 
         function attemptSync() {
-            if (!syncUrl) return;
+            if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
+            isSyncing = true;
 
-            if (isSyncing) {
-                syncRerunQueued = true;
-                return;
-            }
-
-            const transaction = db.transaction(["logs"], "readonly");
-            const store = transaction.objectStore("logs");
-            const request = store.getAll();
-
-            request.onsuccess = function() {
-                const logs = request.result;
-                const unsynced = logs.filter(log => !log.synced);
-                if (unsynced.length === 0) return;
-
-                isSyncing = true;
-
-                const payload = {
-                    action: "batch_sync",
-                    data: unsynced
-                };
-
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 25000);
+            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+                const unsynced = e.target.result.filter(log => !log.synced);
+                if (unsynced.length === 0) { isSyncing = false; return; }
 
                 fetch(syncUrl, {
                     method: "POST",
                     mode: "cors",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify(payload),
-                    signal: controller.signal
+                    body: JSON.stringify({ action: "batch_sync", data: unsynced })
                 })
                 .then(async res => {
-                    const text = await res.text();
-                    let data;
-                    try { data = JSON.parse(text); } catch (e) {
-                        throw new Error("Invalid server response: " + text.slice(0, 200));
+                    const data = JSON.parse(await res.text());
+                    if (data.status === "success") {
+                        const confirmedIds = new Set(data.confirmedIds || []);
+                        const tx = db.transaction(["logs"], "readwrite");
+                        const store = tx.objectStore("logs");
+                        unsynced.forEach(log => {
+                            if (confirmedIds.has(log.uid)) { log.synced = true; store.put(log); }
+                        });
+                        tx.oncomplete = function() { loadHistory(); };
                     }
-                    if (data.status !== "success") {
-                        throw new Error(data.message || "Script reported failure.");
-                    }
-
-                    const confirmedIds = new Set(data.confirmedIds || []);
-                    const writeTransaction = db.transaction(["logs"], "readwrite");
-                    const writeStore = writeTransaction.objectStore("logs");
-
-                    let confirmedCount = 0;
-                    unsynced.forEach(log => {
-                        if (confirmedIds.has(log.uid)) {
-                            log.synced = true;
-                            writeStore.put(log);
-                            confirmedCount++;
-                        } else {
-                            log.syncAttempts = (log.syncAttempts || 0) + 1;
-                            writeStore.put(log);
-                        }
-                    });
-
-                    writeTransaction.oncomplete = function() {
-                        loadHistory();
-                        const missed = unsynced.length - confirmedCount;
-                        console.log(`Sync: ${confirmedCount}/${unsynced.length} confirmed by server.` + (missed > 0 ? ` ${missed} still pending retry.` : ''));
-                    };
                 })
-                .catch(err => {
-                    console.error("Batch Sync Error:", err);
-                })
+                .catch(err => console.error("Sync batch error:", err))
                 .finally(() => {
-                    clearTimeout(timeoutId);
                     isSyncing = false;
-                    if (syncRerunQueued) {
-                        syncRerunQueued = false;
-                        attemptSync();
-                    }
+                    if (syncRerunQueued) { syncRerunQueued = false; attemptSync(); }
                 });
             };
         }
 
         window.addEventListener('online', attemptSync);
 
-        function registerServiceWorkerAndSync() {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => {
-                        console.log('Service Worker Registered successfully', reg.scope);
-                    })
-                    .catch(err => console.log('Service Worker registration failed:', err));
-            }
-        }
-
-        function requestBackgroundSync() {
-            if ('serviceWorker' in navigator && 'SyncManager' in window) {
-                navigator.serviceWorker.ready.then(reg => {
-                    return reg.sync.register('sync-logs');
-                }).then(() => {
-                    console.log('Standard Background Sync Registered.');
-                }).catch(err => {
-                    console.warn('Background sync failed, fallback to direct.', err);
-                    if (syncUrl) attemptSync();
-                });
-            } else {
-                if (syncUrl) attemptSync();
-            }
-        }
-
         function calculateLiveSplits(logs) {
-            const splitLastRunner = document.getElementById("splitLastRunner");
-            const splitGapTime = document.getElementById("splitGapTime");
-
-            if (logs.length < 1) {
-                splitLastRunner.textContent = "-";
-                splitGapTime.textContent = "-- : --";
-                return;
-            }
-
+            const splitLastRunner = document.getElementById("splitLastRunner"), splitGapTime = document.getElementById("splitGapTime");
+            if (logs.length < 1) { splitLastRunner.textContent = "-"; splitGapTime.textContent = "-- : --"; return; }
             const sorted = [...logs].sort((a, b) => new Date(a.time) - new Date(b.time));
-            
-            const last3Logs = sorted.slice(-3).reverse();
-            const last3Bibs = last3Logs.map(log => log.bib).join(', ');
-            splitLastRunner.textContent = last3Bibs;
-
-            if (sorted.length < 2) {
-                splitGapTime.textContent = "Leader";
-                return;
-            }
-
-            const lastLog = sorted[sorted.length - 1];
-            const secondLastLog = sorted[sorted.length - 2];
-            const diffMs = new Date(lastLog.time) - new Date(secondLastLog.time);
-            const diffSeconds = Math.floor(diffMs / 1000);
-
-            if (diffSeconds < 0) {
-                splitGapTime.textContent = "0s";
-                return;
-            }
-
-            const mins = Math.floor(diffSeconds / 60);
-            const secs = diffSeconds % 60;
-
-            if (mins > 0) {
-                splitGapTime.textContent = `+ ${mins}m ${secs}s`;
-            } else {
-                splitGapTime.textContent = `+ ${secs}s`;
-            }
+            splitLastRunner.textContent = sorted.slice(-3).reverse().map(l => l.bib).join(', ');
+            if (sorted.length < 2) { splitGapTime.textContent = "Leader"; return; }
+            const diffSeconds = Math.floor((new Date(sorted[sorted.length - 1].time) - new Date(sorted[sorted.length - 2].time)) / 1000);
+            if (diffSeconds < 0) { splitGapTime.textContent = "0s"; return; }
+            const mins = Math.floor(diffSeconds / 60), secs = diffSeconds % 60;
+            splitGapTime.textContent = mins > 0 ? `+ ${mins}m ${secs}s` : `+ ${secs}s`;
         }
 
-        function isEditable(logTimeStr) {
-            const logTime = new Date(logTimeStr);
-            const now = new Date();
-            return (now - logTime) < 300000; 
-        }
-
-        function startEditing(id) {
-            editingRowId = id;
-            loadHistory();
-        }
-
-        function cancelEditing() {
-            editingRowId = null;
-            loadHistory();
-        }
+        function isEditable(logTimeStr) { return (new Date() - new Date(logTimeStr)) < 300000; }
+        function startEditing(id) { editingRowId = id; loadHistory(); }
+        function cancelEditing() { editingRowId = null; loadHistory(); }
 
         function saveEdit(id) {
             const newBib = document.getElementById(`edit-bib-${id}`).value.trim();
             const newRemark = document.getElementById(`edit-remark-${id}`).value.trim();
+            if (!newBib) { alert("Bib required!"); return; }
 
-            if (!newBib) {
-                alert("Bib cannot be empty!");
-                return;
-            }
-
-            const transaction = db.transaction(["logs"], "readwrite");
-            const store = transaction.objectStore("logs");
-            const getReq = store.get(id);
-
-            getReq.onsuccess = function() {
-                const log = getReq.result;
-                log.originalBib = log.originalBib || log.bib; 
-                log.bib = newBib;
-                log.remark = newRemark;
-                log.synced = false; // Flag to retry matching payload configuration
-
+            const tx = db.transaction(["logs"], "readwrite");
+            const store = tx.objectStore("logs");
+            store.get(id).onsuccess = function(e) {
+                const log = e.target.result;
+                log.bib = newBib; log.remark = newRemark; log.synced = false;
                 store.put(log);
-                transaction.oncomplete = function() {
-                    editingRowId = null;
-                    loadHistory();
-                    attemptSync(); // Fire synchronization sequence immediately
-                };
+                tx.oncomplete = function() { editingRowId = null; loadHistory(); attemptSync(); };
             };
         }
 
         function loadHistory() {
-            const transaction = db.transaction(["logs"], "readonly");
-            const store = transaction.objectStore("logs");
-            const request = store.getAll();
-
-            request.onsuccess = function() {
-                const logs = request.result;
-                const searchQuery = document.getElementById('searchBar').value.toLowerCase().trim();
-                
+            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+                const logs = e.target.result;
+                const query = document.getElementById('searchBar').value.toLowerCase().trim();
                 document.getElementById('totalCount').textContent = logs.length;
                 document.getElementById('uniqueCount').textContent = new Set(logs.map(l => l.bib)).size;
 
-                calculateLiveSplits(logs);
-                updateQueueStatus();
-
-                const frequencies = {};
-                logs.forEach(l => frequencies[l.bib] = (frequencies[l.bib] || 0) + 1);
-
-                const logList = document.getElementById('logList');
-                logList.innerHTML = '';
+                calculateLiveSplits(logs); updateQueueStatus();
+                const frequencies = {}; logs.forEach(l => frequencies[l.bib] = (frequencies[l.bib] || 0) + 1);
+                const logList = document.getElementById('logList'); logList.innerHTML = '';
 
                 [...logs].reverse().filter(log => {
-                    const bibMatch = log.bib.toLowerCase().includes(searchQuery);
-                    const cpMatch = log.checkpoint.toLowerCase().includes(searchQuery);
-                    const volMatch = log.volunteer.toLowerCase().includes(searchQuery);
-                    const remarkMatch = log.remark && log.remark.toLowerCase().includes(searchQuery);
-                    
-                    return bibMatch || cpMatch || volMatch || remarkMatch;
+                    return log.bib.toLowerCase().includes(query) || log.checkpoint.toLowerCase().includes(query) || log.volunteer.toLowerCase().includes(query) || (log.remark && log.remark.toLowerCase().includes(query));
                 }).forEach(log => {
                     const row = document.createElement('div');
                     row.className = 'px-4 py-3 flex flex-col justify-center hover:bg-neutral-500/10 border-b theme-border';
                     
-                    const editable = isEditable(log.time);
-
                     if (editingRowId === log.id) {
                         row.innerHTML = `
                             <div class="flex flex-col gap-2">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-xs font-bold theme-text-muted uppercase tracking-wider">Edit Bib:</span>
-                                    <input type="text" id="edit-bib-${log.id}" value="${log.bib}" class="w-24 theme-input border rounded px-2 py-0.5 text-sm font-black focus:outline-none focus:ring-1 focus:ring-blue-900">
-                                    <span class="text-[10px] bg-neutral-900 border border-neutral-850 px-1.5 py-0.5 rounded text-neutral-450 font-bold tracking-wide">${log.checkpoint}</span>
+                                    <span class="text-xs font-bold theme-text-muted uppercase tracking-wider">Edit:</span>
+                                    <input type="text" id="edit-bib-${log.id}" value="${log.bib}" class="w-24 theme-input border rounded px-2 py-0.5 text-sm font-black">
+                                    <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-400 font-bold">${log.checkpoint}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs font-bold theme-text-muted uppercase tracking-wider">Remark:</span>
-                                    <input type="text" id="edit-remark-${log.id}" value="${log.remark || ''}" placeholder="None" class="flex-grow theme-input border rounded px-2 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-900">
+                                    <input type="text" id="edit-remark-${log.id}" value="${log.remark || ''}" class="flex-grow theme-input border rounded px-2 py-0.5 text-xs">
                                 </div>
                                 <div class="flex justify-end gap-2 mt-1">
-                                    <button onclick="cancelEditing()" class="text-xs font-bold bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-2.5 py-1 rounded">Cancel</button>
-                                    <button onclick="saveEdit(${log.id})" class="text-xs font-bold bg-blue-800 hover:bg-blue-700 text-white px-3 py-1 rounded">Save Changes</button>
+                                    <button onclick="cancelEditing()" class="text-xs bg-neutral-800 text-neutral-300 px-2.5 py-1 rounded font-bold">Cancel</button>
+                                    <button onclick="saveEdit(${log.id})" class="text-xs bg-blue-800 text-white px-3 py-1 rounded font-bold">Save</button>
                                 </div>
-                            </div>
-                        `;
+                            </div>`;
                     } else {
                         const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
-                        
-                        const editButtonHTML = editable 
-                            ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 hover:text-blue-500 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded transition">✏️ Edit</button>` 
-                            : '';
+                        const editButtonHTML = isEditable(log.time) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
 
                         row.innerHTML = `
                             <div class="flex justify-between items-center w-full">
@@ -1067,20 +723,19 @@
                                     <div class="flex items-center gap-2">
                                         <span class="text-xl bib-text-highlight">${log.bib}</span>
                                         ${freqBadge}
-                                        <span class="text-[10px] bg-neutral-900 border border-neutral-850 px-1.5 py-0.5 rounded text-neutral-300 dark:text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
+                                        <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
                                     </div>
                                     <div class="text-[10px] theme-text-muted mt-0.5 font-semibold">${log.time} • By: ${log.volunteer}</div>
                                     ${remarkHTML}
                                 </div>
                                 <div class="text-right flex items-center gap-2.5 shrink-0">
                                     <div class="flex flex-col items-end gap-1">
-                                        <span class="text-[10px] ${log.synced ? 'text-emerald-600 dark:text-emerald-500 font-extrabold' : 'text-yellow-600 dark:text-yellow-500 font-extrabold'}">${log.synced ? 'Synced' : 'Queued'}</span>
+                                        <span class="text-[10px] ${log.synced ? 'text-emerald-600 font-extrabold' : 'text-yellow-600 font-extrabold'}">${log.synced ? 'Synced' : 'Queued'}</span>
                                         ${editButtonHTML}
                                     </div>
-                                    <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 hover:text-red-500 p-1 text-base">🗑️</button>
+                                    <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 p-1 text-base">🗑️</button>
                                 </div>
-                            </div>
-                        `;
+                            </div>`;
                     }
                     logList.appendChild(row);
                 });
@@ -1089,63 +744,72 @@
 
         function deleteRow(id, bib, time) {
             if (!confirm(`Delete entry for Bib ${bib}?`)) return;
-            const transaction = db.transaction(["logs"], "readwrite");
-            const getReq = transaction.objectStore("logs").get(id);
-            
-            getReq.onsuccess = function() {
-                const log = getReq.result;
-                if (syncUrl && log) {
-                    fetch(syncUrl, {
-                        method: "POST",
-                        mode: "cors",
-                        headers: { "Content-Type": "text/plain;charset=utf-8" },
-                        body: JSON.stringify({ action: "delete", uid: log.uid, bib: bib, time: time })
-                    })
-                    .then(async res => {
-                        const responseText = await res.text();
-                        console.log("Delete status response from server:", responseText);
-                    })
-                    .catch(err => console.error("Network delete failure:", err));
+
+            const txReadOnly = db.transaction(["logs"], "readonly");
+            txReadOnly.objectStore("logs").get(id).onsuccess = function(e) {
+                const log = e.target.result;
+                if (!log) return;
+
+                if (!syncUrl) {
+                    // Running in full local mode, drop the row immediately
+                    const txWrite = db.transaction(["logs"], "readwrite");
+                    txWrite.objectStore("logs").delete(id);
+                    txWrite.oncomplete = function() { loadHistory(); };
+                    return;
                 }
+
+                // App shows alert indicating execution status during fetch lifecycle
+                const remarkInput = document.getElementById('remarkInput');
+                if (remarkInput) { remarkInput.value = "⏳ Contacting Cloud Server for Delete..."; remarkInput.disabled = true; }
+
+                fetch(syncUrl, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: "delete", uid: log.uid, bib: bib, time: time })
+                })
+                .then(async res => {
+                    const data = JSON.parse(await res.text());
+                    if (data.status === "success") {
+                        // Drop row locally *only* once the cloud validates the removal request
+                        const txWrite = db.transaction(["logs"], "readwrite");
+                        txWrite.objectStore("logs").delete(id);
+                        txWrite.oncomplete = function() {
+                            loadHistory();
+                            if (remarkInput) { remarkInput.value = `🗑️ Bib ${bib} deleted from Sheet!`; setTimeout(() => clearInlineToast(), 2000); }
+                        };
+                    } else {
+                        alert("Server rejected delete execution flag request.");
+                        if (remarkInput) clearInlineToast();
+                    }
+                })
+                .catch(err => {
+                    console.error("Network drop during delete operation:", err);
+                    alert("Network Error: Could not delete from Google Sheet. Check connection and retry.");
+                    if (remarkInput) clearInlineToast();
+                });
             };
-            
-            transaction.objectStore("logs").delete(id);
-            transaction.oncomplete = function() { loadHistory(); };
         }
 
         function exportCSV() {
-            const transaction = db.transaction(["logs"], "readonly");
-            const request = transaction.objectStore("logs").getAll();
-            request.onsuccess = function() {
-                if (request.result.length === 0) return;
+            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+                if (e.target.result.length === 0) return;
                 let csv = "data:text/csv;charset=utf-8,ID,Bib,Time,Checkpoint,Volunteer,Remark,Device\n";
-                request.result.forEach(l => { csv += `${l.id},"${l.bib}","${l.time}","${l.checkpoint}","${l.volunteer}","${l.remark || ''}","${l.device}"\n`; });
-                const link = document.createElement("a");
-                link.setAttribute("href", encodeURI(csv));
+                e.target.result.forEach(l => { csv += `${l.id},"${l.bib}","${l.time}","${l.checkpoint}","${l.volunteer}","${l.remark || ''}","${l.device}"\n`; });
+                const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv));
                 link.setAttribute("download", `Race_Logs_${new Date().toISOString().split('T')[0]}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
             };
         }
 
         function clearDatabase() {
-            const confirmation = prompt("⚠️ To completely erase ALL local logs from this device, please type '0000' and press OK:");
-            if (confirmation !== "0000") {
-                alert("Incorrect confirmation code. Clear action cancelled.");
-                return;
-            }
-            
-            const transaction = db.transaction(["logs"], "readwrite");
-            transaction.objectStore("logs").clear();
-            transaction.oncomplete = function() { 
-                loadHistory(); 
-                alert("All local database records cleared successfully.");
-            };
+            if (prompt("⚠️ Type '0000' to erase ALL local data:") !== "0000") return;
+            const tx = db.transaction(["logs"], "readwrite");
+            tx.objectStore("logs").clear();
+            tx.oncomplete = function() { loadHistory(); alert("Database cleared."); };
         }
 
         document.getElementById('bibInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') checkDuplicateAndLog(); });
-        document.getElementById('remarkInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') checkDuplicateAndLog(); });
     </script>
 </body>
 </html>
