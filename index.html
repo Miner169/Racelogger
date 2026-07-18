@@ -455,23 +455,21 @@
             loadHistory();
         }
 
-function getDeviceType() {
-    const ua = navigator.userAgent;
-    const isStandalone = window.navigator.standalone === true || 
-                         window.matchMedia('(display-mode: standalone)').matches;
-    const mode = isStandalone ? "PWA" : "APP";
+        function getDeviceType() {
+            const ua = navigator.userAgent;
+            const containerMode = isStandalone ? "PWA" : "APP";
 
-    let device = "PC";
-    if (/tablet|ipad|playbook|silk/i.test(ua)) {
-        device = "Tablet";
-    } else if (/Mobile|Android|IP(hone|od)|IEMobile|BlackBerry|Kindle|Opera Mini/i.test(ua)) {
-        device = /iPhone|iPod/i.test(ua) ? "iPhone" : "Android Mobile";
-    }
+            let device = "PC";
+            if (/tablet|ipad|playbook|silk/i.test(ua)) {
+                device = "Tablet";
+            } else if (/Mobile|Android|IP(hone|od)|IEMobile|BlackBerry|Kindle|Opera Mini/i.test(ua)) {
+                device = /iPhone|iPod/i.test(ua) ? "iPhone" : "Android Mobile";
+            }
 
-    return `${device} (${mode})`;
-}
+            return `${device} ${containerMode}`;
+        }
 
-const dbRequest = indexedDB.open("RaceLoggerDB", 1);
+        const dbRequest = indexedDB.open("RaceLoggerDB", 1);
         dbRequest.onupgradeneeded = function(e) {
             db = e.target.result;
             if (!db.objectStoreNames.contains("logs")) {
@@ -489,16 +487,16 @@ const dbRequest = indexedDB.open("RaceLoggerDB", 1);
             resetSyncTimer();
             if (syncUrl) attemptSync();
 
-            // 1. REGISTER THE SERVICE WORKER STACK
+            // REGISTER THE SERVICE WORKER STACK
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js')
                 .then(reg => {
                     console.log('Service Worker running cleanly inside PWA context.');
-                    reg.update(); // Force look for code alterations immediately on startup
+                    reg.update(); 
                 }).catch(err => console.error('Worker failed:', err));
             }
 
-            // 2. WIRE DIRECT INTERACTION TRIGGERS TO FORCE SYNC PASSING
+            // WIRE DIRECT INTERACTION TRIGGERS TO FORCE SYNC PASSING
             const inputs = ['bibInput', 'remarkInput'];
             inputs.forEach(id => {
                 const el = document.getElementById(id);
@@ -509,7 +507,7 @@ const dbRequest = indexedDB.open("RaceLoggerDB", 1);
             });
         };
         
-// Self-healing direct sync trigger that runs completely independent of the phone's connection flags
+        // Self-healing direct sync trigger
         function forceNetworkSyncCheck() {
             if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
@@ -541,30 +539,29 @@ const dbRequest = indexedDB.open("RaceLoggerDB", 1);
 
         function loadSettingsState() { isSetupLocked = localStorage.getItem("settingsLocked") === "true"; document.getElementById("checkpoint").value = localStorage.getItem("checkpointVal") || ""; document.getElementById("volunteer").value = localStorage.getItem("volunteerVal") || ""; applyLockState(); }
 
-function triggerInlineToast(bib, statusText, remarkText = "", isError = false) {
-    const remarkInput = document.getElementById('remarkInput');
-    const remarkLabel = document.getElementById('remarkLabel');
-    clearTimeout(inlineToastTimeout);
+        function triggerInlineToast(bib, statusText, remarkText = "", isError = false) {
+            const remarkInput = document.getElementById('remarkInput');
+            const remarkLabel = document.getElementById('remarkLabel');
+            clearTimeout(inlineToastTimeout);
 
-    // CHANGE: Use only remarkText if it exists, otherwise just the status
-    let displayText = remarkText ? remarkText : statusText;
+            // Shows only the user entered remark directly
+            let displayText = remarkText ? remarkText : statusText;
 
-    remarkInput.value = displayText;
-    remarkInput.disabled = true;
-    
-    // ... rest of your function remains the same ...
-    if (isError) {
-        remarkInput.className = "w-full bg-red-950 border-red-900 text-red-300 rounded-lg px-3 py-2 text-sm font-bold text-center";
-        remarkLabel.className = "block text-xs text-red-400 mb-1 font-bold";
-        remarkLabel.textContent = "Status Alert";
-    } else {
-        remarkInput.className = "w-full bg-emerald-950 border-emerald-900 text-emerald-300 rounded-lg px-3 py-2 text-sm font-bold text-center";
-        remarkLabel.className = "block text-xs text-emerald-400 mb-1 font-bold";
-        remarkLabel.textContent = "Last Action Status";
-    }
+            remarkInput.value = displayText;
+            remarkInput.disabled = true;
+            
+            if (isError) {
+                remarkInput.className = "w-full bg-red-950 border-red-900 text-red-300 rounded-lg px-3 py-2 text-sm font-bold text-center";
+                remarkLabel.className = "block text-xs text-red-400 mb-1 font-bold";
+                remarkLabel.textContent = "Status Alert";
+            } else {
+                remarkInput.className = "w-full bg-emerald-950 border-emerald-900 text-emerald-300 rounded-lg px-3 py-2 text-sm font-bold text-center";
+                remarkLabel.className = "block text-xs text-emerald-400 mb-1 font-bold";
+                remarkLabel.textContent = "Last Action Status";
+            }
 
-    inlineToastTimeout = setTimeout(() => { clearInlineToast(); }, 4000);
-}
+            inlineToastTimeout = setTimeout(() => { clearInlineToast(); }, 4000);
+        }
 
         function clearInlineToast() {
             if (remarkDebounceTimeout) return; 
@@ -640,7 +637,7 @@ function triggerInlineToast(bib, statusText, remarkText = "", isError = false) {
                 if (!remark) {
                     attemptSync();
                 } else {
-                    triggerInlineToast(entry.bib, "Logged with Remark!", remark, false);
+                    triggerInlineToast(entry.bib, "Logged!", remark, false);
                 }
             };
             document.getElementById('bibInput').value = '';
@@ -709,116 +706,80 @@ function triggerInlineToast(bib, statusText, remarkText = "", isError = false) {
             });
         }
 
-function syncSingleRow(row) {
-    if (!syncUrl || remarkDebounceTimeout) return;
-    
-    fetch(syncUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        // redirect: "follow", // Remove this to prevent domain-hop handshake issues
-        body: JSON.stringify({ action: "batch_sync", data: [row] })
-    })
-    .then(async res => {
-        const rawText = await res.text();
-        
-        // Log the actual response so we can see what Google is saying
-        console.log("Raw Response from Google:", rawText); 
-        
-        if (rawText.trim().startsWith("<")) {
-            console.error("Sync blocked: Google returned HTML (likely login page)");
-            return;
-        }
-        
-        const data = JSON.parse(rawText);
-        if (data.status === "success" && data.confirmedIds.includes(row.uid)) {
-            const tx = db.transaction(["logs"], "readwrite");
-            row.synced = true; 
-            tx.objectStore("logs").put(row);
-            tx.oncomplete = function() { loadHistory(); };
-        }
-    })
-    .catch(err => {
-        console.error("Single row sync error - check connection or permissions:", err);
-    });
-}
-
-function attemptSync() {
-    if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
-    isSyncing = true;
-
-    db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
-        const unsynced = e.target.result.filter(log => !log.synced);
-        if (unsynced.length === 0) { isSyncing = false; return; }
-
-        fetch(syncUrl, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            redirect: "follow", // CRITICAL: Forces mobile PWA wrappers to follow Google's 302 hop
-            body: JSON.stringify({ action: "batch_sync", data: unsynced })
-        })
-        .then(async res => {
-            const rawText = await res.text();
+        function syncSingleRow(row) {
+            if (!syncUrl || remarkDebounceTimeout) return;
             
-            // Safeguard against Google returning HTML login pages instead of JSON
-            if (rawText.trim().startsWith("<")) {
-                throw new Error("Received HTML instead of JSON. Google Script permissions are blocking access.");
-            }
+            fetch(syncUrl, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ action: "batch_sync", data: [row] })
+            })
+            .then(async res => {
+                const rawText = await res.text();
+                console.log("Raw Response from Google:", rawText); 
+                
+                if (rawText.trim().startsWith("<")) {
+                    console.error("Sync blocked: Google returned HTML (likely login page)");
+                    return;
+                }
+                
+                const data = JSON.parse(rawText);
+                if (data.status === "success" && data.confirmedIds.includes(row.uid)) {
+                    const tx = db.transaction(["logs"], "readwrite");
+                    row.synced = true; 
+                    tx.objectStore("logs").put(row);
+                    tx.oncomplete = function() { loadHistory(); };
+                }
+            })
+            .catch(err => {
+                console.error("Single row sync error:", err);
+            });
+        }
 
-            const data = JSON.parse(rawText);
-            if (data.status === "success") {
-                const confirmedIds = new Set(data.confirmedIds || []);
-                const tx = db.transaction(["logs"], "readwrite");
-                const store = tx.objectStore("logs");
-                unsynced.forEach(log => {
-                    if (confirmedIds.has(log.uid)) { log.synced = true; store.put(log); }
+        function attemptSync() {
+            if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
+            isSyncing = true;
+
+            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+                const unsynced = e.target.result.filter(log => !log.synced);
+                if (unsynced.length === 0) { isSyncing = false; return; }
+
+                fetch(syncUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    redirect: "follow", 
+                    body: JSON.stringify({ action: "batch_sync", data: unsynced })
+                })
+                .then(async res => {
+                    const rawText = await res.text();
+                    
+                    if (rawText.trim().startsWith("<")) {
+                        throw new Error("Received HTML instead of JSON. Google Script permissions are blocking access.");
+                    }
+
+                    const data = JSON.parse(rawText);
+                    if (data.status === "success") {
+                        const confirmedIds = new Set(data.confirmedIds || []);
+                        const tx = db.transaction(["logs"], "readwrite");
+                        const store = tx.objectStore("logs");
+                        unsynced.forEach(log => {
+                            if (confirmedIds.has(log.uid)) { log.synced = true; store.put(log); }
+                        });
+                        tx.oncomplete = function() { loadHistory(); };
+                    }
+                })
+                .catch(err => {
+                    console.error("Sync batch execution fault:", err);
+                    if (err.message.includes("HTML instead of JSON")) {
+                        alert("⚠️ Google Script blocked the request. Verify deployment access is set to 'Anyone'.");
+                    }
+                })
+                .finally(() => {
+                    isSyncing = false;
+                    if (syncRerunQueued) { syncRerunQueued = false; attemptSync(); }
                 });
-                tx.oncomplete = function() { loadHistory(); };
-            }
-        })
-        .catch(err => {
-            console.error("Sync batch execution fault:", err);
-            // If testing, trigger a visible alert so you know exact failure reason
-            if (err.message.includes("HTML instead of JSON")) {
-                alert("⚠️ Google Script blocked the request. Verify deployment access is set to 'Anyone'.");
-            }
-        })
-        .finally(() => {
-            isSyncing = false;
-            if (syncRerunQueued) { syncRerunQueued = false; attemptSync(); }
-        });
-    };
-}
-        
-// Bulletproof sync trigger that ignores broken phone "online" status flags
-function forceNetworkSyncCheck() {
-    if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
-
-    // Direct check: look directly at IndexedDB to see if anything is even waiting
-    db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
-        const unsynced = e.target.result.filter(log => !log.synced);
-        if (unsynced.length > 0) {
-            console.log(`PWA Container: Found ${unsynced.length} queued records. Forcing transmission connection...`);
-            attemptSync();
+            };
         }
-    };
-}
-
-// 1. Trigger sync immediately the exact moment a user interacts with the app input field
-document.getElementById('bibInput').addEventListener('focus', forceNetworkSyncCheck);
-document.getElementById('bibInput').addEventListener('input', forceNetworkSyncCheck);
-document.getElementById('remarkInput').addEventListener('focus', forceNetworkSyncCheck);
-
-// 2. Change the background timer framework to ignore online states and try anyway
-function resetSyncTimer() {
-    if (syncTimerId) clearInterval(syncTimerId);
-    syncTimerId = setInterval(function() {
-        loadHistory();
-        // Force attemptSync to run regardless of what the phone thinks its internet status is
-        if (syncUrl && !remarkDebounceTimeout) {
-            attemptSync(); 
-        }
-    }, syncIntervalMs);
-}
 
         function calculateLiveSplits(logs) {
             const splitLastRunner = document.getElementById("splitLastRunner"), splitGapTime = document.getElementById("splitGapTime");
@@ -852,22 +813,24 @@ function resetSyncTimer() {
         }
 
         function formatLogTime(isoString) {
-    const date = new Date(isoString);
-    // Format: 18/7/2026 10:47:11 PM
-    const formattedDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+            const date = new Date(isoString);
+            
+            // Format to ISO 8601 extended standard representation: YYYY-MM-DD HH:mm:ss
+            const pad = (num) => String(num).padStart(2, '0');
+            const formattedDate = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 
-    // Calculate "time ago"
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-    
-    let timeAgo = "";
-    if (diffInSeconds < 60) timeAgo = "Just now";
-    else if (diffInSeconds < 3600) timeAgo = Math.floor(diffInSeconds / 60) + " mins ago";
-    else if (diffInSeconds < 86400) timeAgo = Math.floor(diffInSeconds / 3600) + " hrs ago";
-    else timeAgo = Math.floor(diffInSeconds / 86400) + " days ago";
+            // Calculate exact elapsed relative runtime bounds
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+            
+            let timeAgo = "";
+            if (diffInSeconds < 60) timeAgo = "Just now";
+            else if (diffInSeconds < 3600) timeAgo = Math.floor(diffInSeconds / 60) + " mins ago";
+            else if (diffInSeconds < 86400) timeAgo = Math.floor(diffInSeconds / 3600) + " hrs ago";
+            else timeAgo = Math.floor(diffInSeconds / 86400) + " days ago";
 
-    return `${formattedDate} (${timeAgo})`;
-}
+            return `${formattedDate} (${timeAgo})`;
+        }
         
         function loadHistory() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
@@ -963,7 +926,7 @@ function resetSyncTimer() {
                         txWrite.objectStore("logs").delete(id);
                         txWrite.oncomplete = function() {
                             loadHistory();
-                            if (remarkInput) { remarkInput.value = `🗑️ Bib ${bib} deleted from Sheet!`; setTimeout(() => clearInlineToast(), 2000); }
+                            if (remarkInput) { remarkInput.value = `Bib ${bib} deleted from Sheet!`; setTimeout(() => clearInlineToast(), 2000); }
                         };
                     } else {
                         alert("Server rejected delete execution flag request.");
