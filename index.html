@@ -601,13 +601,19 @@
         function generateUID() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11); }
 
         function logEntry(bib) {
+            // REMARK FIX: Instantly terminate pending debounce processes to block system alerts from auto-saving
+            if (remarkDebounceTimeout) {
+                clearTimeout(remarkDebounceTimeout);
+                remarkDebounceTimeout = null;
+            }
+
             const checkpoint = document.getElementById('checkpoint').value.trim();
             const volunteer = document.getElementById('volunteer').value.trim();
             const remarkInput = document.getElementById('remarkInput');
             const remark = remarkInput.disabled ? "" : remarkInput.value.trim();
             const now = new Date();
             
-            // Backend Structure Specification Matcher: YYYY-MM-DD HH:mm:ss
+            // Backend Format: YYYY-MM-DD HH:mm:ss
             const pad = (num) => String(num).padStart(2, '0');
             const backendFormattedTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
@@ -616,7 +622,7 @@
 
             const entry = {
                 bib: bib.toUpperCase(),
-                time: backendFormattedTime, // Saved as requested YYYY-MM-DD HH:mm:ss
+                time: backendFormattedTime, 
                 checkpoint: checkpoint.toUpperCase(),
                 volunteer: volunteer.toUpperCase(),
                 remark: remark,
@@ -649,7 +655,13 @@
             if (remarkDebounceTimeout) clearTimeout(remarkDebounceTimeout);
 
             remarkDebounceTimeout = setTimeout(() => {
-                const currentRemark = document.getElementById('remarkInput').value.trim();
+                const remarkInput = document.getElementById('remarkInput');
+                // Protection fallback step against typing interference checks
+                if (remarkInput.disabled) {
+                    remarkDebounceTimeout = null;
+                    return;
+                }
+                const currentRemark = remarkInput.value.trim();
                 const tx = db.transaction(["logs"], "readwrite");
                 const store = tx.objectStore("logs");
                 
@@ -767,13 +779,31 @@
             };
         }
 
+        // CROSS-BROWSER DATE PARSER FIX: Replaces native execution with exact extraction regexes
         function parseCustomOrIsoDate(timeStr) {
-            // normalizes YYYY-MM-DD HH:mm:ss safely to an evaluation standard object
-            let date = new Date(timeStr);
-            if (isNaN(date.getTime())) {
-                date = new Date(timeStr.replace(' ', 'T'));
+            if (!timeStr) return new Date();
+            if (timeStr instanceof Date) return timeStr;
+            
+            // Match YYYY-MM-DD HH:mm:ss
+            let match = timeStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+            if (match) {
+                return new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10), parseInt(match[4], 10), parseInt(match[5], 10), parseInt(match[6], 10));
             }
-            return date;
+            
+            // Match M/D/YYYY HH:mm:ss AM/PM legacy anomalies
+            match = timeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)?$/i);
+            if (match) {
+                let hr = parseInt(match[4], 10);
+                const ampm = match[7];
+                if (ampm) {
+                    if (ampm.toUpperCase() === 'PM' && hr < 12) hr += 12;
+                    if (ampm.toUpperCase() === 'AM' && hr === 12) hr = 0;
+                }
+                return new Date(parseInt(match[3], 10), parseInt(match[1], 10) - 1, parseInt(match[2], 10), hr, parseInt(match[5], 10), parseInt(match[6], 10));
+            }
+            
+            const d = new Date(timeStr);
+            return isNaN(d.getTime()) ? new Date() : d;
         }
 
         function calculateLiveSplits(logs) {
@@ -788,7 +818,6 @@
             splitGapTime.textContent = mins > 0 ? `+ ${mins}m ${secs}s` : `+ ${secs}s`;
         }
 
-        // 5 minute local correction window checks
         function isEditable(logTimeStr) { return (new Date() - parseCustomOrIsoDate(logTimeStr)) < 300000; }
         
         function startEditing(id) { editingRowId = id; loadHistory(); }
@@ -810,18 +839,15 @@
             };
         }
 
+        // FRONTEND TIME FORMATTER FIX: Strictly renders DD-MM-YYYY HH:mm:ss PM/AM
         function formatLogTime(timeStr) {
             const date = parseCustomOrIsoDate(timeStr);
-            if (isNaN(date.getTime())) return timeStr;
-
             const pad = (num) => String(num).padStart(2, '0');
             
-            // Build Explicit Frontend Display Format: DD-MM-YYYY
             const day = pad(date.getDate());
             const month = pad(date.getMonth() + 1);
             const year = date.getFullYear();
             
-            // Build Explicit 12-hour formatting framework: HH:mm:ss PM/AM
             let hours = date.getHours();
             const minutes = pad(date.getMinutes());
             const seconds = pad(date.getSeconds());
@@ -831,7 +857,6 @@
             
             const formattedDateString = `${day}-${month}-${year} ${pad(hours)}:${minutes}:${seconds} ${ampm}`;
 
-            // Handle the relative elapsed structural string logic block context
             const now = new Date();
             const diffInSeconds = Math.floor((now - date) / 1000);
             
@@ -879,7 +904,13 @@
                                 </div>
                             </div>`;
                     } else {
-                        const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
+                        // REMARK SANITATION MATRIX: Scrub residual validation prompts from standard view contexts
+                        let displayRemark = log.remark || '';
+                        if (displayRemark.includes("Logged with Remark") || displayRemark.includes("Contacting Cloud Server") || displayRemark.includes("Logged!")) {
+                            displayRemark = '';
+                        }
+                        
+                        const remarkHTML = displayRemark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${displayRemark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
                         const editButtonHTML = isEditable(log.time) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
 
