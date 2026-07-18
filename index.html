@@ -700,19 +700,19 @@
             const now = new Date();
             const timestampStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
 
-            const entry = {
-                uid: generateUID(), // Unique idempotency key — server uses this to dedupe/confirm, never the bib
-                bib: bib,
-                time: timestampStr,
-                volunteer: volunteer.toUpperCase(),
-                checkpoint: checkpoint.toUpperCase(),
-                remark: remark,
-                device: getDeviceType(),
-                latitude: lastGeoposition.latitude,
-                longitude: lastGeoposition.longitude,
-                synced: false,
-                syncAttempts: 0
-            };
+const entry = {
+    bib: bib,                       // 1. BIB
+    time: timestampStr,             // 2. Time
+    checkpoint: checkpoint.toUpperCase(), // 3. Checkpoint
+    volunteer: volunteer.toUpperCase(),   // 4. Volunteer
+    remark: remark,                 // 5. Remark
+    device: getDeviceType(),        // 6. Device
+    latitude: lastGeoposition.latitude,   // 7. Latitude
+    longitude: lastGeoposition.longitude, // 8. Longitude
+    uid: generateUID(),             // 9. UID
+    synced: false,
+    syncAttempts: 0
+};
 
             saveToDB(entry);
             bibInput.value = '';
