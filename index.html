@@ -243,7 +243,7 @@
     </main>
 
     <!-- Success Toast Notification Widget Overlay -->
-    <div id="successToast" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] cursor-pointer bg-neutral-900/95 border border-emerald-500/40 rounded-2xl px-8 py-6 shadow-2xl flex flex-col items-center justify-center animate-pop-scale select-none" onclick="hideSuccessToast()">
+    <div id="successToast" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] cursor-pointer bg-neutral-900/95 border border-emerald-500/40 rounded-2xl px-8 py-6 shadow-2xl flex flex-col items-center justify-center select-none" onclick="hideSuccessToast()">
         <span class="text-6xl filter drop-shadow-md transform transition-transform active:scale-90">✅</span>
         <span class="text-xs text-emerald-400 font-black tracking-widest uppercase mt-2">Logged</span>
     </div>
@@ -505,7 +505,7 @@
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js')
                 .then(reg => {
-                    console.log('Service Worker running cleanly inside PWA context.');
+                    console.log('Service Worker running cleanly inside environment.');
                     reg.update(); 
                 }).catch(err => console.error('Worker failed:', err));
             }
@@ -551,18 +551,30 @@
 
         function loadSettingsState() { isSetupLocked = localStorage.getItem("settingsLocked") === "true"; document.getElementById("checkpoint").value = localStorage.getItem("checkpointVal") || ""; document.getElementById("volunteer").value = localStorage.getItem("volunteerVal") || ""; applyLockState(); }
 
-        /* Elastic Visual Checkmark Pop Animations */
+        /* Elastic Visual Checkmark Pop Update Matrix (Handles Rapid Successive Fires) */
         function triggerSuccessToast() {
             const toast = document.getElementById("successToast");
             if (!toast) return;
             clearTimeout(successToastTimeout);
-            toast.classList.remove("hidden");
-            successToastTimeout = setTimeout(() => { hideSuccessToast(); }, 2000); // System flashes exactly 2 seconds
+            
+            // Clean animation classes out and unhide
+            toast.classList.remove("animate-pop-scale", "hidden");
+            
+            // Force dynamic DOM reflow matrix step to allow immediate re-triggering
+            void toast.offsetWidth; 
+            
+            // Re-apply pop animation cleanly
+            toast.classList.add("animate-pop-scale");
+            
+            successToastTimeout = setTimeout(() => { hideSuccessToast(); }, 2000); 
         }
 
         function hideSuccessToast() {
             const toast = document.getElementById("successToast");
-            if (toast) toast.classList.add("hidden");
+            if (toast) {
+                toast.classList.remove("animate-pop-scale");
+                toast.classList.add("hidden");
+            }
             clearTimeout(successToastTimeout);
         }
 
@@ -648,13 +660,13 @@
             tx.objectStore("logs").add(entry).onsuccess = function(e) {
                 loadHistory();
                 if (navigator.vibrate) navigator.vibrate(50);
-                triggerSuccessToast(); // Trigger animation
+                triggerSuccessToast(); 
                 attemptSync();
             };
             
             document.getElementById('bibInput').value = '';
             document.getElementById('bibInput').focus();
-            remarkInput.value = ''; // Instantly clear text content
+            remarkInput.value = ''; 
             shutOffGPSHardware();
         }
 
@@ -923,7 +935,6 @@
                                 </div>
                             </div>`;
                     } else {
-                        // Strict Sanitation Filter Matrix
                         let displayRemark = log.remark || '';
                         if (displayRemark.includes("Logged with Remark") || displayRemark.includes("Contacting Cloud Server") || displayRemark.includes("Logged!")) {
                             displayRemark = '';
@@ -994,6 +1005,7 @@
             };
         }
 
+        /* CSV Formatter Matrix Output */
         function exportCSV() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 if (e.target.result.length === 0) return;
