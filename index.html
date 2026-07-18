@@ -1187,29 +1187,62 @@ function logEntry(bib) {
             };
         }
 
-        async function checkServerModifications() {
-            if (!syncUrl) return;
-            try {
-                const response = await fetch(syncUrl);
-                const result = await response.json();
-                if (result.status === "success") {
-                    const tx = db.transaction(["logs"], "readwrite");
-                    const store = tx.objectStore("logs");
-                    
-                    store.getAll().onsuccess = function(e) {
-                        let changed = false;
-                        e.target.result.forEach(localLog => {
-                            const match = result.data.find(s => s.uid === localLog.uid);
-                            if (localLog.synced && (!match || match.bib === "")) {
-                                localLog.synced = false; localLog.remake = true; store.put(localLog);
-                                changed = true;
-                            }
-                        });
-                        if (changed) tx.oncomplete = function() { loadHistory(); };
-                    };
+async function pullServerRecords() {
+    if (!syncUrl) return;
+    try {
+        const response = await fetch(syncUrl);
+        const result = await response.json();
+        if (result.status !== "success") return;
+
+        const serverRecords = result.data || [];
+        const serverMap = new Map(serverRecords.map(r => [r.uid, r]));
+
+        const tx = db.transaction(["logs"], "readwrite");
+        const store = tx.objectStore("logs");
+
+        store.getAll().onsuccess = function(e) {
+            const localLogs = e.target.result;
+            const localUids = new Set(localLogs.map(l => l.uid));
+            let changed = false;
+
+            // 1. If a locally-synced log no longer exists on the server, flag it
+            localLogs.forEach(localLog => {
+                const match = serverMap.get(localLog.uid);
+                if (localLog.synced && (!match || match.bib === "")) {
+                    localLog.synced = false;
+                    localLog.remake = true;
+                    store.put(localLog);
+                    changed = true;
                 }
-            } catch (e) { console.error(e); }
-        }
+            });
+
+            // 2. Pull down any server record this device doesn't have yet —
+            // e.g. logged by another device at the same checkpoint.
+            serverRecords.forEach(serverRecord => {
+                if (!serverRecord.uid || localUids.has(serverRecord.uid)) return;
+                store.add({
+                    bib: serverRecord.bib,
+                    time: serverRecord.time,
+                    checkpoint: serverRecord.checkpoint,
+                    volunteer: serverRecord.volunteer,
+                    remark: serverRecord.remark || "",
+                    device: serverRecord.device || "",
+                    latitude: serverRecord.latitude,
+                    longitude: serverRecord.longitude,
+                    uid: serverRecord.uid,
+                    synced: true,
+                    remake: false,
+                    syncAttempts: 0
+                });
+                changed = true;
+            });
+
+            if (changed) tx.oncomplete = function() { loadHistory(); };
+        };
+    } catch (e) {
+        console.error(e);
+    }
+}
 
         function parseCustomOrIsoDate(timeStr) {
             if (!timeStr) return new Date();
