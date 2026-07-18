@@ -332,9 +332,16 @@
 
         <!-- Scan History -->
         <section class="flex-grow theme-panel rounded-xl border shadow flex flex-col overflow-hidden min-h-[200px]">
-            <div class="px-3 py-2 border-b theme-border flex items-center justify-between gap-3">
-                <h3 class="text-[10px] font-bold theme-text-muted uppercase tracking-wider whitespace-nowrap">Local Scan History</h3>
-                <div class="relative flex-grow max-w-[65%]">
+            <div class="px-3 py-2 border-b theme-border flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-[10px] font-bold theme-text-muted uppercase tracking-wider whitespace-nowrap">Local Scan History</h3>
+                    <!-- Checkpoint Scope View Toggle Switch -->
+                    <div class="inline-flex bg-neutral-900 border theme-border rounded-md p-0.5 text-[9px] font-bold">
+                        <button onclick="setScopeFilter('current')" id="scopeBtn-current" class="px-2 py-0.5 rounded bg-blue-900 text-white transition-colors duration-150">Current CP</button>
+                        <button onclick="setScopeFilter('global')" id="scopeBtn-global" class="px-2 py-0.5 rounded text-neutral-400 transition-colors duration-150">Global</button>
+                    </div>
+                </div>
+                <div class="relative flex-grow max-w-[100%] sm:max-w-[45%]">
                     <input type="text" id="searchBar" oninput="loadHistory()" placeholder="🔍 Search..." class="w-full theme-input border rounded-md px-2 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-900">
                 </div>
             </div>
@@ -385,6 +392,7 @@
         let dupWindow = 10; 
         let batterySaverManual = false;
         let historyLimit = '20';
+        let activeScopeFilter = 'current'; // Default view filter target scope
         
         // Strictly adhere to the primary script engine variable tracking 
         let syncUrl = localStorage.getItem("syncUrl");
@@ -792,51 +800,50 @@
             };
         }
 
-function testCloudConnection() {
-    const inputUrl = document.getElementById("syncUrlInput").value.trim();
-    const feedback = document.getElementById("testConnectionStatusFeedback");
-    const btn = document.getElementById("connectionTesterBtn");
+        function testCloudConnection() {
+            const inputUrl = document.getElementById("syncUrlInput").value.trim();
+            const feedback = document.getElementById("testConnectionStatusFeedback");
+            const btn = document.getElementById("connectionTesterBtn");
 
-    if(!inputUrl) {
-        feedback.textContent = "❌ Error: URL Field is empty.";
-        feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
-        return;
-    }
-
-    feedback.textContent = "⏳ Testing ping connection request...";
-    feedback.className = "text-[10px] text-neutral-400 font-bold block leading-tight mt-1";
-    btn.disabled = true;
-
-    fetch(inputUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "ping" })
-    })
-    .then(async response => {
-        const txt = await response.text();
-        try {
-            const parsed = JSON.parse(txt);
-            // Turn green if it returns success OR if the script naturally rejects the unknown test action
-            if (parsed.status === "success" || parsed.message.includes("Unknown action")) {
-                feedback.textContent = "✅ Connected Successfully! Script reached the backend server.";
-                feedback.className = "text-[10px] text-emerald-500 font-bold block leading-tight mt-1";
-            } else {
-                feedback.textContent = `❌ Script error context: ${txt.slice(0, 60)}`;
+            if(!inputUrl) {
+                feedback.textContent = "❌ Error: URL Field is empty.";
                 feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
+                return;
             }
-        } catch(e) {
-            feedback.textContent = `❌ Response format issue (Not JSON). Endpoint mismatched.`;
-            feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
+
+            feedback.textContent = "⏳ Testing ping connection request...";
+            feedback.className = "text-[10px] text-neutral-400 font-bold block leading-tight mt-1";
+            btn.disabled = true;
+
+            fetch(inputUrl, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ action: "ping" })
+            })
+            .then(async response => {
+                const txt = await response.text();
+                try {
+                    const parsed = JSON.parse(txt);
+                    if (parsed.status === "success" || parsed.message.includes("Unknown action")) {
+                        feedback.textContent = "✅ Connected Successfully! Script reached the backend server.";
+                        feedback.className = "text-[10px] text-emerald-500 font-bold block leading-tight mt-1";
+                    } else {
+                        feedback.textContent = `❌ Script error context: ${txt.slice(0, 60)}`;
+                        feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
+                    }
+                } catch(e) {
+                    feedback.textContent = `❌ Response format issue (Not JSON). Endpoint mismatched.`;
+                    feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
+                }
+            })
+            .catch(err => {
+                feedback.textContent = `❌ Endpoint Fault: Unable to resolve request. Verify URL format structure.`;
+                feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
+            })
+            .finally(() => {
+                btn.disabled = false;
+            });
         }
-    })
-    .catch(err => {
-        feedback.textContent = `❌ Endpoint Fault: Unable to resolve request. Verify URL format structure.`;
-        feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
-    })
-    .finally(() => {
-        btn.disabled = false;
-    });
-}
 
         function importBackupJSONDataFile(event) {
             const file = event.target.files[0];
@@ -944,6 +951,7 @@ function testCloudConnection() {
             if (dupWindow < 2) dupWindow = 2;
             historyLimit = localStorage.getItem("historyLimit") || "20";
             batterySaverManual = localStorage.getItem("batterySaverManual") === "true";
+            activeScopeFilter = localStorage.getItem("activeScopeFilter") || "current";
 
             document.getElementById("vibrateToggle").checked = vibrateEnabled;
             document.getElementById("soundToggle").checked = soundEnabled;
@@ -954,6 +962,7 @@ function testCloudConnection() {
             document.getElementById("batterySaverManualToggle").checked = batterySaverManual;
 
             applyLockState(); 
+            updateScopeUI();
             if (batterySaverManual) activateBatterySafeMode(true);
         }
 
@@ -976,6 +985,25 @@ function testCloudConnection() {
             } else {
                 lockBtn.textContent = "🔓 Unlocked"; lockBtn.className = "text-[9px] theme-btn-lock border px-1.5 py-0.5 rounded font-bold transition flex items-center gap-0.5";
                 fields.classList.remove("hidden"); row.classList.replace("mb-0", "mb-1"); summary.classList.add("hidden");
+            }
+        }
+
+        function setScopeFilter(scope) {
+            activeScopeFilter = scope;
+            localStorage.setItem("activeScopeFilter", scope);
+            updateScopeUI();
+            loadHistory();
+        }
+
+        function updateScopeUI() {
+            const currentBtn = document.getElementById("scopeBtn-current");
+            const globalBtn = document.getElementById("scopeBtn-global");
+            if (activeScopeFilter === 'current') {
+                currentBtn.className = "px-2 py-0.5 rounded bg-blue-900 text-white transition-colors duration-150";
+                globalBtn.className = "px-2 py-0.5 rounded text-neutral-400 transition-colors duration-150";
+            } else {
+                globalBtn.className = "px-2 py-0.5 rounded bg-blue-900 text-white transition-colors duration-150";
+                currentBtn.className = "px-2 py-0.5 rounded text-neutral-400 transition-colors duration-150";
             }
         }
 
@@ -1026,7 +1054,6 @@ function testCloudConnection() {
                     } else {
                         logEntry(bib);
                     }
-                    // Focus synchronously so the mobile keyboard stays open.
                     bI.focus();
                     setTimeout(() => {
                         handleViewportResize();
@@ -1086,10 +1113,7 @@ function testCloudConnection() {
             remarkInput.value = ''; 
             shutOffGPSHardware();
             
-            // Focus synchronously (NOT inside setTimeout) so mobile browsers
-            // keep the keyboard open for the next bib entry.
             bibInput.focus();
-            
             setTimeout(() => {
                 handleViewportResize();
             }, 80);
@@ -1231,10 +1255,6 @@ function testCloudConnection() {
             };
         }
 
-        // Two-way sync: pulls the full Racelog sheet down and merges in any
-        // records this device doesn't have locally yet (e.g. logged by another
-        // device at the same checkpoint), plus flags any that were removed
-        // server-side after this device already marked them synced.
         async function pullServerRecords() {
             if (!syncUrl) return;
             try {
@@ -1253,7 +1273,6 @@ function testCloudConnection() {
                     const localUids = new Set(localLogs.map(l => l.uid));
                     let changed = false;
 
-                    // 1. If a locally-synced log no longer exists on the server, flag it for remake.
                     localLogs.forEach(localLog => {
                         const match = serverMap.get(localLog.uid);
                         if (localLog.synced && (!match || match.bib === "")) {
@@ -1264,7 +1283,6 @@ function testCloudConnection() {
                         }
                     });
 
-                    // 2. Pull down any server record this device is missing.
                     serverRecords.forEach(serverRecord => {
                         if (!serverRecord.uid || localUids.has(serverRecord.uid)) return;
                         store.add({
@@ -1317,8 +1335,6 @@ function testCloudConnection() {
         }
 
         function isEditable(logTimeStr) { return (new Date() - parseCustomOrIsoDate(logTimeStr)) < 300000; }
-
-        // Trash icon is only shown for entries logged within the last 30 minutes.
         function isDeletable(logTimeStr) { return (new Date() - parseCustomOrIsoDate(logTimeStr)) < 1800000; }
 
         function startEditing(id) {
@@ -1379,14 +1395,28 @@ function testCloudConnection() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const logs = e.target.result;
                 const query = document.getElementById('searchBar').value.toLowerCase().trim();
-                document.getElementById('totalCount').textContent = logs.length;
-                document.getElementById('uniqueCount').textContent = new Set(logs.map(l => l.bib)).size;
+                const currentCP = (document.getElementById('checkpoint').value || '').trim().toUpperCase();
 
-                calculateLiveSplits(logs); updateQueueStatus();
-                const frequencies = {}; logs.forEach(l => frequencies[l.bib] = (frequencies[l.bib] || 0) + 1);
-                const logList = document.getElementById('logList'); logList.innerHTML = '';
+                // Compute overall logs matrix metrics filtered by configuration rules
+                let scopedLogs = [...logs];
+                if (activeScopeFilter === 'current') {
+                    scopedLogs = logs.filter(l => l.checkpoint.toUpperCase() === currentCP);
+                }
 
-                let filteredLogs = [...logs].reverse().filter(log => {
+                document.getElementById('totalCount').textContent = scopedLogs.length;
+                document.getElementById('uniqueCount').textContent = new Set(scopedLogs.map(l => l.bib)).size;
+
+                calculateLiveSplits(scopedLogs); 
+                updateQueueStatus();
+
+                const frequencies = {}; 
+                scopedLogs.forEach(l => frequencies[l.bib] = (frequencies[l.bib] || 0) + 1);
+                
+                const logList = document.getElementById('logList'); 
+                logList.innerHTML = '';
+
+                // Search filters apply contextually within the designated active scope window toggle
+                let filteredLogs = scopedLogs.reverse().filter(log => {
                     return log.bib.toLowerCase().includes(query) || log.checkpoint.toLowerCase().includes(query) || (log.remark && log.remark.toLowerCase().includes(query));
                 });
 
@@ -1426,10 +1456,7 @@ function testCloudConnection() {
                         const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-955 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
                         const ownEntry = isOwnEntry(log);
-                        // Edit/Delete only ever render for the device that created the entry.
                         const editButtonHTML = (ownEntry && (isEditable(log.time) || log.remake)) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
-
-                        // Trash icon only rendered if this device owns the entry AND it's still within the 30-minute deletable window.
                         const deleteButtonHTML = (ownEntry && isDeletable(log.time)) ? `<button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 p-1 text-base">🗑️</button>` : '';
 
                         let statusText = log.synced ? 'Synced' : 'Queued';
