@@ -268,7 +268,7 @@
         let gpsWarmupTimeout = null;
         let isGpsHardwareRunning = false;
 
-        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
+        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec"; //[cite: 2]
         
         let syncUrl = localStorage.getItem("syncUrl");
         if (!syncUrl || syncUrl.trim() === "" || syncUrl.includes("AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw")) {
@@ -378,7 +378,10 @@
             if (syncTimerId) clearInterval(syncTimerId);
             syncTimerId = setInterval(function() {
                 loadHistory();
-                if (syncUrl && !remarkDebounceTimeout) attemptSync(); 
+                if (syncUrl && !remarkDebounceTimeout) {
+                    attemptSync(); 
+                    checkServerModifications(); // Periodically checks if lines are altered or erased on backend via GET[cite: 2]
+                }
             }, syncIntervalMs);
         }
 
@@ -500,7 +503,10 @@
             initBatteryMonitoring();
             checkPwaDisplay(); 
             resetSyncTimer();
-            if (syncUrl) attemptSync();
+            if (syncUrl) {
+                attemptSync();
+                checkServerModifications(); //[cite: 2]
+            }
 
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js')
@@ -531,7 +537,7 @@
         }
         
         function toggleSettings() { document.getElementById("settingsModal").classList.toggle("hidden"); document.getElementById("syncUrlInput").value = syncUrl; }
-        function saveSettings() { syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; localStorage.setItem("syncUrl", syncUrl); toggleSettings(); updateSyncStatusLabel(); attemptSync(); }
+        function saveSettings() { syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; localStorage.setItem("syncUrl", syncUrl); toggleSettings(); updateSyncStatusLabel(); attemptSync(); checkServerModifications(); } //[cite: 2]
         function updateSyncStatusLabel() { const s = document.getElementById("syncStatus"); s.textContent = !syncUrl ? "Offline Mode" : "Auto-Sync"; s.className = !syncUrl ? "text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold"; }
         function toggleLock() { isSetupLocked = !isSetupLocked; localStorage.setItem("settingsLocked", isSetupLocked); applyLockState(); }
 
@@ -653,6 +659,7 @@
                 longitude: lastGeoposition.longitude,
                 uid: generatedUid,
                 synced: false,
+                remake: false,
                 syncAttempts: 0
             };
 
@@ -690,6 +697,7 @@
                     if (logToUpdate) {
                         logToUpdate.remark = currentRemark;
                         logToUpdate.synced = false; 
+                        logToUpdate.remake = false;
                         store.put(logToUpdate);
                         tx.oncomplete = function() {
                             remarkDebounceTimeout = null;
@@ -703,7 +711,7 @@
             }, 2500); 
         }
 
-        function toggleQueueInspector() { document.getElementById("queueInspectorSection").classList.toggle("hidden"); }
+        toggleQueueInspector = () => document.getElementById("queueInspectorSection").classList.toggle("hidden");
 
         function updateQueueStatus() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
@@ -723,9 +731,12 @@
             pendingLogs.forEach(log => {
                 const item = document.createElement("div");
                 item.className = "py-2.5 flex justify-between items-center text-xs theme-text-muted";
+                
+                const titleText = log.remake ? `<strong class="text-sm font-black text-red-500 animate-pulse">REMAKE REQUIRED</strong>` : `<strong class="text-sm font-black text-yellow-600 dark:text-yellow-500">Bib ${log.bib}</strong>`;
+                
                 item.innerHTML = `
                     <div class="flex flex-col">
-                        <div><strong class="text-sm font-black text-yellow-600 dark:text-yellow-500">Bib ${log.bib}</strong> at <span class="font-bold">${log.checkpoint}</span></div>
+                        <div>${titleText} at <span class="font-bold">${log.checkpoint}</span></div>
                         <div class="text-[10px] mt-0.5">${formatLogTime(log.time)} ${log.remark ? `• 💬 ${log.remark}` : ''}</div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -749,9 +760,20 @@
                 if (rawText.trim().startsWith("<")) return;
                 
                 const data = JSON.parse(rawText);
-                if (data.status === "success" && data.confirmedIds.includes(row.uid)) {
+                if (data.status === "success") {
+                    const confirmedIds = new Set(data.confirmedIds || []);
+                    const remakeIds = new Set(data.remakeIds || []);
                     const tx = db.transaction(["logs"], "readwrite");
-                    row.synced = true; 
+                    
+                    if (remakeIds.has(row.uid)) {
+                        row.synced = false;
+                        row.remake = true;
+                        alert(`Log UID ${row.uid} was manually modified or deleted on the server! Please re-verify.`);
+                    } else if (confirmedIds.has(row.uid)) {
+                        row.synced = true;
+                        row.remake = false;
+                    }
+                    
                     tx.objectStore("logs").put(row);
                     tx.oncomplete = function() { loadHistory(); };
                 }
@@ -782,12 +804,28 @@
                     const data = JSON.parse(rawText);
                     if (data.status === "success") {
                         const confirmedIds = new Set(data.confirmedIds || []);
+                        const remakeIds = new Set(data.remakeIds || []);
+                        
                         const tx = db.transaction(["logs"], "readwrite");
                         const store = tx.objectStore("logs");
+                        
                         unsynced.forEach(log => {
-                            if (confirmedIds.has(log.uid)) { log.synced = true; store.put(log); }
+                            if (remakeIds.has(log.uid)) {
+                                log.synced = false;
+                                log.remake = true;
+                                store.put(log);
+                            } else if (confirmedIds.has(log.uid)) {
+                                log.synced = true;
+                                log.remake = false; 
+                                store.put(log); 
+                            }
                         });
+                        
                         tx.oncomplete = function() { loadHistory(); };
+                        
+                        if (data.remakeIds && data.remakeIds.length > 0) {
+                            alert(`Notice: ${data.remakeIds.length} logs were flagged as modified or deleted on the server! Please re-verify.`);
+                        }
                     }
                 })
                 .catch(err => { console.error("Sync execution error:", err); })
@@ -796,6 +834,46 @@
                     if (syncRerunQueued) { syncRerunQueued = false; attemptSync(); }
                 });
             };
+        }
+
+        // Checks engine status from backend via GET to detect structural spreadsheet changes manually done by admin[cite: 2]
+        async function checkServerModifications() {
+            if (!syncUrl) return;
+            
+            try {
+                const response = await fetch(syncUrl); // Executes the doGet function[cite: 2]
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    const serverLogs = result.data; // Array of {bib, uid}[cite: 2]
+                    
+                    const tx = db.transaction(["logs"], "readwrite");
+                    const store = tx.objectStore("logs");
+                    
+                    store.getAll().onsuccess = function(e) {
+                        const localLogs = e.target.result;
+                        let changed = false;
+                        
+                        localLogs.forEach(localLog => {
+                            const match = serverLogs.find(s => s.uid === localLog.uid); //[cite: 2]
+                            
+                            // If it was synced but is gone from server or its spreadsheet cell has been wiped blank
+                            if (localLog.synced && (!match || match.bib === "")) { //[cite: 2]
+                                localLog.synced = false;
+                                localLog.remake = true;
+                                store.put(localLog);
+                                changed = true;
+                            }
+                        });
+                        
+                        if (changed) {
+                            tx.oncomplete = function() { loadHistory(); };
+                        }
+                    };
+                }
+            } catch (e) {
+                console.error("Could not fetch server state", e);
+            }
         }
 
         /* Deterministic Cross-Browser Date Normalization Engine */
@@ -864,7 +942,10 @@
             const store = tx.objectStore("logs");
             store.get(id).onsuccess = function(e) {
                 const log = e.target.result;
-                log.bib = newBib; log.remark = newRemark; log.synced = false;
+                log.bib = newBib; 
+                log.remark = newRemark; 
+                log.synced = false;
+                log.remake = false; // Reset remake flag status once fixed manually by user input entry
                 store.put(log);
                 tx.oncomplete = function() { editingRowId = null; loadHistory(); attemptSync(); };
             };
@@ -922,7 +1003,7 @@
                             <div class="flex flex-col gap-2">
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs font-bold theme-text-muted uppercase tracking-wider">Edit:</span>
-                                    <input type="text" id="edit-bib-${log.id}" value="${log.bib}" class="w-24 theme-input border rounded px-2 py-0.5 text-sm font-black uppercase">
+                                    <input type="text" id="edit-bib-${log.id}" value="${log.remake ? '' : log.bib}" placeholder="${log.remake ? 'ENTER BIB' : ''}" class="w-24 theme-input border rounded px-2 py-0.5 text-sm font-black uppercase">
                                     <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-400 font-bold">${log.checkpoint}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
@@ -942,13 +1023,22 @@
                         
                         const remarkHTML = displayRemark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${displayRemark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
-                        const editButtonHTML = isEditable(log.time) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
+                        
+                        // Show "✏️ Edit" option permanently on a Remake required entry to let user input correct data
+                        const editButtonHTML = (isEditable(log.time) || log.remake) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
+
+                        let statusText = log.synced ? 'Synced' : 'Queued';
+                        let statusClass = log.synced ? 'text-emerald-600 font-extrabold' : 'text-yellow-600 font-extrabold';
+                        if (log.remake) {
+                            statusText = 'REMAKE REQUIRED';
+                            statusClass = 'text-red-500 font-black animate-pulse';
+                        }
 
                         row.innerHTML = `
                             <div class="flex justify-between items-center w-full">
                                 <div class="flex-grow">
                                     <div class="flex items-center gap-2">
-                                        <span class="text-xl bib-text-highlight">${log.bib}</span>
+                                        <span class="text-xl ${log.remake ? 'text-red-600 line-through opacity-60' : 'bib-text-highlight'}">${log.bib || '??'}</span>
                                         ${freqBadge}
                                         <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
                                     </div>
@@ -957,7 +1047,7 @@
                                 </div>
                                 <div class="text-right flex items-center gap-2.5 shrink-0">
                                     <div class="flex flex-col items-end gap-1">
-                                        <span class="text-[10px] ${log.synced ? 'text-emerald-600 font-extrabold' : 'text-yellow-600 font-extrabold'}">${log.synced ? 'Synced' : 'Queued'}</span>
+                                        <span class="text-[10px] ${statusClass}">${statusText}</span>
                                         ${editButtonHTML}
                                     </div>
                                     <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 p-1 text-base">🗑️</button>
