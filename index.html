@@ -455,14 +455,21 @@
             loadHistory();
         }
 
-        function getDeviceType() {
-            const ua = navigator.userAgent;
-            if (/tablet|ipad|playbook|silk/i.test(ua)) return "Tablet";
-            if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Opera Mini/i.test(ua)) {
-                return /iPhone|iPod/i.test(ua) ? "iPhone" : "Android Mobile";
-            }
-            return "PC";
-        }
+function getDeviceType() {
+    const ua = navigator.userAgent;
+    const isStandalone = window.navigator.standalone === true || 
+                         window.matchMedia('(display-mode: standalone)').matches;
+    const mode = isStandalone ? "PWA" : "APP";
+
+    let device = "PC";
+    if (/tablet|ipad|playbook|silk/i.test(ua)) {
+        device = "Tablet";
+    } else if (/Mobile|Android|IP(hone|od)|IEMobile|BlackBerry|Kindle|Opera Mini/i.test(ua)) {
+        device = /iPhone|iPod/i.test(ua) ? "iPhone" : "Android Mobile";
+    }
+
+    return `${device} (${mode})`;
+}
 
 const dbRequest = indexedDB.open("RaceLoggerDB", 1);
         dbRequest.onupgradeneeded = function(e) {
