@@ -104,9 +104,6 @@
             </button>
         </div>
         <div class="flex items-center gap-1.5">
-            <div id="batteryIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2 py-0.5 rounded-full font-bold border border-neutral-800 text-neutral-400">
-                <span id="batIcon">🔋</span> <span id="batText">100%</span>
-            </div>
             <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800">
                 <span class="w-2 h-2 rounded-full bg-red-600" id="gpsDot"></span>
                 <span id="gpsText" class="text-neutral-400">GPS SLEEP</span>
@@ -452,9 +449,6 @@
             if ('getBattery' in navigator) {
                 navigator.getBattery().then(battery => {
                     function updateBatteryStatus() {
-                        const levelPercent = Math.round(battery.level * 100);
-                        document.getElementById('batText').textContent = `${levelPercent}%`;
-                        document.getElementById('batIcon').textContent = battery.charging ? "⚡🔋" : (levelPercent <= 20 ? "🪫" : "🔋");
                         if (battery.level <= 0.15 && !battery.charging) {
                             if (!lowBatteryThresholdActive) activateBatterySafeMode(false);
                         } else {
@@ -465,14 +459,11 @@
                     battery.addEventListener('levelchange', updateBatteryStatus);
                     battery.addEventListener('chargingchange', updateBatteryStatus);
                 });
-            } else {
-                document.getElementById('batteryIndicator').classList.add('hidden');
             }
         }
 
         function activateBatterySafeMode(forcedByFlag = false) {
             if (!forcedByFlag) lowBatteryThresholdActive = true;
-            document.getElementById('batteryIndicator').className = "flex items-center gap-1 text-[10px] bg-red-950 text-red-400 px-2 py-0.5 rounded-full font-bold border border-red-800";
             shutOffGPSHardware();
             resetSyncTimer();
         }
@@ -480,7 +471,6 @@
         function deactivateBatterySafeMode() {
             lowBatteryThresholdActive = false;
             if (batterySaverManual) return; 
-            document.getElementById('batteryIndicator').className = "flex items-center gap-1 text-[10px] bg-black px-2 py-0.5 rounded-full font-bold border border-neutral-800 text-neutral-400";
             resetSyncTimer();
         }
 
