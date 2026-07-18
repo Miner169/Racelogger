@@ -165,9 +165,13 @@
         <section class="theme-panel p-4 rounded-xl border shadow flex flex-col gap-3">
             <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
             <div class="flex gap-3 items-stretch">
-<div class="flex-grow">
-    <input type="text" id="bibInput" onfocus="warmUpGPS()" oninput="warmUpGPS()" placeholder="BIB" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl px-2 focus:outline-none focus:border-blue-900 transition uppercase">
-</div>
+                <div class="flex-grow relative">
+                    <!-- Default to safe numeric layout with manual character override support -->
+                    <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" oninput="warmUpGPS()" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl pl-12 pr-2 focus:outline-none focus:border-blue-900 transition uppercase">
+                    
+                    <!-- Keyboard Toggle Switch Trigger Graphic Overlay -->
+                    <button type="button" onclick="toggleKeyboardMode(this)" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-lg p-1 bg-neutral-900/80 rounded-lg border theme-border select-none shadow" title="Switch Keyboard Mode">🔢</button>
+                </div>
                 <button onclick="checkDuplicateAndLog()" class="bg-blue-800 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-lg px-6 rounded-xl shadow-lg transition duration-150 flex items-center justify-center">LOG</button>
             </div>
             <div class="mt-1 relative">
@@ -276,6 +280,19 @@
                 const touchMove = e.touches[0].clientY;
                 if (window.scrollY === 0 && touchMove > touchStart) e.preventDefault();
             }, { passive: false });
+        }
+
+        function toggleKeyboardMode(btn) {
+            const bI = document.getElementById('bibInput');
+            if (bI.getAttribute('inputmode') === 'numeric') {
+                bI.setAttribute('inputmode', 'text'); 
+                btn.textContent = '🔤';
+            } else {
+                bI.setAttribute('inputmode', 'numeric'); 
+                btn.textContent = '🔢';
+            }
+            bI.blur(); 
+            setTimeout(() => bI.focus(), 50);
         }
 
         function initBatteryMonitoring() {
@@ -485,7 +502,7 @@
 
         function checkDuplicateAndLog() {
             const bI = document.getElementById('bibInput');
-            const bib = bI.value.trim();
+            const bib = bI.value.trim().toUpperCase();
             if (!bib) return;
             
             const cpEl = document.getElementById('checkpoint');
@@ -528,7 +545,7 @@
             lastCreatedUid = generatedUid; 
 
             const entry = {
-                bib: bib,
+                bib: bib.toUpperCase(),
                 time: now.toLocaleDateString() + ' ' + now.toLocaleTimeString(),
                 checkpoint: checkpoint.toUpperCase(),
                 volunteer: volunteer.toUpperCase(),
@@ -557,34 +574,33 @@
             shutOffGPSHardware();
         }
 
-function handleRemarkTyping() {
-    if (!lastCreatedUid) return; 
-    if (remarkDebounceTimeout) clearTimeout(remarkDebounceTimeout);
+        function handleRemarkTyping() {
+            if (!lastCreatedUid) return; 
+            if (remarkDebounceTimeout) clearTimeout(remarkDebounceTimeout);
 
-    // Increase wait time to 2500ms so it doesn't fire while you are actively typing
-    remarkDebounceTimeout = setTimeout(() => {
-        const currentRemark = document.getElementById('remarkInput').value.trim();
-        const tx = db.transaction(["logs"], "readwrite");
-        const store = tx.objectStore("logs");
-        
-        store.getAll().onsuccess = function(e) {
-            const logs = e.target.result;
-            const logToUpdate = logs.find(l => l.uid === lastCreatedUid);
-            if (logToUpdate) {
-                logToUpdate.remark = currentRemark;
-                logToUpdate.synced = false; 
-                store.put(logToUpdate);
-                tx.oncomplete = function() {
-                    remarkDebounceTimeout = null;
-                    loadHistory();
-                    attemptSync(); 
+            remarkDebounceTimeout = setTimeout(() => {
+                const currentRemark = document.getElementById('remarkInput').value.trim();
+                const tx = db.transaction(["logs"], "readwrite");
+                const store = tx.objectStore("logs");
+                
+                store.getAll().onsuccess = function(e) {
+                    const logs = e.target.result;
+                    const logToUpdate = logs.find(l => l.uid === lastCreatedUid);
+                    if (logToUpdate) {
+                        logToUpdate.remark = currentRemark;
+                        logToUpdate.synced = false; 
+                        store.put(logToUpdate);
+                        tx.oncomplete = function() {
+                            remarkDebounceTimeout = null;
+                            loadHistory();
+                            attemptSync(); 
+                        };
+                    } else {
+                        remarkDebounceTimeout = null;
+                    }
                 };
-            } else {
-                remarkDebounceTimeout = null;
-            }
-        };
-    }, 2500); 
-}
+            }, 2500); 
+        }
 
         function toggleQueueInspector() { document.getElementById("queueInspectorSection").classList.toggle("hidden"); }
 
@@ -637,39 +653,39 @@ function handleRemarkTyping() {
             }).catch(err => console.error(err));
         }
 
-function attemptSync() {
-    if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
-    isSyncing = true;
+        function attemptSync() {
+            if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
+            isSyncing = true;
 
-    db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
-        const unsynced = e.target.result.filter(log => !log.synced);
-        if (unsynced.length === 0) { isSyncing = false; return; }
+            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+                const unsynced = e.target.result.filter(log => !log.synced);
+                if (unsynced.length === 0) { isSyncing = false; return; }
 
-        fetch(syncUrl, {
-            method: "POST",
-            mode: "cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ action: "batch_sync", data: unsynced })
-        })
-        .then(async res => {
-            const data = JSON.parse(await res.text());
-            if (data.status === "success") {
-                const confirmedIds = new Set(data.confirmedIds || []);
-                const tx = db.transaction(["logs"], "readwrite");
-                const store = tx.objectStore("logs");
-                unsynced.forEach(log => {
-                    if (confirmedIds.has(log.uid)) { log.synced = true; store.put(log); }
+                fetch(syncUrl, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: "batch_sync", data: unsynced })
+                })
+                .then(async res => {
+                    const data = JSON.parse(await res.text());
+                    if (data.status === "success") {
+                        const confirmedIds = new Set(data.confirmedIds || []);
+                        const tx = db.transaction(["logs"], "readwrite");
+                        const store = tx.objectStore("logs");
+                        unsynced.forEach(log => {
+                            if (confirmedIds.has(log.uid)) { log.synced = true; store.put(log); }
+                        });
+                        tx.oncomplete = function() { loadHistory(); };
+                    }
+                })
+                .catch(err => console.error("Sync batch error:", err))
+                .finally(() => {
+                    isSyncing = false;
+                    if (syncRerunQueued) { syncRerunQueued = false; attemptSync(); }
                 });
-                tx.oncomplete = function() { loadHistory(); };
-            }
-        })
-        .catch(err => console.error("Sync batch error:", err))
-        .finally(() => {
-            isSyncing = false;
-            if (syncRerunQueued) { syncRerunQueued = false; attemptSync(); }
-        });
-    };
-}
+            };
+        }
 
         window.addEventListener('online', attemptSync);
 
@@ -685,31 +701,25 @@ function attemptSync() {
             splitGapTime.textContent = mins > 0 ? `+ ${mins}m ${secs}s` : `+ ${secs}s`;
         }
 
+         Palestine = false;
         function isEditable(logTimeStr) { return (new Date() - new Date(logTimeStr)) < 300000; }
         function startEditing(id) { editingRowId = id; loadHistory(); }
         function cancelEditing() { editingRowId = null; loadHistory(); }
 
-function saveEdit(id) {
-    const newBib = document.getElementById(`edit-bib-${id}`).value.trim();
-    const newRemark = document.getElementById(`edit-remark-${id}`).value.trim();
-    if (!newBib) { alert("Bib required!"); return; }
+        function saveEdit(id) {
+            const newBib = document.getElementById(`edit-bib-${id}`).value.trim().toUpperCase();
+            const newRemark = document.getElementById(`edit-remark-${id}`).value.trim();
+            if (!newBib) { alert("Bib required!"); return; }
 
-    const tx = db.transaction(["logs"], "readwrite");
-    const store = tx.objectStore("logs");
-    store.get(id).onsuccess = function(e) {
-        const log = e.target.result;
-        log.bib = newBib; 
-        log.remark = newRemark; 
-        log.synced = false; // Tells the PWA it must update Google Sheets
-
-        store.put(log);
-        tx.oncomplete = function() { 
-            editingRowId = null; 
-            loadHistory(); 
-            attemptSync(); // Immediately triggers deployment update stream
-        };
-    };
-}
+            const tx = db.transaction(["logs"], "readwrite");
+            const store = tx.objectStore("logs");
+            store.get(id).onsuccess = function(e) {
+                const log = e.target.result;
+                log.bib = newBib; log.remark = newRemark; log.synced = false;
+                store.put(log);
+                tx.oncomplete = function() { editingRowId = null; loadHistory(); attemptSync(); };
+            };
+        }
 
         function loadHistory() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
@@ -733,8 +743,8 @@ function saveEdit(id) {
                             <div class="flex flex-col gap-2">
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs font-bold theme-text-muted uppercase tracking-wider">Edit:</span>
-                                    <input type="text" id="edit-bib-${log.id}" value="${log.bib}" class="w-24 theme-input border rounded px-2 py-0.5 text-sm font-black">
-                                    <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-450 font-bold">${log.checkpoint}</span>
+                                    <input type="text" id="edit-bib-${log.id}" value="${log.bib}" class="w-24 theme-input border rounded px-2 py-0.5 text-sm font-black uppercase">
+                                    <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-400 font-bold">${log.checkpoint}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs font-bold theme-text-muted uppercase tracking-wider">Remark:</span>
