@@ -172,12 +172,22 @@
                     <div>
                         <label class="block text-[10px] theme-text-muted mb-1 font-bold">Duplicate Warning Guard</label>
                         <div class="relative flex items-center">
-                            <input type="number" id="dupWindowInput" min="1" max="60" class="w-full theme-input border rounded-lg pl-2 pr-7 py-1.5 text-xs focus:outline-none text-center font-bold">
+                            <input type="number" id="dupWindowInput" min="2" class="w-full theme-input border rounded-lg pl-2 pr-7 py-1.5 text-xs focus:outline-none text-center font-bold">
                             <span class="absolute right-2 text-[9px] theme-text-muted font-bold pointer-events-none">MINS</span>
                         </div>
                     </div>
                 </div>
-                <label class="flex items-center gap-2 cursor-pointer select-none mt-1">
+
+                <div class="mb-2">
+                    <label class="block text-[10px] theme-text-muted mb-1 font-bold">Local History Display Capacity</label>
+                    <select id="historyLimitSelect" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs focus:outline-none">
+                        <option value="20">Show Latest 20 Logs</option>
+                        <option value="50">Show Latest 50 Logs</option>
+                        <option value="all">Show All Logs</option>
+                    </select>
+                </div>
+
+                <label class="flex items-center gap-2 cursor-pointer select-none mt-2">
                     <input type="checkbox" id="batterySaverManualToggle" class="rounded border-neutral-800 bg-neutral-950 text-red-600 focus:ring-0 w-4 h-4">
                     <span class="text-xs font-bold text-red-500">Force Low Battery Conservation Plan Instantly</span>
                 </label>
@@ -304,10 +314,7 @@
         <!-- Scan History -->
         <section class="flex-grow theme-panel rounded-xl border shadow flex flex-col overflow-hidden min-h-[200px]">
             <div class="px-4 py-3 border-b theme-border flex flex-col gap-2">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-xs font-bold theme-text-muted uppercase tracking-wider">Local Scan History</h3>
-                    <button onclick="toggleSettings()" class="text-xs text-neutral-400 hover:text-neutral-300 font-bold">⚙️ Manage Data</button>
-                </div>
+                <h3 class="text-xs font-bold theme-text-muted uppercase tracking-wider">Local Scan History</h3>
                 <div class="relative">
                     <input type="text" id="searchBar" oninput="loadHistory()" placeholder="🔍 Search Bib, CP, Volunteer, Remark..." class="w-full theme-input border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-900">
                 </div>
@@ -353,6 +360,7 @@
         let gpsQuality = 'low';
         let dupWindow = 10; 
         let batterySaverManual = false;
+        let historyLimit = 'all';
         
         let syncUrl = localStorage.getItem("syncUrl");
         if (!syncUrl || syncUrl.trim() === "" || syncUrl.includes("AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw")) {
@@ -551,7 +559,7 @@
                 oscillator.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
                 oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // High pitch beep
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
                 gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.12);
@@ -630,12 +638,6 @@
                 checkServerModifications(); 
             }
 
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('./sw.js').then(reg => {
-                    reg.update(); 
-                }).catch(err => console.error('Worker fail:', err));
-            }
-
             ['bibInput', 'remarkInput'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -662,11 +664,15 @@
             syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; 
             localStorage.setItem("syncUrl", syncUrl); 
 
+            let requestedDupWindow = parseInt(document.getElementById("dupWindowInput").value, 10) || 2;
+            if (requestedDupWindow < 2) requestedDupWindow = 2; // Hard validation constraint
+
             vibrateEnabled = document.getElementById("vibrateToggle").checked;
             soundEnabled = document.getElementById("soundToggle").checked;
             gpsQuality = document.getElementById("gpsQualitySelect").value;
             syncIntervalMs = parseInt(document.getElementById("syncIntervalSelect").value, 10);
-            dupWindow = parseInt(document.getElementById("dupWindowInput").value, 10) || 10;
+            dupWindow = requestedDupWindow;
+            historyLimit = document.getElementById("historyLimitSelect").value;
             batterySaverManual = document.getElementById("batterySaverManualToggle").checked;
 
             localStorage.setItem("vibrateEnabled", vibrateEnabled);
@@ -674,10 +680,14 @@
             localStorage.setItem("gpsQuality", gpsQuality);
             localStorage.setItem("syncIntervalMs", syncIntervalMs);
             localStorage.setItem("dupWindow", dupWindow);
+            localStorage.setItem("historyLimit", historyLimit);
             localStorage.setItem("batterySaverManual", batterySaverManual);
+
+            document.getElementById("dupWindowInput").value = dupWindow;
 
             toggleSettings(); 
             updateSyncStatusLabel(); 
+            loadHistory();
             
             if (batterySaverManual) {
                 activateBatterySafeMode(true);
@@ -702,6 +712,8 @@
             gpsQuality = localStorage.getItem("gpsQuality") || "low";
             syncIntervalMs = parseInt(localStorage.getItem("syncIntervalMs") || "15000", 10);
             dupWindow = parseInt(localStorage.getItem("dupWindow") || "10", 10);
+            if (dupWindow < 2) dupWindow = 2;
+            historyLimit = localStorage.getItem("historyLimit") || "all";
             batterySaverManual = localStorage.getItem("batterySaverManual") === "true";
 
             document.getElementById("vibrateToggle").checked = vibrateEnabled;
@@ -709,6 +721,7 @@
             document.getElementById("gpsQualitySelect").value = gpsQuality;
             document.getElementById("syncIntervalSelect").value = String(syncIntervalMs);
             document.getElementById("dupWindowInput").value = dupWindow;
+            document.getElementById("historyLimitSelect").value = historyLimit;
             document.getElementById("batterySaverManualToggle").checked = batterySaverManual;
 
             applyLockState(); 
@@ -1059,9 +1072,19 @@
                 const frequencies = {}; logs.forEach(l => frequencies[l.bib] = (frequencies[l.bib] || 0) + 1);
                 const logList = document.getElementById('logList'); logList.innerHTML = '';
 
-                [...logs].reverse().filter(log => {
+                let filteredLogs = [...logs].reverse().filter(log => {
                     return log.bib.toLowerCase().includes(query) || log.checkpoint.toLowerCase().includes(query) || (log.remark && log.remark.toLowerCase().includes(query));
-                }).forEach(log => {
+                });
+
+                // Apply Capacity Constraints derived from configuration states
+                if (historyLimit !== 'all') {
+                    const maxRows = parseInt(historyLimit, 10);
+                    if (!isNaN(maxRows)) {
+                        filteredLogs = filteredLogs.slice(0, maxRows);
+                    }
+                }
+
+                filteredLogs.forEach(log => {
                     const row = document.createElement('div');
                     row.className = 'px-4 py-3 flex flex-col justify-center hover:bg-neutral-500/10 border-b theme-border';
                     
@@ -1136,7 +1159,6 @@
             };
         }
 
-        // Mobile-Safe Blob-Based CSV Downloader
         function exportCSV() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const logs = e.target.result;
@@ -1157,7 +1179,6 @@
             };
         }
 
-        // Raw Database JSON Exporter
         function exportJSON() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const logs = e.target.result;
@@ -1175,7 +1196,6 @@
             };
         }
 
-        // Relocated Destructive Master Clear Engine
         function clearDatabaseFromSettings() {
             if (prompt("⚠️ CRITICAL ACTION: LOCAL WIPE\nType '0000' to completely clear the log history on this phone:") !== "0000") return;
             const tx = db.transaction(["logs"], "readwrite");
