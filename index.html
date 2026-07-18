@@ -258,7 +258,7 @@
         let gpsWarmupTimeout = null;
         let isGpsHardwareRunning = false;
 
-        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
+        const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let syncUrl = localStorage.getItem("syncUrl") || DEFAULT_SYNC_URL;
         
         if (!syncUrl || syncUrl.trim() === "" || syncUrl.includes("AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw")) {
@@ -415,6 +415,15 @@
             loadHistory();
         }
 
+        function getDeviceType() {
+            const ua = navigator.userAgent;
+            if (/tablet|ipad|playbook|silk/i.test(ua)) return "Tablet";
+            if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Opera Mini/i.test(ua)) {
+                return /iPhone|iPod/i.test(ua) ? "iPhone" : "Android Mobile";
+            }
+            return "PC";
+        }
+
         const dbRequest = indexedDB.open("RaceLoggerDB", 1);
         dbRequest.onupgradeneeded = function(e) {
             db = e.target.result;
@@ -474,37 +483,37 @@
             rL.className = "block text-xs theme-text-muted mb-1 font-bold"; rL.textContent = "Remark (Optional)";
         }
 
-function checkDuplicateAndLog() {
-    const bI = document.getElementById('bibInput');
-    const bib = bI.value.trim();
-    if (!bib) return;
-    
-    const cpEl = document.getElementById('checkpoint');
-    const volEl = document.getElementById('volunteer');
-    const cpV = cpEl ? cpEl.value.trim() : '';
-    const volV = volEl ? volEl.value.trim() : '';
-    
-    if (!cpV || !volV) { 
-        alert("⚠️ Setup incomplete! Please fill Checkpoint and Volunteer fields first."); 
-        return; 
-    }
+        function checkDuplicateAndLog() {
+            const bI = document.getElementById('bibInput');
+            const bib = bI.value.trim();
+            if (!bib) return;
+            
+            const cpEl = document.getElementById('checkpoint');
+            const volEl = document.getElementById('volunteer');
+            const cpV = cpEl ? cpEl.value.trim() : '';
+            const volV = volEl ? volEl.value.trim() : '';
+            
+            if (!cpV || !volV) { 
+                alert("⚠️ Setup incomplete! Please fill Checkpoint and Volunteer fields first."); 
+                return; 
+            }
 
-    const transaction = db.transaction(["logs"], "readonly");
-    transaction.objectStore("logs").getAll().onsuccess = function(e) {
-        const duplicate = e.target.result.find(log => 
-            log.bib === bib && 
-            log.checkpoint.toUpperCase() === cpV.toUpperCase() && 
-            (new Date() - new Date(log.time)) < 600000
-        );
-        if (duplicate && !confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`)) { 
-            bI.value = ''; 
-            bI.focus(); 
-        } 
-        else { 
-            logEntry(bib); 
+            const transaction = db.transaction(["logs"], "readonly");
+            transaction.objectStore("logs").getAll().onsuccess = function(e) {
+                const duplicate = e.target.result.find(log => 
+                    log.bib === bib && 
+                    log.checkpoint.toUpperCase() === cpV.toUpperCase() && 
+                    (new Date() - new Date(log.time)) < 600000
+                );
+                if (duplicate && !confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`)) { 
+                    bI.value = ''; 
+                    bI.focus(); 
+                } 
+                else { 
+                    logEntry(bib); 
+                }
+            };
         }
-    };
-}
 
         function generateUID() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11); }
 
@@ -537,7 +546,6 @@ function checkDuplicateAndLog() {
                 loadHistory();
                 if (navigator.vibrate) navigator.vibrate(50);
                 
-                // If remark input field is empty, fire synchronization pipelines right away
                 if (!remark) {
                     attemptSync();
                 } else {
@@ -549,7 +557,6 @@ function checkDuplicateAndLog() {
             shutOffGPSHardware();
         }
 
-        // Debounce pipeline blocks high-frequency typing from initiating broken sync rows until the user finishes writing
         function handleRemarkTyping() {
             if (!lastCreatedUid) return; 
             if (remarkDebounceTimeout) clearTimeout(remarkDebounceTimeout);
@@ -604,8 +611,8 @@ function checkDuplicateAndLog() {
                         <div class="text-[10px] mt-0.5">${log.time} ${log.remark ? `• 💬 ${log.remark}` : ''}</div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick='syncSingleRow(${JSON.stringify(log)})' class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-900 px-2 py-0.5 rounded font-bold hover:bg-emerald-900">Sync</button>
-                        <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-500 text-base">A🗑️</button>
+                        <button onclick='syncSingleRow(${JSON.stringify(log)})' class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-bold hover:bg-emerald-900">Sync</button>
+                        <button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-500 text-base">🗑️</button>
                     </div>`;
                 list.appendChild(item);
             });
@@ -719,7 +726,7 @@ function checkDuplicateAndLog() {
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs font-bold theme-text-muted uppercase tracking-wider">Edit:</span>
                                     <input type="text" id="edit-bib-${log.id}" value="${log.bib}" class="w-24 theme-input border rounded px-2 py-0.5 text-sm font-black">
-                                    <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-400 font-bold">${log.checkpoint}</span>
+                                    <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-450 font-bold">${log.checkpoint}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs font-bold theme-text-muted uppercase tracking-wider">Remark:</span>
@@ -769,14 +776,12 @@ function checkDuplicateAndLog() {
                 if (!log) return;
 
                 if (!syncUrl) {
-                    // Running in full local mode, drop the row immediately
                     const txWrite = db.transaction(["logs"], "readwrite");
                     txWrite.objectStore("logs").delete(id);
                     txWrite.oncomplete = function() { loadHistory(); };
                     return;
                 }
 
-                // App shows alert indicating execution status during fetch lifecycle
                 const remarkInput = document.getElementById('remarkInput');
                 if (remarkInput) { remarkInput.value = "⏳ Contacting Cloud Server for Delete..."; remarkInput.disabled = true; }
 
@@ -789,7 +794,6 @@ function checkDuplicateAndLog() {
                 .then(async res => {
                     const data = JSON.parse(await res.text());
                     if (data.status === "success") {
-                        // Drop row locally *only* once the cloud validates the removal request
                         const txWrite = db.transaction(["logs"], "readwrite");
                         txWrite.objectStore("logs").delete(id);
                         txWrite.oncomplete = function() {
