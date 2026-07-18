@@ -181,7 +181,7 @@
                 <div class="mb-2">
                     <label class="block text-[10px] theme-text-muted mb-1 font-bold">Local History Display Capacity</label>
                     <select id="historyLimitSelect" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs focus:outline-none">
-                        <option value="20">Show Latest 20 Logs</option>
+                        <option value="20" selected>Show Latest 20 Logs</option>
                         <option value="50">Show Latest 50 Logs</option>
                         <option value="all">Show All Logs</option>
                     </select>
@@ -228,7 +228,7 @@
                 </h2>
                 <div class="flex items-center gap-1.5">
                     <button id="pwaHelpBtn" onclick="togglePwaInstructions()" class="hidden text-[10px] bg-blue-950 hover:bg-blue-900 text-blue-400 border border-blue-800 px-2 py-1 rounded-md font-bold transition">ℹ️ Install App</button>
-                    <button onclick="toggleLock()" id="lockBtn" class="text-xs theme-btn-lock border px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1">🔓 Unlock Settings</button>
+                    <button onclick="toggleLock()" id="lockBtn" class="text-xs theme-btn-lock border px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1">🔓 Unlock</button>
                 </div>
             </div>
 
@@ -356,11 +356,11 @@
 
         // Custom Variables Derived from Modal Upgrades
         let vibrateEnabled = true;
-        let soundEnabled = false;
+        let soundEnabled = true;
         let gpsQuality = 'low';
         let dupWindow = 10; 
         let batterySaverManual = false;
-        let historyLimit = 'all';
+        let historyLimit = '20';
         
         let syncUrl = localStorage.getItem("syncUrl");
         if (!syncUrl || syncUrl.trim() === "" || syncUrl.includes("AKfycbweiZ7rijKmR-D-gwG9SMDTj_ehesBP_85hqAWipzVpGjFMk4d2MTZh2FUQZfpMqy7Kiw")) {
@@ -665,7 +665,7 @@
             localStorage.setItem("syncUrl", syncUrl); 
 
             let requestedDupWindow = parseInt(document.getElementById("dupWindowInput").value, 10) || 2;
-            if (requestedDupWindow < 2) requestedDupWindow = 2; // Hard validation constraint
+            if (requestedDupWindow < 2) requestedDupWindow = 2; 
 
             vibrateEnabled = document.getElementById("vibrateToggle").checked;
             soundEnabled = document.getElementById("soundToggle").checked;
@@ -708,12 +708,12 @@
             document.getElementById("volunteer").value = localStorage.getItem("volunteerVal") || ""; 
             
             vibrateEnabled = localStorage.getItem("vibrateEnabled") !== "false";
-            soundEnabled = localStorage.getItem("soundEnabled") === "true";
+            soundEnabled = localStorage.getItem("soundEnabled") !== "false";
             gpsQuality = localStorage.getItem("gpsQuality") || "low";
             syncIntervalMs = parseInt(localStorage.getItem("syncIntervalMs") || "15000", 10);
             dupWindow = parseInt(localStorage.getItem("dupWindow") || "10", 10);
             if (dupWindow < 2) dupWindow = 2;
-            historyLimit = localStorage.getItem("historyLimit") || "all";
+            historyLimit = localStorage.getItem("historyLimit") || "20";
             batterySaverManual = localStorage.getItem("batterySaverManual") === "true";
 
             document.getElementById("vibrateToggle").checked = vibrateEnabled;
@@ -741,11 +741,11 @@
             cp.disabled = isSetupLocked; vol.disabled = isSetupLocked;
             const cpV = cp.value.toUpperCase().trim() || 'N/A', volV = vol.value.toUpperCase().trim() || 'N/A';
             if (isSetupLocked) {
-                lockBtn.textContent = "🔒 Settings Locked"; lockBtn.className = "text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
+                lockBtn.textContent = "🔒 Locked"; lockBtn.className = "text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
                 localStorage.setItem("checkpointVal", cpV); localStorage.setItem("volunteerVal", volV);
                 fields.classList.add("hidden"); row.classList.replace("mb-3", "mb-0"); summary.textContent = `${cpV} • ${volV}`; summary.classList.remove("hidden");
             } else {
-                lockBtn.textContent = "🔓 Unlock Settings"; lockBtn.className = "text-xs theme-btn-lock border px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
+                lockBtn.textContent = "🔓 Unlocked"; lockBtn.className = "text-xs theme-btn-lock border px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1";
                 fields.classList.remove("hidden"); row.classList.replace("mb-0", "mb-3"); summary.classList.add("hidden");
             }
         }
