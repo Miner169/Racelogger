@@ -1141,16 +1141,38 @@
             };
         }
 
-        function exportCSV() {
-            db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
-                if (e.target.result.length === 0) return;
-                let csv = "data:text/csv;charset=utf-8,ID,Bib,Time,Checkpoint,Volunteer,Remark,Device\n";
-                e.target.result.forEach(l => { csv += `${l.id},"${l.bib}","${l.time}","${l.checkpoint}","${l.volunteer}","${l.remark || ''}","${l.device}"\n`; });
-                const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv));
-                link.setAttribute("download", `Race_Logs_${new Date().toISOString().split('T')[0]}.csv`);
-                document.body.appendChild(link); link.click(); document.body.removeChild(link);
-            };
+function exportCSV() {
+    db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
+        const logs = e.target.result;
+        if (logs.length === 0) {
+            alert("⚠️ No logs available to export yet!");
+            return;
         }
+        
+        // Build the CSV string with standard Excel-friendly carriage returns (\r\n)
+        let csvContent = "ID,Bib,Time,Checkpoint,Volunteer,Remark,Device\r\n";
+        logs.forEach(l => { 
+            csvContent += `${l.id},"${l.bib}","${l.time}","${l.checkpoint}","${l.volunteer}","${l.remark || ''}","${l.device}"\r\n`; 
+        });
+        
+        // Create a proper Blob file object
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement("a"); 
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Race_Logs_${new Date().toISOString().split('T')[0]}.csv`);
+        
+        // Hide it and force the mobile environment to trigger it
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link); 
+        link.click(); 
+        
+        // Clean up memory
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+    };
+}
 
         function clearDatabase() {
             if (prompt("⚠️ Type '0000' to erase ALL local data:") !== "0000") return;
