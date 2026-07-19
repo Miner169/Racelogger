@@ -30,6 +30,8 @@
             --btn-lock-border: #262626;
             --bib-color: #10b981;        
             --bib-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+            --tooltip-bg: #1e1e1e;
+            --tooltip-txt: #ffffff;
         }
 
         body.light-theme {
@@ -50,6 +52,8 @@
             --btn-lock-border: #92929a;
             --bib-color: #065f46;        
             --bib-shadow: 1px 1px 0px #ffffff, -1px -1px 0px #ffffff, 1px -1px 0px #ffffff, -1px 1px 0px #ffffff;
+            --tooltip-bg: #ffffff;
+            --tooltip-txt: #000000;
         }
 
         .theme-bg { background-color: var(--bg-color); transition: background-color 0.15s ease; }
@@ -142,6 +146,39 @@
             body:not(.forced-portrait) .landscape-metrics-panel { display: grid; }
         }
         body.forced-landscape .landscape-metrics-panel { display: grid; }
+
+        /* Metric Info Tooltips Elements Styling Rule Mechanics */
+        .metric-info-trigger {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .metric-tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--tooltip-bg);
+            color: var(--tooltip-txt);
+            text-align: left;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.6rem;
+            position: absolute;
+            z-index: 60;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        .metric-info-trigger:hover .metric-tooltip,
+        .metric-info-trigger:focus-within .metric-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="theme-bg theme-text min-h-screen flex flex-col font-sans select-none pb-4">
@@ -393,19 +430,43 @@
                 <!-- Expanded Landscape Advanced Analytics View Panel Module -->
                 <section class="landscape-metrics-panel grid grid-cols-2 gap-1.5">
                     <div class="theme-panel py-2 px-2 rounded-xl border text-center shadow-sm flex flex-col justify-between bg-neutral-900/10">
-                        <div class="text-[9px] text-emerald-500 font-black uppercase tracking-wider">Traffic Density</div>
+                        <div class="text-[9px] text-emerald-500 font-black uppercase tracking-wider flex items-center justify-center gap-1">
+                            <span>Traffic Density</span>
+                            <div class="metric-info-trigger text-neutral-500 hover:text-neutral-300 text-[10px]" tabindex="0">
+                                ⓘ
+                                <span class="metric-tooltip text-[9px] font-medium normal-case tracking-normal">Logs the frequency flow rate of active racers processed inside a sliding rolling window of the last 5 minutes.</span>
+                            </div>
+                        </div>
                         <div id="trafficDensity" class="text-base font-black theme-text mt-0.5 leading-none">0 <span class="text-[9px] text-neutral-500 font-medium">runners/5m</span></div>
                     </div>
                     <div class="theme-panel py-2 px-2 rounded-xl border text-center shadow-sm flex flex-col justify-between bg-neutral-900/10">
-                        <div class="text-[9px] text-cyan-500 font-black uppercase tracking-wider">Est. Pacing Window</div>
+                        <div class="text-[9px] text-cyan-500 font-black uppercase tracking-wider flex items-center justify-center gap-1">
+                            <span>Est. Pacing Window</span>
+                            <div class="metric-info-trigger text-neutral-500 hover:text-neutral-300 text-[10px]" tabindex="0">
+                                ⓘ
+                                <span class="metric-tooltip text-[9px] font-medium normal-case tracking-normal">Formulates the standard estimated time bounds window per kilometer matching average cohort speed.</span>
+                            </div>
+                        </div>
                         <div id="estPaceWindow" class="text-xs font-black theme-text mt-0.5 leading-none truncate">--:--</div>
                     </div>
                     <div class="theme-panel py-2 px-2 rounded-xl border text-center shadow-sm flex flex-col justify-between bg-neutral-900/10">
-                        <div class="text-[9px] text-yellow-500 font-black uppercase tracking-wider">Pace Dropoffs</div>
+                        <div class="text-[9px] text-yellow-500 font-black uppercase tracking-wider flex items-center justify-center gap-1">
+                            <span>Pace Dropoffs</span>
+                            <div class="metric-info-trigger text-neutral-500 hover:text-neutral-300 text-[10px]" tabindex="0">
+                                ⓘ
+                                <span class="metric-tooltip text-[9px] font-medium normal-case tracking-normal">Flags timing data standard deviation dropoff variations greater than or equal to 2.5 times the median trend.</span>
+                            </div>
+                        </div>
                         <div id="paceDropoffs" class="text-base font-black theme-text mt-0.5 leading-none">0 <span class="text-[9px] text-neutral-500 font-medium">anomalies</span></div>
                     </div>
                     <div class="theme-panel py-2 px-2 rounded-xl border text-center shadow-sm flex flex-col justify-between bg-neutral-900/10">
-                        <div class="text-[9px] text-purple-500 font-black uppercase tracking-wider">Peak Climax Forecast</div>
+                        <div class="text-[9px] text-purple-500 font-black uppercase tracking-wider flex items-center justify-center gap-1">
+                            <span>Peak Climax Forecast</span>
+                            <div class="metric-info-trigger text-neutral-500 hover:text-neutral-300 text-[10px]" tabindex="0">
+                                ⓘ
+                                <span class="metric-tooltip text-[9px] font-medium normal-case tracking-normal">Forecasts the immediate target minute window when the next heavy wave of runner volume arrivals is mathematically predicted.</span>
+                            </div>
+                        </div>
                         <div id="peakCongestionTime" class="text-xs font-black theme-text mt-0.5 leading-none truncate">--:--</div>
                     </div>
                 </section>
@@ -448,7 +509,7 @@
         </div>
     </main>
 
-    <!-- Transparent See-Through Success Toast Notification Overlay Wrapper (Enhanced Opacity Layout) -->
+    <!-- Transparent See-Through Success Toast Notification Overlay Wrapper -->
     <div id="successToast" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] cursor-pointer bg-neutral-950/40 backdrop-blur-md rounded-2xl p-6 flex flex-col items-center justify-center select-none border border-neutral-800" onclick="hideSuccessToast()">
         <span class="text-7xl filter drop-shadow-md opacity-90 transform transition-transform active:scale-90">✅</span>
         <span class="text-[10px] text-emerald-400 font-black tracking-widest uppercase mt-1 opacity-95">Logged</span>
@@ -1625,18 +1686,15 @@
                 const sum = intervals.reduce((a, b) => a + b, 0);
                 const avgGap = sum / intervals.length;
                 
-                // Formulate pacing variations window estimations
                 const basePaceMin = Math.max(1, Math.floor(avgGap / 12));
                 const basePaceMax = Math.max(2, Math.floor(avgGap / 7));
                 document.getElementById("estPaceWindow").textContent = `${basePaceMin}:30 - ${basePaceMax}:15 /km`;
 
-                // Calculate Statistical Anomalies (Pace Dropoffs Threshold Standard Deviation >= 2.5)
                 const sqDiff = intervals.map(v => Math.pow(v - avgGap, 2));
                 const stdDev = Math.sqrt(sqDiff.reduce((a,b) => a+b, 0) / intervals.length) || 1;
                 const anomalies = intervals.filter(v => v > (avgGap + (2.5 * stdDev))).length;
                 document.getElementById("paceDropoffs").innerHTML = `${anomalies} <span class="text-[9px] text-neutral-500 font-medium">anomalies</span>`;
 
-                // Forecast Next Climax Load Time
                 const lastLogTime = parseCustomOrIsoDate(sorted[sorted.length - 1].time);
                 const peakForecastTime = new Date(lastLogTime.getTime() + (avgGap * 1.2 * 1000));
                 let fHours = peakForecastTime.getHours();
