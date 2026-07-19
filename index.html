@@ -147,6 +147,30 @@
         .forced-landscape #mainGridSplitter {
             grid-template-columns: minmax(320px, 460px) 1fr !important;
         }
+
+        /* Accordion Panel Layouts */
+        .collapsible-log-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.2s ease;
+        }
+
+        .collapsible-log-panel.expanded {
+            max-height: 500px;
+        }
+
+        .chevron-rotate {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .chevron-rotate.expanded {
+            transform: rotate(180deg);
+        }
+
+        /* Tooltip layouts */
+        .metrics-info-trigger:hover .metrics-tooltip-card {
+            display: block;
+        }
     </style>
 </head>
 <body class="theme-bg theme-text min-h-screen flex flex-col font-sans select-none pb-4">
@@ -440,14 +464,35 @@
             <div class="w-full h-full flex flex-col">
                 <section class="theme-panel rounded-xl border shadow flex flex-col overflow-hidden min-h-[450px] lg:min-h-[640px] w-full h-full">
                     <div class="px-3 py-2.5 border-b theme-border flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap bg-neutral-900/10">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                             <h3 class="text-[10px] font-bold theme-text-muted uppercase tracking-wider whitespace-nowrap">Scan History</h3>
-                            <div class="inline-flex bg-neutral-900 border theme-border rounded-md p-0.5 text-[9px] font-bold">
+                            <div class="inline-flex bg-neutral-900 border theme-border rounded-md p-0.5 text-[9px] font-bold shrink-0">
                                 <button onclick="setScopeFilter('current')" id="scopeBtn-current" class="px-2 py-0.5 rounded bg-blue-900 text-white transition-colors duration-150">Current CP</button>
                                 <button onclick="setScopeFilter('global')" id="scopeBtn-global" class="px-2 py-0.5 rounded text-neutral-400 transition-colors duration-150">Global</button>
                             </div>
+                            
+                            <!-- Global Accordion Actions -->
+                            <button onclick="toggleAllLogAccordionPanels(true)" class="text-[9px] bg-neutral-800 hover:bg-neutral-700 theme-text border theme-border px-1.5 py-0.5 rounded font-bold transition shrink-0">↔️ Expand All</button>
+                            <button onclick="toggleAllLogAccordionPanels(false)" class="text-[9px] bg-neutral-800 hover:bg-neutral-700 theme-text border theme-border px-1.5 py-0.5 rounded font-bold transition shrink-0">📋 Collapse All</button>
+                            
+                            <!-- Tooltip Indicator -->
+                            <div class="relative inline-block metrics-info-trigger cursor-help z-40 shrink-0">
+                                <span class="text-xs bg-blue-955 text-blue-400 border border-blue-800 rounded-full w-4 h-4 flex items-center justify-center font-bold font-mono">?</span>
+                                <div class="hidden metrics-tooltip-card absolute left-0 top-6 bg-neutral-950/95 backdrop-blur-md border border-neutral-800 p-3 rounded-lg shadow-2xl w-72 text-[11px] leading-normal theme-text-muted text-left">
+                                    <strong class="text-blue-400 block border-b border-neutral-800 pb-1 mb-1.5 uppercase tracking-wider text-[10px]">📊 Race Metric Parameter Index</strong>
+                                    <ul class="space-y-1.5 font-sans">
+                                        <li>🔹 <strong>Categories:</strong> Distance tier configuration matrix mapped to runner profile[cite: 1].</li>
+                                        <li>🔹 <strong>Lap/CP & Time:</strong> Lap counter and tracking pass timestamp logs[cite: 1].</li>
+                                        <li>🔹 <strong>Time per lap/CP:</strong> Split timing delta since passing the previous checkpoint row[cite: 1].</li>
+                                        <li>🔹 <strong>Total time:</strong> Overall clock duration elapsed since brackets officially flagged off[cite: 1].</li>
+                                        <li>🔹 <strong>Pace:</strong> Time required to cross 1 kilometer metrics (min/km)[cite: 1].</li>
+                                        <li>🔹 <strong>Speed:</strong> Running ground velocity metrics tracking engine (km/h)[cite: 1].</li>
+                                        <li>🔹 <strong>Projected Finish time:</strong> Smart arrival window estimated down to the terminal finish grid[cite: 1].</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
-                        <div class="relative flex-grow max-w-[100%] sm:max-w-[65%]">
+                        <div class="relative flex-grow max-w-[100%] sm:max-w-[40%]">
                             <input type="text" id="searchBar" oninput="loadHistory()" placeholder="🔍 Search..." class="w-full theme-input border rounded-md px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-900">
                         </div>
                     </div>
@@ -1592,7 +1637,11 @@
                             syncAttempts: 0,
                             speed: serverRecord.speed || "",
                             pace: serverRecord.pace || "",
-                            category: serverRecord.category || ""
+                            category: serverRecord.category || "",
+                            lap: serverRecord.lap || "-",         
+                            timePerLap: serverRecord.timePerLap || "-",    
+                            totalTime: serverRecord.totalTime || "-",      
+                            projectedFinish: serverRecord.projectedFinish || "-"
                         });
                         changed = true;
                     });
@@ -1695,6 +1744,47 @@
             }
             loadHistory();
         }
+
+        let activeExpandedUids = window.globalExpandedLogUidsSetRecord || new Set();
+        window.globalExpandedLogUidsSetRecord = activeExpandedUids;
+
+        function toggleAllLogAccordionPanels(shouldExpandAll) {
+            const panels = document.querySelectorAll('.collapsible-log-panel');
+            const chevrons = document.querySelectorAll('.chevron-rotate');
+            
+            panels.forEach(panel => {
+                const uid = panel.getAttribute('data-uid');
+                if (shouldExpandAll) {
+                    panel.classList.add('expanded');
+                    activeExpandedUids.add(uid);
+                } else {
+                    panel.classList.remove('expanded');
+                    activeExpandedUids.delete(uid);
+                }
+            });
+            
+            chevrons.forEach(chevron => {
+                if (shouldExpandAll) chevron.classList.add('expanded');
+                else chevron.classList.remove('expanded');
+            });
+        }
+
+        function inlineLogPanelAccordionToggle(uid) {
+            const panel = document.getElementById(`accordion-panel-${uid}`);
+            const chevron = document.getElementById(`chevron-indicator-${uid}`);
+            if (!panel) return;
+            
+            const isExpanding = !panel.classList.contains('expanded');
+            if (isExpanding) {
+                panel.classList.add('expanded');
+                if (chevron) chevron.classList.add('expanded');
+                activeExpandedUids.add(uid);
+            } else {
+                panel.classList.remove('expanded');
+                if (chevron) chevron.classList.remove('expanded');
+                activeExpandedUids.delete(uid);
+            }
+        }
         
         function loadHistory() {
             if (!db) return;
@@ -1769,10 +1859,11 @@
 
                 filteredLogs.forEach(log => {
                     const row = document.createElement('div');
-                    row.className = 'px-4 py-3 flex flex-col justify-center hover:bg-neutral-500/10 border-b theme-border';
+                    row.className = 'flex flex-col border-b theme-border bg-neutral-500/0 hover:bg-neutral-500/5 transition-colors duration-700';
+                    
                     if (editingRowId === log.id) {
                         row.innerHTML = `
-                            <div class="flex flex-col gap-2">
+                            <div class="p-4 flex flex-col gap-2">
                                 <div class="flex items-center gap-2">
                                     <input type="text" id="edit-bib-${log.id}" value="${log.remake ? '' : log.bib}" class="w-24 theme-input border rounded px-2 py-0.5 text-sm font-black uppercase">
                                     <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-400 font-bold">${log.checkpoint}</span>
@@ -1786,43 +1877,77 @@
                     } else {
                         const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-955 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
-                        const categoryBadge = log.category ? `<span class="text-[10px] bg-neutral-800 border border-neutral-700 px-1.5 py-0.5 rounded text-neutral-300 font-bold tracking-wide uppercase">${log.category}</span>` : '';
                         
-                        let runtimeMetricsHTML = '';
-                        if (log.speed || log.pace) {
-                            runtimeMetricsHTML = `<div class="flex items-center gap-2 mt-1 text-[10px] font-mono text-black dark:text-white bg-cyan-950/20 border border-cyan-900/40 rounded px-1.5 py-0.5 w-max">`;
-                            if (log.pace) runtimeMetricsHTML += `⏱️ Pace: ${log.pace}`;
-                            if (log.speed && log.pace) runtimeMetricsHTML += ` | `;
-                            if (log.speed) runtimeMetricsHTML += `⚡ Speed: ${log.speed}`;
-                            runtimeMetricsHTML += `</div>`;
-                        }
-
                         const ownEntry = isOwnEntry(log);
-                        const editButtonHTML = (ownEntry && (isEditable(log.time) || log.remake)) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
-                        const deleteButtonHTML = (ownEntry && isDeletable(log.time)) ? `<button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 p-1 text-base">🗑️</button>` : '';
+                        const editButtonHTML = (ownEntry && (isEditable(log.time) || log.remake)) ? `<button onclick="startEditing(${log.id}); event.stopPropagation();" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded bg-neutral-900/50">✏️ Edit</button>` : '';
+                        const deleteButtonHTML = (ownEntry && isDeletable(log.time)) ? `<button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}'); event.stopPropagation();" class="text-red-600 p-1 text-base hover:scale-115 transition">🗑️</button>` : '';
                         let statusText = log.synced ? 'Synced' : 'Queued';
                         let statusClass = log.synced ? 'text-emerald-600 font-extrabold' : 'text-yellow-600 font-extrabold';
                         if (log.remake) { statusText = 'REMAKE REQ'; statusClass = 'text-red-500 font-black animate-pulse'; }
 
+                        const isCurrentlyExpanded = activeExpandedUids.has(log.uid);
+                        const panelExpandedClass = isCurrentlyExpanded ? 'expanded' : '';
+                        const chevronExpandedClass = isCurrentlyExpanded ? 'expanded' : '';
+                        
+                        let basicMetricsHTML = '';
+                        if (log.pace || log.speed) {
+                            basicMetricsHTML = `
+                                <div class="flex items-center gap-2 mt-1 text-[10px] font-mono text-neutral-800 dark:text-neutral-300">
+                                    ${log.pace ? `<span>⏱️ Pace: ${log.pace}</span>` : ''}
+                                    ${log.speed ? `<span class="text-neutral-400">|</span><span>⚡ Speed: ${log.speed}</span>` : ''}
+                                </div>`;
+                        }
+
                         row.innerHTML = `
-                            <div class="flex justify-between items-center w-full">
+                            <!-- Clickable Trigger Header -->
+                            <div onclick="inlineLogPanelAccordionToggle('${log.uid}')" class="px-4 py-3 flex justify-between items-center cursor-pointer select-none">
                                 <div class="flex-grow">
                                     <div class="flex items-center gap-2 flex-wrap">
+                                        <span id="chevron-indicator-${log.uid}" class="text-neutral-500 text-xs chevron-rotate ${chevronExpandedClass}">▼</span>
                                         <span class="text-xl ${log.remake ? 'text-red-600 line-through opacity-60' : 'bib-text-highlight'}">${log.bib || '??'}</span>
-                                        ${categoryBadge}
                                         ${freqBadge}
                                         <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
                                     </div>
                                     <div class="text-[10px] theme-text-muted mt-0.5 font-semibold">${formatLogTime(log.time)} • By: ${log.volunteer}</div>
-                                    ${runtimeMetricsHTML}
+                                    ${basicMetricsHTML}
                                     ${remarkHTML}
                                 </div>
                                 <div class="text-right flex items-center gap-2.5 shrink-0">
                                     <div class="flex flex-col items-end gap-1"><span class="text-[10px] ${statusClass}">${statusText}</span>${editButtonHTML}</div>
                                     ${deleteButtonHTML}
                                 </div>
-                            </div>`;
-                    }
+                            </div>
+
+                            <!-- Expandable Detailed Target Component Table Panel Box[cite: 1] -->
+                            <div id="accordion-panel-${log.uid}" data-uid="${log.uid}" class="collapsible-log-panel ${panelExpandedClass} px-4 bg-neutral-900/15 dark:bg-neutral-950/20 border-t border-dashed theme-border">
+                                <div class="py-3 overflow-x-auto">
+                                    <table class="w-full text-left border-collapse text-[10px] font-mono text-neutral-800 dark:text-neutral-300">
+                                        <thead>
+                                            <tr class="border-b theme-border text-neutral-400 font-bold uppercase tracking-wider text-[9px]">
+                                                <th class="pb-1 pr-2">Categories</th>
+                                                <th class="pb-1 px-2 text-center">Lap/CP & Time</th>
+                                                <th class="pb-1 px-2 text-center">Time per lap/CP</th>
+                                                <th class="pb-1 px-2 text-center">Total time</th>
+                                                <th class="pb-1 px-2 text-center">Pace</th>
+                                                <th class="pb-1 px-2 text-center">Speed</th>
+                                                <th class="pb-1 pl-2 text-right">Projected Finish time</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="py-1.5 pr-2 font-bold text-neutral-950 dark:text-white">${log.category || '-'}</td>
+                                                <td class="py-1.5 px-2 text-center font-bold text-blue-700 dark:text-cyan-400">${log.lap || '-'}</td>
+                                                <td class="py-1.5 px-2 text-center text-orange-600 dark:text-orange-400 font-bold">${log.timePerLap || '-'}</td>
+                                                <td class="py-1.5 px-2 text-center font-bold">${log.totalTime || '-'}</td>
+                                                <td class="py-1.5 px-2 text-center text-indigo-700 dark:text-indigo-400 font-bold">${log.pace || '-'}</td>
+                                                <td class="py-1.5 px-2 text-center text-emerald-700 dark:text-emerald-400 font-bold">${log.speed || '-'}</td>
+                                                <td class="py-1.5 pl-2 text-right text-amber-600 dark:text-amber-400 font-bold">${log.projectedFinish || '-'}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
                     logList.appendChild(row);
                 });
             };
