@@ -126,7 +126,7 @@
             display: inline-block;
             animation: inlineBibBounceShift 3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
             position: relative;
-            z-index: 20; /* Ensure it floats above other elements if necessary */
+            z-index: 20; 
         }
 
         /* Responsive Layout Rules Modifiers */
@@ -135,6 +135,19 @@
         }
         .forced-landscape #mainGridSplitter {
             grid-template-columns: minmax(320px, 460px) 1fr !important;
+        }
+
+        /* Landscape Metric Display Classes */
+        #landscapeMetricView {
+            display: none;
+        }
+        @media (min-width: 1024px) {
+            body:not(.forced-portrait) #landscapeMetricView {
+                display: grid;
+            }
+        }
+        body.forced-landscape #landscapeMetricView {
+            display: grid;
         }
     </style>
 </head>
@@ -384,6 +397,22 @@
                     </div>
                 </section>
 
+                <!-- New Landscape Extended Metrics Grid -->
+                <section id="landscapeMetricView" class="grid grid-cols-3 gap-1.5">
+                    <div class="theme-panel py-2 px-2 rounded-xl border text-center shadow-sm flex flex-col justify-between">
+                        <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">Pace Rate</div>
+                        <div id="paceThroughput" class="text-base font-black text-amber-500 mt-0.5 leading-none">0.0<span class="text-[9px] text-neutral-500 font-medium">/m</span></div>
+                    </div>
+                    <div class="theme-panel py-2 px-2 rounded-xl border text-center shadow-sm flex flex-col justify-between">
+                        <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">SoC Engine</div>
+                        <div id="socCapabilityProfile" class="text-xs font-black text-teal-500 mt-0.5 leading-none truncate uppercase">Eco Plan</div>
+                    </div>
+                    <div class="theme-panel py-2 px-2 rounded-xl border text-center shadow-sm flex flex-col justify-between">
+                        <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">Sync Integrity</div>
+                        <div id="cloudSyncPercentage" class="text-base font-black text-emerald-500 mt-0.5 leading-none">100%</div>
+                    </div>
+                </section>
+
                 <!-- CSV Export Trigger Layout Module -->
                 <section class="hidden lg:block">
                     <button onclick="exportCSV()" class="w-full bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2 text-sm">📥 Export & Download CSV Data</button>
@@ -503,13 +532,17 @@
             }
             const duration = performance.now() - start;
             
+            const socContainer = document.getElementById("socCapabilityProfile");
             if (cores >= 8 && duration < 12) {
                 isHighEndSoc = true;
                 dynamicHardwareMaxCap = 800; 
+                if(socContainer) socContainer.textContent = "High SoC 🔥";
             } else if (cores >= 6 && duration < 25) {
                 dynamicHardwareMaxCap = 350;
+                if(socContainer) socContainer.textContent = "Mid SoC ⚡";
             } else {
                 dynamicHardwareMaxCap = 75;
+                if(socContainer) socContainer.textContent = "Eco Plan 🔋";
             }
             currentAdaptiveViewClamp = dynamicHardwareMaxCap;
         }
@@ -1336,13 +1369,26 @@
 
         function updateQueueStatus() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
-                const unsynced = e.target.result.filter(log => !log.synced);
+                const logs = e.target.result || [];
+                const unsynced = logs.filter(log => !log.synced);
                 const badge = document.getElementById("queueBadge"), countText = document.getElementById("queueCount"), inspectorCount = document.getElementById("inspectorCount");
                 if (unsynced.length > 0) {
                     badge.classList.remove("hidden"); countText.textContent = unsynced.length; inspectorCount.textContent = unsynced.length;
                     renderQueueInspectorList(unsynced);
                 } else {
                     badge.classList.add("hidden"); document.getElementById("queueInspectorSection").classList.add("hidden");
+                }
+
+                // Compute Live Cloud Synchronization Integrity Percentage
+                const syncIntegrityMetric = document.getElementById("cloudSyncPercentage");
+                if (syncIntegrityMetric) {
+                    if (logs.length === 0) {
+                        syncIntegrityMetric.textContent = "100%";
+                    } else {
+                        const syncedCount = logs.length - unsynced.length;
+                        const syncPercentage = Math.round((syncedCount / logs.length) * 100);
+                        syncIntegrityMetric.textContent = `${syncPercentage}%`;
+                    }
                 }
             };
         }
@@ -1567,7 +1613,6 @@
             
             let HTMLBuilder = "";
             targetedLastFour.forEach((item, index) => {
-                // Only trigger the bounce if it's the newest item AND the flag was set by a fresh click
                 if (index === 0 && triggerInlineAnimationFlag) {
                     HTMLBuilder += `<span class="animate-new-bib-bounce font-black">${item.bib}</span>`;
                 } else {
@@ -1582,9 +1627,23 @@
             splitLastRunner.innerHTML = HTMLBuilder;
             
             // Gap logic...
-            const diffSeconds = Math.floor((parseCustomOrIsoDate(sorted[sorted.length - 1].time) - parseCustomOrIsoDate(sorted[sorted.length - 2].time)) / 1000);
-            const mins = Math.floor(diffSeconds / 60), secs = diffSeconds % 60;
-            document.getElementById("splitGapTime").textContent = mins > 0 ? `+${mins}m ${secs}s` : `+${secs}s`;
+            if(sorted.length >= 2) {
+                const diffSeconds = Math.floor((parseCustomOrIsoDate(sorted[sorted.length - 1].time) - parseCustomOrIsoDate(sorted[sorted.length - 2].time)) / 1000);
+                const mins = Math.floor(diffSeconds / 60), secs = diffSeconds % 60;
+                document.getElementById("splitGapTime").textContent = mins > 0 ? `+${mins}m ${secs}s` : `+${secs}s`;
+            } else {
+                document.getElementById("splitGapTime").textContent = "--:--";
+            }
+
+            // Compute Pace Throughput Metric (Rolling 5 minutes window checking)
+            const paceMetricContainer = document.getElementById("paceThroughput");
+            if (paceMetricContainer) {
+                const nowNode = new Date();
+                const fiveMinutesAgo = new Date(nowNode.getTime() - (5 * 60 * 1000));
+                const recentLogsCount = sorted.filter(l => parseCustomOrIsoDate(l.time) >= fiveMinutesAgo).length;
+                const throughputPaceValue = (recentLogsCount / 5).toFixed(1);
+                paceMetricContainer.innerHTML = `${throughputPaceValue}<span class="text-[9px] text-neutral-500 font-medium">/m</span>`;
+            }
         }
 
         function isEditable(logTimeStr) { return (new Date() - parseCustomOrIsoDate(logTimeStr)) < 300000; }
