@@ -436,12 +436,12 @@
                             <table class="w-full text-left border-collapse text-[11px]">
                                 <thead>
                                     <tr style="background-color: var(--th-bg);" class="text-neutral-950 dark:text-white font-black border-b theme-border uppercase tracking-wider text-[11px] text-outlined-contrast">
-                                        <th class="p-2 pl-2.5">Category</th>
-                                        <th class="p-2 text-center">KM</th>
-                                        <th class="p-2 text-center">BIB Rule</th>
-                                        <th class="p-2 text-center">COT</th>
-                                        <th class="p-2 text-center">COT Time</th>
-                                        <th class="p-2 text-center pr-2.5">Runners</th>
+                                        <th class="p-2 pl-2.5" title="Race distance category">Category</th>
+                                        <th class="p-2 text-center" title="Distance in kilometers">KM</th>
+                                        <th class="p-2 text-center" title="Which bib number range belongs to this category">BIB Rule</th>
+                                        <th class="p-2 text-center" title="Cut-Off Time — the time limit runners must finish within">COT</th>
+                                        <th class="p-2 text-center" title="Clock time of the cut-off (e.g. 6h from race start)">COT Time</th>
+                                        <th class="p-2 text-center pr-2.5" title="Number of runners entered in this category">Runners</th>
                                     </tr>
                                 </thead>
                                 <tbody id="summaryTableBody" class="divide-y theme-border">
@@ -472,8 +472,7 @@
                             </div>
                             
                             <!-- Global Accordion Actions -->
-                            <button onclick="toggleAllLogAccordionPanels(true)" class="text-[9px] bg-neutral-800 hover:bg-neutral-700 theme-text border theme-border px-1.5 py-0.5 rounded font-bold transition shrink-0">↔️ Expand All</button>
-                            <button onclick="toggleAllLogAccordionPanels(false)" class="text-[9px] bg-neutral-800 hover:bg-neutral-700 theme-text border theme-border px-1.5 py-0.5 rounded font-bold transition shrink-0">📋 Collapse All</button>
+                            <button id="expandCollapseAllBtn" onclick="toggleAllLogAccordionPanels()" class="text-[9px] bg-neutral-800 hover:bg-neutral-700 theme-text border theme-border px-1.5 py-0.5 rounded font-bold transition shrink-0">↔️ Expand All</button>
                             
                             <!-- Tooltip Indicator -->
                             <div class="relative inline-block metrics-info-trigger cursor-help z-40 shrink-0">
@@ -481,19 +480,19 @@
                                 <div class="hidden metrics-tooltip-card absolute left-0 top-6 bg-neutral-950/95 backdrop-blur-md border border-neutral-800 p-3 rounded-lg shadow-2xl w-72 text-[11px] leading-normal theme-text-muted text-left">
                                     <strong class="text-blue-400 block border-b border-neutral-800 pb-1 mb-1.5 uppercase tracking-wider text-[10px]">📊 Race Metric Parameter Index</strong>
                                     <ul class="space-y-1.5 font-sans">
-                                        <li>🔹 <strong>Categories:</strong> Distance tier configuration matrix mapped to runner profile[cite: 1].</li>
-                                        <li>🔹 <strong>Lap/CP & Time:</strong> Lap counter and tracking pass timestamp logs[cite: 1].</li>
-                                        <li>🔹 <strong>Time per lap/CP:</strong> Split timing delta since passing the previous checkpoint row[cite: 1].</li>
-                                        <li>🔹 <strong>Total time:</strong> Overall clock duration elapsed since brackets officially flagged off[cite: 1].</li>
-                                        <li>🔹 <strong>Pace:</strong> Time required to cross 1 kilometer metrics (min/km)[cite: 1].</li>
-                                        <li>🔹 <strong>Speed:</strong> Running ground velocity metrics tracking engine (km/h)[cite: 1].</li>
-                                        <li>🔹 <strong>Projected Finish time:</strong> Smart arrival window estimated down to the terminal finish grid[cite: 1].</li>
+                                        <li>🔹 <strong>Categories:</strong> Which distance/race category this runner is entered in.</li>
+                                        <li>🔹 <strong>Lap/CP & Time:</strong> Which lap or checkpoint this was, and what time it was logged.</li>
+                                        <li>🔹 <strong>Time per lap/CP:</strong> How long since their previous checkpoint — a "split" time.</li>
+                                        <li>🔹 <strong>Total time:</strong> Total time elapsed since the race start.</li>
+                                        <li>🔹 <strong>Pace:</strong> Minutes per kilometer (min/km). <span class="text-neutral-400">Lower = faster.</span></li>
+                                        <li>🔹 <strong>Speed:</strong> Kilometers per hour (km/h). <span class="text-neutral-400">Higher = faster.</span></li>
+                                        <li>🔹 <strong>Projected Finish time:</strong> Estimated finish time if they keep this same pace.</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
                         <div class="relative flex-grow max-w-[100%] sm:max-w-[40%]">
-                            <input type="text" id="searchBar" oninput="loadHistory()" placeholder="🔍 Search..." class="w-full theme-input border rounded-md px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-900">
+                            <input type="text" id="searchBar" oninput="loadHistory()" placeholder="🔍 Search bib, checkpoint, volunteer, remark..." class="w-full theme-input border rounded-md px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-900">
                         </div>
                     </div>
                     <div id="logList" class="overflow-y-auto flex-grow divide-y theme-border h-full max-h-[500px] lg:max-h-[580px]"></div>
@@ -1748,10 +1747,15 @@
         let activeExpandedUids = window.globalExpandedLogUidsSetRecord || new Set();
         window.globalExpandedLogUidsSetRecord = activeExpandedUids;
 
-        function toggleAllLogAccordionPanels(shouldExpandAll) {
+        function toggleAllLogAccordionPanels() {
             const panels = document.querySelectorAll('.collapsible-log-panel');
             const chevrons = document.querySelectorAll('.chevron-rotate');
-            
+            const btn = document.getElementById('expandCollapseAllBtn');
+
+            // Decide direction from current state: if anything is currently collapsed,
+            // the next click expands everything; otherwise it collapses everything.
+            const shouldExpandAll = panels.length > 0 && Array.from(panels).some(p => !p.classList.contains('expanded'));
+
             panels.forEach(panel => {
                 const uid = panel.getAttribute('data-uid');
                 if (shouldExpandAll) {
@@ -1767,6 +1771,16 @@
                 if (shouldExpandAll) chevron.classList.add('expanded');
                 else chevron.classList.remove('expanded');
             });
+
+            if (btn) btn.textContent = shouldExpandAll ? '📋 Collapse All' : '↔️ Expand All';
+        }
+
+        function syncExpandCollapseAllButtonLabel() {
+            const btn = document.getElementById('expandCollapseAllBtn');
+            if (!btn) return;
+            const panels = document.querySelectorAll('.collapsible-log-panel');
+            const anyCollapsed = panels.length > 0 && Array.from(panels).some(p => !p.classList.contains('expanded'));
+            btn.textContent = anyCollapsed ? '↔️ Expand All' : '📋 Collapse All';
         }
 
         function inlineLogPanelAccordionToggle(uid) {
@@ -1784,6 +1798,7 @@
                 if (chevron) chevron.classList.remove('expanded');
                 activeExpandedUids.delete(uid);
             }
+            syncExpandCollapseAllButtonLabel();
         }
         
         function loadHistory() {
@@ -1918,7 +1933,7 @@
                                 </div>
                             </div>
 
-                            <!-- Expandable Detailed Target Component Table Panel Box[cite: 1] -->
+                            <!-- Expandable Detailed Metrics Panel -->
                             <div id="accordion-panel-${log.uid}" data-uid="${log.uid}" class="collapsible-log-panel ${panelExpandedClass} px-4 bg-neutral-900/15 dark:bg-neutral-950/20 border-t border-dashed theme-border">
                                 <div class="py-3 overflow-x-auto">
                                     <table class="w-full text-left border-collapse text-[10px] font-mono text-neutral-800 dark:text-neutral-300">
@@ -1948,8 +1963,10 @@
                                 </div>
                             </div>
                         `;
+                    }
                     logList.appendChild(row);
                 });
+                syncExpandCollapseAllButtonLabel();
             };
         }
 
