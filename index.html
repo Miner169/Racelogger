@@ -122,6 +122,9 @@
             <button id="queueBadge" onclick="toggleQueueInspector()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
                 <span id="queueCount">0</span> Pending 🔄
             </button>
+            <button id="syncErrorBadge" onclick="showSyncErrorDetails()" class="hidden text-[10px] bg-red-950 text-red-400 border border-red-800 hover:bg-red-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow animate-pulse">
+                ⚠️ Sync Issue
+            </button>
         </div>
         <div class="flex items-center gap-1.5">
             <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800">
@@ -393,6 +396,13 @@
         let batterySaverManual = false;
         let historyLimit = '20';
         let activeScopeFilter = 'current'; // Default view filter target scope
+
+        // --- Sync health / robustness tracking ---
+        let syncFailureStreak = 0;
+        let lastSyncError = null;
+        let lastSyncSuccessAt = parseInt(localStorage.getItem("lastSyncSuccessAt") || "0", 10);
+        let syncRetryTimeoutId = null;
+        const SYNC_STUCK_ATTEMPTS_THRESHOLD = 5; // flag an entry in the Queue Inspector after this many failed rounds
         
         // Strictly adhere to the primary script engine variable tracking 
         let syncUrl = localStorage.getItem("syncUrl");
@@ -815,17 +825,18 @@
             feedback.className = "text-[10px] text-neutral-400 font-bold block leading-tight mt-1";
             btn.disabled = true;
 
-            fetch(inputUrl, {
+            fetchWithTimeout(inputUrl, {
                 method: "POST",
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify({ action: "ping" })
-            })
+            }, 10000)
             .then(async response => {
                 const txt = await response.text();
                 try {
                     const parsed = JSON.parse(txt);
                     if (parsed.status === "success" || parsed.message.includes("Unknown action")) {
-                        feedback.textContent = "✅ Connected Successfully! Script reached the backend server.";
+                        const rowInfo = (typeof parsed.rowCount === 'number') ? ` (${parsed.rowCount} logs currently on server)` : '';
+                        feedback.textContent = `✅ Connected Successfully!${rowInfo}`;
                         feedback.className = "text-[10px] text-emerald-500 font-bold block leading-tight mt-1";
                     } else {
                         feedback.textContent = `❌ Script error context: ${txt.slice(0, 60)}`;
@@ -837,7 +848,7 @@
                 }
             })
             .catch(err => {
-                feedback.textContent = `❌ Endpoint Fault: Unable to resolve request. Verify URL format structure.`;
+                feedback.textContent = `❌ ${err.message || 'Endpoint Fault: Unable to resolve request. Verify URL format structure.'}`;
                 feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
             })
             .finally(() => {
@@ -971,8 +982,66 @@
             s.textContent = !syncUrl ? "Offline Mode" : "Auto-Sync"; 
             s.className = !syncUrl ? "text-[10px] bg-yellow-955 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold"; 
         }
+
+        // Wraps fetch() with a hard timeout so a slow/hung request can never
+        // silently block sync forever (isSyncing would otherwise stay true
+        // indefinitely with no feedback to the user).
+        function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            return fetch(url, { ...options, signal: controller.signal })
+                .catch(err => {
+                    if (err.name === 'AbortError') {
+                        throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s — server may be slow or unreachable.`);
+                    }
+                    throw err;
+                })
+                .finally(() => clearTimeout(timeoutId));
+        }
+
+        // Called whenever a push (batch_sync) round-trip actually confirms with the server.
+        function recordSyncSuccess() {
+            syncFailureStreak = 0;
+            lastSyncError = null;
+            lastSyncSuccessAt = Date.now();
+            localStorage.setItem("lastSyncSuccessAt", String(lastSyncSuccessAt));
+            updateSyncHealthUI();
+        }
+
+        // Called whenever a push round-trip fails outright (network error, timeout,
+        // HTML response, or server-reported error).
+        function recordSyncFailure(reason) {
+            syncFailureStreak++;
+            lastSyncError = reason;
+            updateSyncHealthUI();
+        }
+
+        function updateSyncHealthUI() {
+            const badge = document.getElementById("syncErrorBadge");
+            if (!badge) return;
+            // Only surface a persistent problem after a few consecutive failures —
+            // a single blip (e.g. brief signal drop) shouldn't alarm the volunteer.
+            if (syncFailureStreak >= 3) {
+                badge.classList.remove("hidden");
+            } else {
+                badge.classList.add("hidden");
+            }
+        }
+
+        function showSyncErrorDetails() {
+            const lastOk = lastSyncSuccessAt ? new Date(lastSyncSuccessAt).toLocaleString() : "Never";
+            alert(
+                `⚠️ Sync trouble\n\n` +
+                `Last error: ${lastSyncError || "Unknown"}\n` +
+                `Consecutive failed attempts: ${syncFailureStreak}\n` +
+                `Last successful sync: ${lastOk}\n\n` +
+                `Your logs are safely saved on this phone and will keep retrying automatically. ` +
+                `If this persists, check your internet connection, or that the Apps Script Web App is deployed with access set to "Anyone".`
+            );
+        }
         
         function toggleLock() { isSetupLocked = !isSetupLocked; localStorage.setItem("settingsLocked", isSetupLocked); applyLockState(); }
+
 
         function applyLockState() {
             const cp = document.getElementById("checkpoint"), vol = document.getElementById("volunteer"), lockBtn = document.getElementById("lockBtn"), fields = document.getElementById("setupFields"), summary = document.getElementById("setupSummary"), row = document.getElementById("setupHeaderRow");
@@ -1137,6 +1206,7 @@
                         logToUpdate.remark = currentRemark;
                         logToUpdate.synced = false; 
                         logToUpdate.remake = false;
+                        logToUpdate.syncAttempts = 0;
                         store.put(logToUpdate);
                         tx.oncomplete = function() {
                             remarkDebounceTimeout = null;
@@ -1171,11 +1241,18 @@
                 const item = document.createElement("div");
                 item.className = "py-2.5 flex justify-between items-center text-xs theme-text-muted";
                 const titleText = log.remake ? `<strong class="text-sm font-black text-red-500 animate-pulse">REMAKE REQUIRED</strong>` : `<strong class="text-sm font-black text-yellow-600 dark:text-yellow-500">Bib ${log.bib}</strong>`;
+
+                // Flag entries that have failed several sync rounds in a row so the
+                // volunteer can see WHICH bib is stuck, instead of just a generic "Pending".
+                const stuckBadge = (log.syncAttempts || 0) >= SYNC_STUCK_ATTEMPTS_THRESHOLD
+                    ? `<div class="text-[9px] text-red-500 font-bold mt-0.5">⚠️ Failed ${log.syncAttempts}x — tap Sync to retry, or check connection</div>`
+                    : '';
                 
                 item.innerHTML = `
                     <div class="flex flex-col">
                         <div>${titleText} at <span class="font-bold">${log.checkpoint}</span></div>
                         <div class="text-[10px] mt-0.5">${formatLogTime(log.time)} ${log.remark ? `• 💬 ${log.remark}` : ''}</div>
+                        ${stuckBadge}
                     </div>
                     <div class="flex items-center gap-2">
                         <button onclick='syncSingleRow(${JSON.stringify(log)})' class="text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-bold hover:bg-emerald-900">Sync</button>
@@ -1187,67 +1264,104 @@
 
         function syncSingleRow(row) {
             if (!syncUrl || remarkDebounceTimeout) return;
-            fetch(syncUrl, {
+            fetchWithTimeout(syncUrl, {
                 method: "POST",
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify({ action: "batch_sync", data: [row] })
-            })
+            }, 20000)
             .then(async res => {
                 const rawText = await res.text();
-                if (rawText.trim().startsWith("<")) return;
+                if (rawText.trim().startsWith("<")) throw new Error("Web app returned an HTML page instead of JSON — the deployment may need to be redeployed with access set to \"Anyone\".");
                 const data = JSON.parse(rawText);
-                if (data.status === "success") {
-                    const confirmedIds = new Set(data.confirmedIds || []);
-                    const remakeIds = new Set(data.remakeIds || []);
-                    const tx = db.transaction(["logs"], "readwrite");
-                    
-                    if (remakeIds.has(row.uid)) {
-                        row.synced = false; row.remake = true;
-                        alert(`Log UID ${row.uid} was altered on the server!`);
-                    } else if (confirmedIds.has(row.uid)) {
-                        row.synced = true; row.remake = false;
-                    }
-                    tx.objectStore("logs").put(row);
-                    tx.oncomplete = function() { loadHistory(); };
+                if (data.status !== "success") throw new Error(data.message || "Server rejected the request.");
+
+                const confirmedIds = new Set(data.confirmedIds || []);
+                const remakeIds = new Set(data.remakeIds || []);
+                const tx = db.transaction(["logs"], "readwrite");
+                
+                if (remakeIds.has(row.uid)) {
+                    row.synced = false; row.remake = true; row.syncAttempts = 0;
+                    alert(`Log UID ${row.uid} was altered on the server!`);
+                } else if (confirmedIds.has(row.uid)) {
+                    row.synced = true; row.remake = false; row.syncAttempts = 0;
+                } else {
+                    row.syncAttempts = (row.syncAttempts || 0) + 1;
                 }
-            }).catch(err => console.error(err));
+                tx.objectStore("logs").put(row);
+                tx.oncomplete = function() { recordSyncSuccess(); loadHistory(); };
+            }).catch(err => {
+                console.error(err);
+                recordSyncFailure(err.message || String(err));
+                alert(`❌ Sync failed for Bib ${row.bib}: ${err.message || err}`);
+
+                const tx = db.transaction(["logs"], "readwrite");
+                row.syncAttempts = (row.syncAttempts || 0) + 1;
+                tx.objectStore("logs").put(row);
+                tx.oncomplete = function() { loadHistory(); };
+            });
         }
 
         function attemptSync() {
             if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
             isSyncing = true;
+            if (syncRetryTimeoutId) { clearTimeout(syncRetryTimeoutId); syncRetryTimeoutId = null; }
 
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const unsynced = e.target.result.filter(log => !log.synced);
                 if (unsynced.length === 0) { isSyncing = false; return; }
 
-                fetch(syncUrl, {
+                fetchWithTimeout(syncUrl, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
                     redirect: "follow", 
                     body: JSON.stringify({ action: "batch_sync", data: unsynced })
-                })
+                }, 25000)
                 .then(async res => {
                     const rawText = await res.text();
-                    if (rawText.trim().startsWith("<")) throw new Error("Script fault.");
+                    if (rawText.trim().startsWith("<")) throw new Error("Web app returned an HTML page instead of JSON — the deployment may need to be redeployed with access set to \"Anyone\".");
                     const data = JSON.parse(rawText);
-                    if (data.status === "success") {
-                        const confirmedIds = new Set(data.confirmedIds || []);
-                        const remakeIds = new Set(data.remakeIds || []);
-                        const tx = db.transaction(["logs"], "readwrite");
-                        const store = tx.objectStore("logs");
-                        
-                        unsynced.forEach(log => {
-                            if (remakeIds.has(log.uid)) {
-                                log.synced = false; log.remake = true; store.put(log);
-                            } else if (confirmedIds.has(log.uid)) {
-                                log.synced = true; log.remake = false; store.put(log); 
-                            }
-                        });
-                        tx.oncomplete = function() { loadHistory(); };
-                    }
+                    if (data.status !== "success") throw new Error(data.message || "Server rejected the batch sync.");
+
+                    const confirmedIds = new Set(data.confirmedIds || []);
+                    const remakeIds = new Set(data.remakeIds || []);
+                    const tx = db.transaction(["logs"], "readwrite");
+                    const store = tx.objectStore("logs");
+                    
+                    unsynced.forEach(log => {
+                        if (remakeIds.has(log.uid)) {
+                            log.synced = false; log.remake = true; log.syncAttempts = 0; store.put(log);
+                        } else if (confirmedIds.has(log.uid)) {
+                            log.synced = true; log.remake = false; log.syncAttempts = 0; store.put(log); 
+                        } else {
+                            // The server round-trip succeeded overall, but this particular
+                            // entry wasn't confirmed — count the attempt so a persistently
+                            // failing row (e.g. bad data) can be flagged instead of retrying silently forever.
+                            log.syncAttempts = (log.syncAttempts || 0) + 1;
+                            store.put(log);
+                        }
+                    });
+                    tx.oncomplete = function() {
+                        recordSyncSuccess();
+                        loadHistory();
+                    };
                 })
-                .catch(err => console.error(err))
+                .catch(err => {
+                    console.error(err);
+                    recordSyncFailure(err.message || String(err));
+
+                    const tx = db.transaction(["logs"], "readwrite");
+                    const store = tx.objectStore("logs");
+                    unsynced.forEach(log => {
+                        log.syncAttempts = (log.syncAttempts || 0) + 1;
+                        store.put(log);
+                    });
+                    tx.oncomplete = function() { loadHistory(); };
+
+                    // Retry sooner than the normal interval on failure, backing off if it
+                    // keeps failing, instead of silently waiting for the next scheduled cycle.
+                    const backoffMs = Math.min(5000 * Math.pow(2, Math.min(syncFailureStreak, 5)), 60000);
+                    syncRetryTimeoutId = setTimeout(() => { if (!isSyncing) attemptSync(); }, backoffMs);
+                })
                 .finally(() => {
                     isSyncing = false;
                     if (syncRerunQueued) { syncRerunQueued = false; attemptSync(); }
@@ -1258,9 +1372,12 @@
         async function pullServerRecords() {
             if (!syncUrl) return;
             try {
-                const response = await fetch(syncUrl);
+                const response = await fetchWithTimeout(syncUrl, {}, 15000);
                 const result = await response.json();
-                if (result.status !== "success") return;
+                if (result.status !== "success") {
+                    recordSyncFailure(result.message || "Pull request rejected by server.");
+                    return;
+                }
 
                 const serverRecords = result.data || [];
                 const serverMap = new Map(serverRecords.map(r => [r.uid, r]));
@@ -1307,6 +1424,7 @@
                 };
             } catch (e) {
                 console.error(e);
+                recordSyncFailure(e.message || String(e));
             }
         }
 
@@ -1359,7 +1477,7 @@
             const store = tx.objectStore("logs");
             store.get(id).onsuccess = function(e) {
                 const log = e.target.result;
-                log.bib = newBib; log.remark = newRemark; log.synced = false; log.remake = false; 
+                log.bib = newBib; log.remark = newRemark; log.synced = false; log.remake = false; log.syncAttempts = 0;
                 store.put(log);
                 tx.oncomplete = function() { 
                     editingRowId = null; 
