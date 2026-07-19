@@ -337,28 +337,36 @@
                     <div id="splitLastRunner" class="font-black text-xl tracking-wider truncate transition-all duration-200 min-h-[1.75rem] flex items-center justify-center gap-1">-</div>
                 </section>
 
-                <!-- --- DYNAMIC DASHBOARD OVERVIEW COMPONENT BLOCK --- -->
-                <section class="theme-panel p-3 rounded-xl border shadow flex flex-col gap-2">
-                    <h2 class="text-[10px] font-bold theme-text-muted uppercase tracking-wider flex items-center justify-between">
-                        <span>📊 Category Overview Dashboard</span>
-                        <span class="text-[9px] font-mono text-neutral-500 lowercase">Live-Syncing Range S2:Z8</span>
-                    </h2>
-                    <div class="overflow-x-auto rounded-lg border theme-border">
-                        <table class="w-full text-left border-collapse text-[11px]">
-                            <thead>
-                                <tr style="background-color: var(--th-bg);" class="text-neutral-400 font-bold border-b theme-border">
-                                    <th class="p-1.5 pl-2.5">Category</th>
-                                    <th class="p-1.5 text-center">KM</th>
-                                    <th class="p-1.5 text-center">COT</th>
-                                    <th class="p-1.5 text-center pr-2.5">Runners</th>
-                                </tr>
-                            </thead>
-                            <tbody id="summaryTableBody" class="divide-y theme-border">
-                                <tr>
-                                    <td colspan="4" class="p-3 text-center theme-text-muted text-[10px]">Awaiting background live-sync routine...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <!-- --- DYNAMIC DASHBOARD OVERVIEW COMPONENT BLOCK (Collapsible & High Contrast Updates) --- -->
+                <section class="theme-panel rounded-xl border shadow flex flex-col overflow-hidden">
+                    <!-- Clickable Header Block -->
+                    <div onclick="toggleDashboardCollapse()" class="p-3 bg-neutral-900/10 cursor-pointer select-none flex items-center justify-between border-b theme-border transition-colors hover:bg-neutral-500/5">
+                        <h2 class="text-[10px] font-bold theme-text-muted uppercase tracking-wider flex items-center gap-2">
+                            <span>📊 Category Overview Dashboard</span>
+                            <span class="text-[9px] font-mono text-neutral-500 lowercase hidden sm:inline">(Range S2:Z8)</span>
+                        </h2>
+                        <span id="dashboardCollapseArrow" class="text-xs theme-text-muted font-bold transition-transform duration-200">▼</span>
+                    </div>
+                    
+                    <!-- Collapsible Container Body Area -->
+                    <div id="dashboardCollapseContent" class="p-3 flex flex-col gap-2 transition-all duration-200">
+                        <div class="overflow-x-auto rounded-lg border theme-border">
+                            <table class="w-full text-left border-collapse text-[11px]">
+                                <thead>
+                                    <tr style="background-color: var(--th-bg);" class="text-neutral-700 dark:text-neutral-300 font-extrabold border-b theme-border uppercase tracking-wider text-[10px]">
+                                        <th class="p-2 pl-2.5">Category</th>
+                                        <th class="p-2 text-center">KM</th>
+                                        <th class="p-2 text-center">COT</th>
+                                        <th class="p-2 text-center pr-2.5">Runners</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summaryTableBody" class="divide-y theme-border">
+                                    <tr>
+                                        <td colspan="4" class="p-3 text-center theme-text-muted text-[10px]">Awaiting background live-sync routine...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -863,7 +871,7 @@
             loadHistory();
         }
 
-        // --- NEW RENDERING ENGINE FOR INTERACTIVE SUMMARY DASHBOARD ---
+        // --- HIGH CONTRAST RENDERING ENGINE FOR INTERACTIVE SUMMARY DASHBOARD ---
         function renderSummaryDashboard(summaryRows) {
             const tbody = document.getElementById("summaryTableBody");
             if (!tbody) return;
@@ -872,7 +880,6 @@
                 return;
             }
             
-            // Localize data configuration locally to handle theme switches
             localStorage.setItem("lastCachedSummaryRows", JSON.stringify(summaryRows));
             
             let htmlBuilder = "";
@@ -882,29 +889,62 @@
                 const displayCategory = row.category || row.bibRule || "";
                 const isTotalRow = displayCategory.toLowerCase().includes("total");
                 
-                // Color formatting matching Tailwind context parameters
                 const rowBg = isTotalRow 
-                    ? "bg-neutral-900/60 font-black border-t-2 border-neutral-700/60" 
+                    ? "bg-neutral-400/20 dark:bg-neutral-900/60 font-black border-t-2 border-neutral-400 dark:border-neutral-700" 
                     : "hover:bg-neutral-500/5 transition-colors duration-100";
                 
                 const colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
+                
+                // High contrast color switches matching current theme settings
+                const textClass = isTotalRow ? 'text-amber-600 dark:text-amber-500 font-black uppercase' : 'theme-text';
+                const runnerClass = isTotalRow ? 'text-blue-700 dark:text-cyan-400 text-xs' : 'text-blue-600 dark:text-cyan-400';
                 
                 htmlBuilder += `
                     <tr class="${rowBg} border-b theme-border">
                         <td class="p-2 pl-2.5 font-semibold">
                             <div class="flex items-center gap-2">
                                 ${colorHex ? `<span class="inline-block w-2.5 h-2.5 rounded-sm border border-neutral-700/50 shrink-0" style="background-color: ${colorHex}"></span>` : ''}
-                                <span class="${isTotalRow ? 'text-amber-500 font-extrabold uppercase' : 'theme-text'}">${displayCategory}</span>
+                                <span class="${textClass}">${displayCategory}</span>
                             </div>
                         </td>
-                        <td class="p-2 text-center theme-text-muted font-medium">${row.km || '-'}</td>
-                        <td class="p-2 text-center font-mono text-[10px] ${isTotalRow ? 'text-neutral-500' : 'text-amber-600 dark:text-amber-400'}">${row.cot || '-'}</td>
-                        <td class="p-2 text-center font-bold font-mono pr-2.5 ${isTotalRow ? 'text-indigo-500 text-xs' : 'text-blue-600 dark:text-blue-400'}">${row.runners !== undefined ? row.runners : 0}</td>
+                        <td class="p-2 text-center theme-text font-medium">${row.km || '-'}</td>
+                        <td class="p-2 text-center font-mono font-bold ${isTotalRow ? 'text-neutral-500' : 'text-amber-600 dark:text-amber-400'}">${row.cot || '-'}</td>
+                        <td class="p-2 text-center font-black font-mono pr-2.5 ${runnerClass}">${row.runners !== undefined ? row.runners : 0}</td>
                     </tr>
                 `;
             });
             tbody.innerHTML = htmlBuilder;
         }
+
+        // Collapsible view frame component utility
+        function toggleDashboardCollapse() {
+            const content = document.getElementById("dashboardCollapseContent");
+            const arrow = document.getElementById("dashboardCollapseArrow");
+            if (!content || !arrow) return;
+            
+            const isCurrentlyHidden = content.classList.toggle("hidden");
+            if (isCurrentlyHidden) {
+                arrow.textContent = "▲";
+                localStorage.setItem("dashboardCollapsedState", "true");
+            } else {
+                arrow.textContent = "▼";
+                localStorage.setItem("dashboardCollapsedState", "false");
+            }
+        }
+
+        // Self executing visual initialization hook
+        (function dynamicCollapseInitializer() {
+            setTimeout(() => {
+                if (localStorage.getItem("dashboardCollapsedState") === "true") {
+                    const content = document.getElementById("dashboardCollapseContent");
+                    const arrow = document.getElementById("dashboardCollapseArrow");
+                    if (content && arrow) {
+                        content.classList.add("hidden");
+                        arrow.textContent = "▲";
+                    }
+                }
+            }, 150);
+        })();
 
         const dbRequest = indexedDB.open("RaceLoggerDB", 1);
         dbRequest.onupgradeneeded = function(e) {
@@ -1475,7 +1515,6 @@
                     return;
                 }
 
-                // If summary data exists, map out to the dashboard dynamically
                 if (result.summary) {
                     renderSummaryDashboard(result.summary);
                 }
