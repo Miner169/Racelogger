@@ -103,11 +103,23 @@
 
         @keyframes popScale {
             0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.6; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.9; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.85; }
         }
         .animate-pop-scale {
             animation: popScale 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+        }
+
+        /* 1.5 Second Roster Banner Color Switch Animation */
+        @keyframes alertFlash {
+            0% { opacity: 0; transform: scale(0.9); color: #eab308; }
+            15% { opacity: 1; transform: scale(1.03); color: #eab308; }
+            50% { color: #22c55e; }
+            85% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.95); }
+        }
+        .animate-alert-flash {
+            animation: alertFlash 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
 
         /* Responsive Layout Rules Modifiers */
@@ -132,14 +144,8 @@
             <button id="syncErrorBadge" onclick="showSyncErrorDetails()" class="hidden text-[10px] bg-red-955 text-red-400 border border-red-800 hover:bg-red-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow animate-pulse">
                 ⚠️ Sync Issue
             </button>
-            <!-- Dynamic Hardware Engine Status Badge -->
-            <span id="perfEngineBadge" class="text-[9px] bg-neutral-900 border border-neutral-700 px-2 py-0.5 rounded-full text-neutral-400 font-mono font-bold tracking-tight">Detecting Hardware...</span>
         </div>
         <div class="flex items-center gap-1.5">
-            <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800">
-                <span class="w-2 h-2 rounded-full bg-red-600" id="gpsDot"></span>
-                <span id="gpsText" class="text-neutral-400">GPS SLEEP</span>
-            </div>
             <button onclick="toggleTheme()" id="themeBtn" class="text-gray-300 hover:text-white text-lg p-1" title="Toggle Theme">☀️</button>
             <button onclick="toggleSettings()" class="text-gray-300 hover:text-white text-lg p-1" title="Settings">⚙️</button>
         </div>
@@ -319,9 +325,11 @@
                 </section>
 
                 <!-- Isolated Full-Width Container for Last 4 -->
-                <section class="theme-panel py-2 px-4 rounded-xl border shadow-sm text-center flex flex-col gap-0.5">
+                <section class="theme-panel py-2 px-4 rounded-xl border shadow-sm text-center flex flex-col gap-0.5 relative">
                     <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">Last 4 Runners</div>
-                    <div id="splitLastRunner" class="font-black bib-text-highlight text-xl tracking-wider truncate">-</div>
+                    <div id="splitLastRunner" class="font-black bib-text-highlight text-xl tracking-wider truncate transition-colors duration-200">-</div>
+                    <!-- Live Added Notification Banner Element -->
+                    <div id="rosterAddAlert" class="absolute inset-0 bg-transparent flex items-center justify-center font-extrabold text-xs tracking-wider opacity-0 pointer-events-none uppercase"></div>
                 </section>
 
                 <!-- Fast Entry Log Form -->
@@ -409,10 +417,10 @@
         </div>
     </main>
 
-    <!-- Transparent See-Through Success Toast Notification Overlay Wrapper -->
-    <div id="successToast" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] cursor-pointer bg-transparent backdrop-blur-sm rounded-2xl p-6 flex flex-col items-center justify-center select-none" onclick="hideSuccessToast()">
-        <span class="text-7xl filter drop-shadow-md opacity-40 transform transition-transform active:scale-90">✅</span>
-        <span class="text-[10px] text-emerald-500 font-black tracking-widest uppercase mt-1 opacity-60">Logged</span>
+    <!-- Transparent See-Through Success Toast Notification Overlay Wrapper (Enhanced Opacity Layout) -->
+    <div id="successToast" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] cursor-pointer bg-neutral-950/40 backdrop-blur-md rounded-2xl p-6 flex flex-col items-center justify-center select-none border border-neutral-800" onclick="hideSuccessToast()">
+        <span class="text-7xl filter drop-shadow-md opacity-90 transform transition-transform active:scale-90">✅</span>
+        <span class="text-[10px] text-emerald-400 font-black tracking-widest uppercase mt-1 opacity-95">Logged</span>
     </div>
 
     <script>
@@ -459,6 +467,7 @@
         let performanceStutterStreak = 0;
         let lastFrameRenderTimestamp = performance.now();
         let isHighEndSoc = false; 
+        let currentActiveLastFourString = ""; 
         
         let syncUrl = localStorage.getItem("syncUrl");
         if (!syncUrl || syncUrl.trim() === "") {
@@ -478,51 +487,37 @@
             }, { passive: false });
         }
 
-        // Run a hardware profiling check right at startup
         function profileDevicePerformanceCapabilities() {
             const cores = navigator.hardwareConcurrency || 4;
             const start = performance.now();
             
-            // Short stress block to evaluate mathematical throughput speeds
             let targetCounter = 0;
             for (let i = 0; i < 450000; i++) {
                 targetCounter += Math.sqrt(i) * Math.sin(i);
             }
             const duration = performance.now() - start;
             
-            // Classify device SoC layer baseline limits
             if (cores >= 8 && duration < 12) {
                 isHighEndSoc = true;
                 dynamicHardwareMaxCap = 800; 
-                document.getElementById("perfEngineBadge").textContent = "⚡ HIGH-PERF CPU";
-                document.getElementById("perfEngineBadge").className = "text-[9px] bg-blue-955 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full font-mono font-bold tracking-tight";
             } else if (cores >= 6 && duration < 25) {
                 dynamicHardwareMaxCap = 350;
-                document.getElementById("perfEngineBadge").textContent = "⚙️ MID-RANGE CPU";
-                document.getElementById("perfEngineBadge").className = "text-[9px] bg-neutral-900 text-neutral-300 border border-neutral-700 px-2 py-0.5 rounded-full font-mono font-bold tracking-tight";
             } else {
                 dynamicHardwareMaxCap = 75;
-                document.getElementById("perfEngineBadge").textContent = "🔋 ECO CPU";
-                document.getElementById("perfEngineBadge").className = "text-[9px] bg-red-955 text-red-400 border border-red-900 px-2 py-0.5 rounded-full font-mono font-bold tracking-tight";
             }
             currentAdaptiveViewClamp = dynamicHardwareMaxCap;
         }
 
-        // Real-Time UI Performance Monitor Loop
         function monitorFrameRenderLatency() {
             const now = performance.now();
             const frameDeltaTime = now - lastFrameRenderTimestamp;
             lastFrameRenderTimestamp = now;
 
-            // Render window threshold constraint: If drawing the DOM takes longer than 35ms, lag is occurring
             if (frameDeltaTime > 35) {
                 performanceStutterStreak++;
                 if (performanceStutterStreak >= 4) { 
-                    // Lower limits to maintain baseline frame rates
                     if (currentAdaptiveViewClamp > 40) {
                         currentAdaptiveViewClamp = Math.max(40, Math.floor(currentAdaptiveViewClamp * 0.75));
-                        document.getElementById("perfEngineBadge").textContent = `⚠️ THROTTLED (${currentAdaptiveViewClamp})`;
-                        document.getElementById("perfEngineBadge").className = "text-[9px] bg-yellow-955 text-yellow-400 border border-yellow-900 px-2 py-0.5 rounded-full font-mono font-bold tracking-tight";
                         setTimeout(() => loadHistory(), 20); 
                     }
                     performanceStutterStreak = 0;
@@ -660,12 +655,7 @@
             if (!forcedByFlag) lowBatteryThresholdActive = true;
             shutOffGPSHardware();
             resetSyncTimer();
-            // Battery Save Mode: Tighten row limits to minimize rendering strain
             currentAdaptiveViewClamp = Math.min(dynamicHardwareMaxCap, 40);
-            if (document.getElementById("perfEngineBadge")) {
-                document.getElementById("perfEngineBadge").textContent = "🔋 BATTERY SAVER ACTIVE";
-                document.getElementById("perfEngineBadge").className = "text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-mono font-bold tracking-tight";
-            }
             loadHistory();
         }
 
@@ -694,36 +684,20 @@
 
         function warmUpGPS() {
             if (lowBatteryThresholdActive || batterySaverManual) return; 
-            const gpsDot = document.getElementById("gpsDot");
-            const gpsText = document.getElementById("gpsText");
             if (gpsWarmupTimeout) clearTimeout(gpsWarmupTimeout);
 
-            if (!navigator.geolocation) {
-                gpsText.textContent = "NO GPS HW";
-                return;
-            }
-            if (lastGeoposition.latitude !== null && (Date.now() - lastGeoposition.timestamp) < 600000) {
-                gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                gpsText.textContent = `GPS READY`;
-                return; 
-            }
-            if (!isGpsHardwareRunning) {
-                isGpsHardwareRunning = true;
-                gpsDot.className = "w-2 h-2 rounded-full bg-yellow-600 animate-pulse";
-                gpsText.textContent = "WARMING UP...";
-            }
+            if (!navigator.geolocation) return;
+            if (lastGeoposition.latitude !== null && (Date.now() - lastGeoposition.timestamp) < 600000) return; 
+            
+            if (!isGpsHardwareRunning) isGpsHardwareRunning = true;
+            
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     lastGeoposition.latitude = pos.coords.latitude;
                     lastGeoposition.longitude = pos.coords.longitude;
                     lastGeoposition.timestamp = Date.now();
-                    gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                    gpsText.textContent = `LP FIX (${Math.round(pos.coords.accuracy)}m)`;
                 },
-                (err) => {
-                    gpsDot.className = "w-2 h-2 rounded-full bg-red-600";
-                    gpsText.textContent = err.code === 1 ? "DENIED" : "SEARCHING";
-                },
+                () => {},
                 { enableHighAccuracy: (gpsQuality === 'high'), timeout: 8000, maximumAge: 600000 }
             );
             gpsWarmupTimeout = setTimeout(shutOffGPSHardware, 10000);
@@ -732,15 +706,6 @@
         function shutOffGPSHardware() {
             isGpsHardwareRunning = false;
             if (gpsWarmupTimeout) clearTimeout(gpsWarmupTimeout);
-            const gpsDot = document.getElementById("gpsDot");
-            const gpsText = document.getElementById("gpsText");
-            if (lastGeoposition.latitude !== null && (Date.now() - lastGeoposition.timestamp) < 600000) {
-                gpsDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                gpsText.textContent = "GPS READY";
-            } else {
-                gpsDot.className = "w-2 h-2 rounded-full bg-red-600";
-                gpsText.textContent = (lowBatteryThresholdActive || batterySaverManual) ? "SAVER ACTIVE" : "GPS SLEEP";
-            }
         }
 
         function playSuccessSound() {
@@ -898,7 +863,7 @@
         dbRequest.onsuccess = function(e) {
             db = e.target.result;
             applyTheme(); 
-            profileDevicePerformanceCapabilities(); // Assess raw CPU velocity on startup
+            profileDevicePerformanceCapabilities(); 
             updateSyncStatusLabel();
             loadSettingsState();
             updateSearchBoxPlaceholder();
@@ -1270,6 +1235,10 @@
 
         function generateUID() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11); }
 
+        document.getElementById('checkpoint').addEventListener('input', function() {
+            currentActiveLastFourString = ""; 
+        });
+
         function getFormattedTimestamp(date = new Date()) {
             const pad = (num) => String(num).padStart(2, '0');
             let hours = date.getHours();
@@ -1580,13 +1549,38 @@
 
         function calculateLiveSplits(logs) {
             const splitLastRunner = document.getElementById("splitLastRunner"), splitGapTime = document.getElementById("splitGapTime");
-            if (logs.length < 1) { splitLastRunner.textContent = "-"; splitGapTime.textContent = "--:--"; return; }
+            if (logs.length < 1) { 
+                splitLastRunner.textContent = "-"; 
+                splitGapTime.textContent = "--:--"; 
+                currentActiveLastFourString = "";
+                return; 
+            }
             const sorted = [...logs].sort((a, b) => parseCustomOrIsoDate(a.time) - parseCustomOrIsoDate(b.time));
-            splitLastRunner.textContent = sorted.slice(-4).reverse().map(l => l.bib).join(' , ');
+            const freshLastFourString = sorted.slice(-4).reverse().map(l => l.bib).join(' , ');
+            
+            // Look for database additions or structural adjustments
+            if (currentActiveLastFourString !== "" && freshLastFourString !== currentActiveLastFourString) {
+                const latestLoggedBib = sorted[sorted.length - 1].bib;
+                triggerLastFourAlertNotificationBanner(latestLoggedBib);
+            }
+            
+            currentActiveLastFourString = freshLastFourString;
+            splitLastRunner.textContent = freshLastFourString;
+            
             if (sorted.length < 2) { splitGapTime.textContent = "Leader"; return; }
             const diffSeconds = Math.floor((parseCustomOrIsoDate(sorted[sorted.length - 1].time) - parseCustomOrIsoDate(sorted[sorted.length - 2].time)) / 1000);
             const mins = Math.floor(diffSeconds / 60), secs = diffSeconds % 60;
             splitGapTime.textContent = mins > 0 ? `+${mins}m ${secs}s` : `+${secs}s`;
+        }
+
+        function triggerLastFourAlertNotificationBanner(bibNumber) {
+            const alertBox = document.getElementById("rosterAddAlert");
+            if (!alertBox) return;
+            
+            alertBox.textContent = `🏃 Bib ${bibNumber} Added to Roster`;
+            alertBox.classList.remove("animate-alert-flash");
+            void alertBox.offsetWidth; 
+            alertBox.classList.add("animate-alert-flash");
         }
 
         function isEditable(logTimeStr) { return (new Date() - parseCustomOrIsoDate(logTimeStr)) < 300000; }
@@ -1688,17 +1682,13 @@
                 
                 const isForcedLandscape = document.body.classList.contains("forced-landscape");
 
-                // Execute Adaptive Performance Layout Rules Engine
                 if (isForcedLandscape) {
-                    // Check if system settings are set to unlimited 'all'
                     const targetSettingMode = (activeScopeFilter === 'current') ? currentCpHistoryLimit : globalHistoryLimit;
                     
                     if (targetSettingMode === 'all') {
-                        // If phone is high-end and battery optimization isn't throttling it, unlock complete visibility
                         if (isHighEndSoc && !lowBatteryThresholdActive && !batterySaverManual) {
                             footerToggle.classList.add("hidden"); 
                         } else {
-                            // Apply dynamic rendering clamp to protect battery cycles/SoC thermal limits
                             if (totalFilteredCount > currentAdaptiveViewClamp) {
                                 filteredLogs = filteredLogs.slice(0, currentAdaptiveViewClamp);
                                 footerUncapButton.textContent = `Adaptive Engine Active: Capped at ${currentAdaptiveViewClamp} of ${totalFilteredCount} logs for stability 📱`;
@@ -1708,7 +1698,6 @@
                             }
                         }
                     } else {
-                        // Settings rules override to standard numerical thresholds
                         const limitSize = parseInt(targetSettingMode === 'current' ? currentCpHistoryLimit : globalHistoryLimit, 10) || 100;
                         if (totalFilteredCount > limitSize) {
                             filteredLogs = filteredLogs.slice(0, limitSize);
@@ -1737,7 +1726,6 @@
                         footerToggle.classList.add("hidden");
                     }
                 } else {
-                    // Portrait 'all' setting maps directly into adaptive performance clamp parameters
                     if (totalFilteredCount > currentAdaptiveViewClamp) {
                         filteredLogs = filteredLogs.slice(0, currentAdaptiveViewClamp);
                         footerUncapButton.textContent = `Adaptive Engine Active: Showing ${currentAdaptiveViewClamp} of ${totalFilteredCount} logs 📋`;
