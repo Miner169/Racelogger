@@ -126,12 +126,14 @@
         <div class="flex items-center gap-2.5">
             <h1 class="text-base font-black tracking-wider theme-header-text">RACE LOG</h1>
             <span id="syncStatus" class="text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">Auto-Sync</span>
-            <button id="queueBadge" onclick="toggleQueueInspector()" class="hidden text-[10px] bg-yellow-950 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
+            <button id="queueBadge" onclick="toggleQueueInspector()" class="hidden text-[10px] bg-yellow-955 text-yellow-400 border border-yellow-800 hover:bg-yellow-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
                 <span id="queueCount">0</span> Pending 🔄
             </button>
             <button id="syncErrorBadge" onclick="showSyncErrorDetails()" class="hidden text-[10px] bg-red-955 text-red-400 border border-red-800 hover:bg-red-900 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow animate-pulse">
                 ⚠️ Sync Issue
             </button>
+            <!-- Dynamic Hardware Engine Status Badge -->
+            <span id="perfEngineBadge" class="text-[9px] bg-neutral-900 border border-neutral-700 px-2 py-0.5 rounded-full text-neutral-400 font-mono font-bold tracking-tight">Detecting Hardware...</span>
         </div>
         <div class="flex items-center gap-1.5">
             <div id="gpsIndicator" class="flex items-center gap-1 text-[10px] bg-black px-2.5 py-0.5 rounded-full font-bold border border-neutral-800">
@@ -239,8 +241,8 @@
                         </select>
                     </div>
                 </div>
-                <div class="text-[9px] text-red-400 font-medium leading-tight mt-0.5">
-                    ℹ️ Note: Uncapping database view targets forces phone browsers to render all rows simultaneously which can slow down or crash low-end devices.
+                <div class="text-[9px] text-blue-400 font-medium leading-tight mt-0.5">
+                    ℹ️ Note: Setting rules remain fixed here, but the active frame engine dynamically optimizes view size matching your device's core processing parameters under heavy load.
                 </div>
 
                 <label class="flex items-center gap-2 cursor-pointer select-none pt-1">
@@ -266,7 +268,7 @@
                 <h4 class="text-xs font-bold text-red-500 uppercase tracking-wider">⚠️ Destructive Action Frameworks</h4>
                 <div class="grid grid-cols-2 gap-2">
                     <button type="button" onclick="forceClearAppCache()" class="bg-neutral-900 hover:bg-neutral-800 text-neutral-400 border border-neutral-800 font-bold py-2 rounded-lg text-[10px] transition">Reset App Shell Caches</button>
-                    <button type="button" id="wipeEntireDatabaseActionBtn" onclick="clearDatabaseFromSettings()" class="bg-red-950 hover:bg-red-950/70 text-red-400 border border-red-900/40 font-bold py-2 rounded-lg text-[10px] transition truncate">Wipe Database (0)</button>
+                    <button type="button" id="wipeEntireDatabaseActionBtn" onclick="clearDatabaseFromSettings()" class="bg-red-955 hover:bg-red-955/70 text-red-400 border border-red-900/40 font-bold py-2 rounded-lg text-[10px] transition truncate">Wipe Database (0)</button>
                 </div>
             </div>
 
@@ -450,6 +452,13 @@
         let lastSyncSuccessAt = parseInt(localStorage.getItem("lastSyncSuccessAt") || "0", 10);
         let syncRetryTimeoutId = null;
         const SYNC_STUCK_ATTEMPTS_THRESHOLD = 5; 
+
+        // Adaptive Engine States
+        let dynamicHardwareMaxCap = 150; 
+        let currentAdaptiveViewClamp = 150; 
+        let performanceStutterStreak = 0;
+        let lastFrameRenderTimestamp = performance.now();
+        let isHighEndSoc = false; 
         
         let syncUrl = localStorage.getItem("syncUrl");
         if (!syncUrl || syncUrl.trim() === "") {
@@ -468,6 +477,62 @@
                 if (window.scrollY === 0 && touchMove > touchStart) e.preventDefault();
             }, { passive: false });
         }
+
+        // Run a hardware profiling check right at startup
+        function profileDevicePerformanceCapabilities() {
+            const cores = navigator.hardwareConcurrency || 4;
+            const start = performance.now();
+            
+            // Short stress block to evaluate mathematical throughput speeds
+            let targetCounter = 0;
+            for (let i = 0; i < 450000; i++) {
+                targetCounter += Math.sqrt(i) * Math.sin(i);
+            }
+            const duration = performance.now() - start;
+            
+            // Classify device SoC layer baseline limits
+            if (cores >= 8 && duration < 12) {
+                isHighEndSoc = true;
+                dynamicHardwareMaxCap = 800; 
+                document.getElementById("perfEngineBadge").textContent = "⚡ HIGH-PERF CPU";
+                document.getElementById("perfEngineBadge").className = "text-[9px] bg-blue-955 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full font-mono font-bold tracking-tight";
+            } else if (cores >= 6 && duration < 25) {
+                dynamicHardwareMaxCap = 350;
+                document.getElementById("perfEngineBadge").textContent = "⚙️ MID-RANGE CPU";
+                document.getElementById("perfEngineBadge").className = "text-[9px] bg-neutral-900 text-neutral-300 border border-neutral-700 px-2 py-0.5 rounded-full font-mono font-bold tracking-tight";
+            } else {
+                dynamicHardwareMaxCap = 75;
+                document.getElementById("perfEngineBadge").textContent = "🔋 ECO CPU";
+                document.getElementById("perfEngineBadge").className = "text-[9px] bg-red-955 text-red-400 border border-red-900 px-2 py-0.5 rounded-full font-mono font-bold tracking-tight";
+            }
+            currentAdaptiveViewClamp = dynamicHardwareMaxCap;
+        }
+
+        // Real-Time UI Performance Monitor Loop
+        function monitorFrameRenderLatency() {
+            const now = performance.now();
+            const frameDeltaTime = now - lastFrameRenderTimestamp;
+            lastFrameRenderTimestamp = now;
+
+            // Render window threshold constraint: If drawing the DOM takes longer than 35ms, lag is occurring
+            if (frameDeltaTime > 35) {
+                performanceStutterStreak++;
+                if (performanceStutterStreak >= 4) { 
+                    // Lower limits to maintain baseline frame rates
+                    if (currentAdaptiveViewClamp > 40) {
+                        currentAdaptiveViewClamp = Math.max(40, Math.floor(currentAdaptiveViewClamp * 0.75));
+                        document.getElementById("perfEngineBadge").textContent = `⚠️ THROTTLED (${currentAdaptiveViewClamp})`;
+                        document.getElementById("perfEngineBadge").className = "text-[9px] bg-yellow-955 text-yellow-400 border border-yellow-900 px-2 py-0.5 rounded-full font-mono font-bold tracking-tight";
+                        setTimeout(() => loadHistory(), 20); 
+                    }
+                    performanceStutterStreak = 0;
+                }
+            } else {
+                if (performanceStutterStreak > 0) performanceStutterStreak--;
+            }
+            requestAnimationFrame(monitorFrameRenderLatency);
+        }
+        requestAnimationFrame(monitorFrameRenderLatency);
 
         function handleViewportResize() {
             const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
@@ -595,12 +660,21 @@
             if (!forcedByFlag) lowBatteryThresholdActive = true;
             shutOffGPSHardware();
             resetSyncTimer();
+            // Battery Save Mode: Tighten row limits to minimize rendering strain
+            currentAdaptiveViewClamp = Math.min(dynamicHardwareMaxCap, 40);
+            if (document.getElementById("perfEngineBadge")) {
+                document.getElementById("perfEngineBadge").textContent = "🔋 BATTERY SAVER ACTIVE";
+                document.getElementById("perfEngineBadge").className = "text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-mono font-bold tracking-tight";
+            }
+            loadHistory();
         }
 
         function deactivateBatterySafeMode() {
             lowBatteryThresholdActive = false;
             if (batterySaverManual) return; 
             resetSyncTimer();
+            profileDevicePerformanceCapabilities(); 
+            loadHistory();
         }
 
         function resetSyncTimer() {
@@ -811,6 +885,7 @@
             } else if (layoutOrientation === 'landscape') {
                 document.body.classList.add('forced-landscape');
             }
+            loadHistory();
         }
 
         const dbRequest = indexedDB.open("RaceLoggerDB", 1);
@@ -823,6 +898,7 @@
         dbRequest.onsuccess = function(e) {
             db = e.target.result;
             applyTheme(); 
+            profileDevicePerformanceCapabilities(); // Assess raw CPU velocity on startup
             updateSyncStatusLabel();
             loadSettingsState();
             updateSearchBoxPlaceholder();
@@ -998,7 +1074,6 @@
             toggleSettings(); 
             updateSyncStatusLabel(); 
             applyLayoutOrientation();
-            loadHistory();
             
             if (batterySaverManual) {
                 activateBatterySafeMode(true);
@@ -1611,7 +1686,39 @@
                 const footerToggle = document.getElementById("historyFooterOption");
                 const footerUncapButton = document.getElementById("footerUncapButton");
                 
-                if (activeScopeFilter === 'current' && currentCpHistoryLimit !== 'all') {
+                const isForcedLandscape = document.body.classList.contains("forced-landscape");
+
+                // Execute Adaptive Performance Layout Rules Engine
+                if (isForcedLandscape) {
+                    // Check if system settings are set to unlimited 'all'
+                    const targetSettingMode = (activeScopeFilter === 'current') ? currentCpHistoryLimit : globalHistoryLimit;
+                    
+                    if (targetSettingMode === 'all') {
+                        // If phone is high-end and battery optimization isn't throttling it, unlock complete visibility
+                        if (isHighEndSoc && !lowBatteryThresholdActive && !batterySaverManual) {
+                            footerToggle.classList.add("hidden"); 
+                        } else {
+                            // Apply dynamic rendering clamp to protect battery cycles/SoC thermal limits
+                            if (totalFilteredCount > currentAdaptiveViewClamp) {
+                                filteredLogs = filteredLogs.slice(0, currentAdaptiveViewClamp);
+                                footerUncapButton.textContent = `Adaptive Engine Active: Capped at ${currentAdaptiveViewClamp} of ${totalFilteredCount} logs for stability 📱`;
+                                footerToggle.classList.remove("hidden");
+                            } else {
+                                footerToggle.classList.add("hidden");
+                            }
+                        }
+                    } else {
+                        // Settings rules override to standard numerical thresholds
+                        const limitSize = parseInt(targetSettingMode === 'current' ? currentCpHistoryLimit : globalHistoryLimit, 10) || 100;
+                        if (totalFilteredCount > limitSize) {
+                            filteredLogs = filteredLogs.slice(0, limitSize);
+                            footerUncapButton.textContent = `Show All Logs (${totalFilteredCount}) 📋`;
+                            footerToggle.classList.remove("hidden");
+                        } else {
+                            footerToggle.classList.add("hidden");
+                        }
+                    }
+                } else if (activeScopeFilter === 'current' && currentCpHistoryLimit !== 'all') {
                     const maxCpRows = parseInt(currentCpHistoryLimit, 10);
                     if (!isNaN(maxCpRows) && totalFilteredCount > maxCpRows) {
                         filteredLogs = filteredLogs.slice(0, maxCpRows);
@@ -1630,7 +1737,14 @@
                         footerToggle.classList.add("hidden");
                     }
                 } else {
-                    footerToggle.classList.add("hidden");
+                    // Portrait 'all' setting maps directly into adaptive performance clamp parameters
+                    if (totalFilteredCount > currentAdaptiveViewClamp) {
+                        filteredLogs = filteredLogs.slice(0, currentAdaptiveViewClamp);
+                        footerUncapButton.textContent = `Adaptive Engine Active: Showing ${currentAdaptiveViewClamp} of ${totalFilteredCount} logs 📋`;
+                        footerToggle.classList.remove("hidden");
+                    } else {
+                        footerToggle.classList.add("hidden");
+                    }
                 }
 
                 filteredLogs.forEach(log => {
