@@ -30,6 +30,7 @@
             --btn-lock-border: #262626;
             --bib-color: #10b981;        
             --bib-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+            --th-bg: rgba(255, 255, 255, 0.03);
         }
 
         body.light-theme {
@@ -50,6 +51,7 @@
             --btn-lock-border: #92929a;
             --bib-color: #065f46;        
             --bib-shadow: 1px 1px 0px #ffffff, -1px -1px 0px #ffffff, 1px -1px 0px #ffffff, -1px 1px 0px #ffffff;
+            --th-bg: rgba(0, 0, 0, 0.05);
         }
 
         .theme-bg { background-color: var(--bg-color); transition: background-color 0.15s ease; }
@@ -128,7 +130,6 @@
             z-index: 20;
         }
 
-        /* Responsive Layout Rules Modifiers */
         .forced-portrait #mainGridSplitter {
             grid-template-columns: 1fr !important;
         }
@@ -336,6 +337,31 @@
                     <div id="splitLastRunner" class="font-black text-xl tracking-wider truncate transition-all duration-200 min-h-[1.75rem] flex items-center justify-center gap-1">-</div>
                 </section>
 
+                <!-- --- DYNAMIC DASHBOARD OVERVIEW COMPONENT BLOCK --- -->
+                <section class="theme-panel p-3 rounded-xl border shadow flex flex-col gap-2">
+                    <h2 class="text-[10px] font-bold theme-text-muted uppercase tracking-wider flex items-center justify-between">
+                        <span>📊 Category Overview Dashboard</span>
+                        <span class="text-[9px] font-mono text-neutral-500 lowercase">Live-Syncing Range S2:Z8</span>
+                    </h2>
+                    <div class="overflow-x-auto rounded-lg border theme-border">
+                        <table class="w-full text-left border-collapse text-[11px]">
+                            <thead>
+                                <tr style="background-color: var(--th-bg);" class="text-neutral-400 font-bold border-b theme-border">
+                                    <th class="p-1.5 pl-2.5">Category</th>
+                                    <th class="p-1.5 text-center">KM</th>
+                                    <th class="p-1.5 text-center">COT</th>
+                                    <th class="p-1.5 text-center pr-2.5">Runners</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryTableBody" class="divide-y theme-border">
+                                <tr>
+                                    <td colspan="4" class="p-3 text-center theme-text-muted text-[10px]">Awaiting background live-sync routine...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
                 <!-- Fast Entry Log Form -->
                 <section class="theme-panel p-4 rounded-xl border shadow flex flex-col gap-3">
                     <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
@@ -395,7 +421,6 @@
                     <div class="px-3 py-2.5 border-b theme-border flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap bg-neutral-900/10">
                         <div class="flex items-center gap-2">
                             <h3 class="text-[10px] font-bold theme-text-muted uppercase tracking-wider whitespace-nowrap">Scan History</h3>
-                            <!-- Checkpoint Scope View Toggle Switch -->
                             <div class="inline-flex bg-neutral-900 border theme-border rounded-md p-0.5 text-[9px] font-bold">
                                 <button onclick="setScopeFilter('current')" id="scopeBtn-current" class="px-2 py-0.5 rounded bg-blue-900 text-white transition-colors duration-150">Current CP</button>
                                 <button onclick="setScopeFilter('global')" id="scopeBtn-global" class="px-2 py-0.5 rounded text-neutral-400 transition-colors duration-150">Global</button>
@@ -465,7 +490,6 @@
         let syncRetryTimeoutId = null;
         const SYNC_STUCK_ATTEMPTS_THRESHOLD = 5; 
 
-        // Adaptive Engine States
         let dynamicHardwareMaxCap = 150; 
         let currentAdaptiveViewClamp = 150; 
         let performanceStutterStreak = 0;
@@ -494,13 +518,11 @@
         function profileDevicePerformanceCapabilities() {
             const cores = navigator.hardwareConcurrency || 4;
             const start = performance.now();
-            
             let targetCounter = 0;
             for (let i = 0; i < 450000; i++) {
                 targetCounter += Math.sqrt(i) * Math.sin(i);
             }
             const duration = performance.now() - start;
-            
             if (cores >= 8 && duration < 12) {
                 isHighEndSoc = true;
                 dynamicHardwareMaxCap = 800; 
@@ -516,7 +538,6 @@
             const now = performance.now();
             const frameDeltaTime = now - lastFrameRenderTimestamp;
             lastFrameRenderTimestamp = now;
-
             if (frameDeltaTime > 35) {
                 performanceStutterStreak++;
                 if (performanceStutterStreak >= 4) { 
@@ -536,14 +557,11 @@
         function handleViewportResize() {
             const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
             if (!isTouchDevice) return; 
-
             const btn = document.getElementById("logActionButton");
             const inputHasFocus = (document.activeElement && (document.activeElement.id === 'bibInput' || document.activeElement.id === 'remarkInput'));
-
             if (inputHasFocus && window.visualViewport) {
                 const viewportHeight = window.visualViewport.height;
                 const windowHeight = window.innerHeight;
-                
                 if (viewportHeight < windowHeight * 0.9) {
                     btn.classList.add("keyboard-docked-btn");
                     btn.style.height = "5rem"; 
@@ -552,7 +570,6 @@
                     return;
                 }
             }
-            
             btn.classList.remove("keyboard-docked-btn");
             btn.style.position = "";
             btn.style.top = "";
@@ -573,10 +590,8 @@
         function forceClearAppCache() {
             const explicitWarningPrompt = 
                 "⚠️ CRITICAL ACTION: APPLICATION SHELL CACHE PURGE\n\n" +
-                "This action will completely remove the old, cached code files stored locally for this app on your device.\n\n" +
-                "Your local log history (IndexedDB database) will not be wiped.\n\n" +
+                "This action will completely remove the old code files stored locally.\n\n" +
                 "👉 To proceed, type the number 2 below and hit OK:";
-
             const userVerification = prompt(explicitWarningPrompt);
             if (userVerification === "2") {
                 if ('serviceWorker' in navigator) {
@@ -588,16 +603,12 @@
                     caches.keys().then(keys => {
                         return Promise.all(keys.map(key => caches.delete(key)));
                     }).then(() => {
-                        alert("✅ Cache successfully erased! The application will now reload to pull the new version.");
+                        alert("✅ Cache erased! App will reload.");
                         window.location.reload(true);
-                    }).catch(err => {
-                        window.location.reload(true);
-                    });
+                    }).catch(() => window.location.reload(true));
                 } else {
                     window.location.reload(true);
                 }
-            } else {
-                alert("❌ Action aborted. Verification match failed.");
             }
         }
 
@@ -605,23 +616,22 @@
             const ua = navigator.userAgent.toLowerCase();
             const guide = document.getElementById("dynamicBrowserGuide");
             if (!guide) return;
-
             if (/iphone|ipad|ipod/.test(ua)) {
                 if (/crios/.test(ua)) {
-                    guide.innerHTML = `<strong class="block mb-1 text-blue-400">🌐 iOS Chrome Layout detected:</strong>1. Tap the <strong>Share</strong> icon in the address bar.<br>2. Choose <strong>Add to Home Screen</strong>.`;
+                    guide.innerHTML = `<strong class="block mb-1 text-blue-400">🌐 iOS Chrome Layout:</strong>1. Tap <strong>Share</strong>.<br>2. Choose <strong>Add to Home Screen</strong>.`;
                 } else if (/fxios/.test(ua)) {
-                    guide.innerHTML = `<strong class="block mb-1 text-orange-400">🌐 iOS Firefox Layout detected:</strong>1. Tap the <strong>Menu (3 lines)</strong>.<br>2. Select <strong>Share</strong>, then choose <strong>Add to Home Screen</strong>.`;
+                    guide.innerHTML = `<strong class="block mb-1 text-orange-400">🌐 iOS Firefox Layout:</strong>1. Tap <strong>Menu (3 lines)</strong>.<br>2. Select <strong>Share</strong>, then <strong>Add to Home Screen</strong>.`;
                 } else {
-                    guide.innerHTML = `<strong class="block mb-1 text-sky-400">🌐 Safari Mobile Layout detected:</strong>1. Tap the central <strong>Share Action Button (📤)</strong>.<br>2. Choose <strong>Add to Home Screen</strong> from the menu sheet.`;
+                    guide.innerHTML = `<strong class="block mb-1 text-sky-400">🌐 Safari Mobile Layout:</strong>1. Tap <strong>Share Button (📤)</strong>.<br>2. Choose <strong>Add to Home Screen</strong>.`;
                 }
             } else if (/android/.test(ua)) {
                 if (/samsungbrowser/.test(ua)) {
-                    guide.innerHTML = `<strong class="block mb-1 text-purple-400">🌐 Samsung Internet layout:</strong>1. Tap the <strong>Menu (☰)</strong> at bottom right.<br>2. Tap <strong>+ Add page to</strong>.<br>3. Choose <strong>Home screen</strong>.`;
+                    guide.innerHTML = `<strong class="block mb-1 text-purple-400">🌐 Samsung Internet:</strong>1. Tap <strong>Menu (☰)</strong>.<br>2. Tap <strong>+ Add page to</strong>.<br>3. Choose <strong>Home screen</strong>.`;
                 } else {
-                    guide.innerHTML = `<strong class="block mb-1 text-emerald-400">🌐 Mobile Chrome Layout detected:</strong>1. Tap the <strong>Options Menu (⋮)</strong> at top right.<br>2. Tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.`;
+                    guide.innerHTML = `<strong class="block mb-1 text-emerald-400">🌐 Mobile Chrome Layout:</strong>1. Tap <strong>Options Menu (⋮)</strong>.<br>2. Tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.`;
                 }
             } else {
-                guide.innerHTML = `🌐 Click the install icon located inside the upper browser address navigation bar.`;
+                guide.innerHTML = `🌐 Click the install icon inside the browser address navigation bar.`;
             }
         }
 
@@ -674,9 +684,7 @@
         function resetSyncTimer() {
             if (syncTimerId) clearInterval(syncTimerId);
             if (syncIntervalMs === 0) return; 
-
             let actualTimerLoop = (lowBatteryThresholdActive || batterySaverManual) ? Math.max(syncIntervalMs, 60000) : syncIntervalMs;
-
             syncTimerId = setInterval(function() {
                 loadHistory();
                 if (syncUrl && !remarkDebounceTimeout) {
@@ -689,12 +697,9 @@
         function warmUpGPS() {
             if (lowBatteryThresholdActive || batterySaverManual) return; 
             if (gpsWarmupTimeout) clearTimeout(gpsWarmupTimeout);
-
             if (!navigator.geolocation) return;
             if (lastGeoposition.latitude !== null && (Date.now() - lastGeoposition.timestamp) < 600000) return; 
-            
             if (!isGpsHardwareRunning) isGpsHardwareRunning = true;
-            
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     lastGeoposition.latitude = pos.coords.latitude;
@@ -726,7 +731,7 @@
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.12);
             } catch (e) {
-                console.error("Audio block error:", e);
+                console.error("Audio error:", e);
             }
         }
 
@@ -743,7 +748,7 @@
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.15);
             } catch (e) {
-                alert("Audio test blocked or unsupported by browser context.");
+                alert("Audio test blocked by browser.");
             }
         }
 
@@ -751,7 +756,7 @@
             if (navigator.vibrate) {
                 navigator.vibrate([60, 40, 60]);
             } else {
-                alert("Haptic hardware vibration not supported on this container engine.");
+                alert("Haptic feedback unsupported on this device.");
             }
         }
 
@@ -790,6 +795,8 @@
             localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "dark" : "light");
             applyTheme();
             loadHistory();
+            const lastSummary = localStorage.getItem("lastCachedSummaryRows");
+            if (lastSummary) renderSummaryDashboard(JSON.parse(lastSummary));
         }
 
         function getDeviceType() {
@@ -839,7 +846,6 @@
             const searchBar = document.getElementById("searchBar");
             if (!searchBar) return;
             const currentCP = (document.getElementById('checkpoint').value || '').trim().toUpperCase() || "N/A";
-            
             if (activeScopeFilter === 'current') {
                 searchBar.placeholder = `🔍 Search Bib, Remark, or Vol in ${currentCP}...`;
             } else {
@@ -855,6 +861,49 @@
                 document.body.classList.add('forced-landscape');
             }
             loadHistory();
+        }
+
+        // --- NEW RENDERING ENGINE FOR INTERACTIVE SUMMARY DASHBOARD ---
+        function renderSummaryDashboard(summaryRows) {
+            const tbody = document.getElementById("summaryTableBody");
+            if (!tbody) return;
+            if (!summaryRows || summaryRows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center theme-text-muted text-[10px]">No category configs found on server range.</td></tr>`;
+                return;
+            }
+            
+            // Localize data configuration locally to handle theme switches
+            localStorage.setItem("lastCachedSummaryRows", JSON.stringify(summaryRows));
+            
+            let htmlBuilder = "";
+            summaryRows.forEach(row => {
+                if (!row.category && !row.runners && !row.bibRule) return;
+                
+                const displayCategory = row.category || row.bibRule || "";
+                const isTotalRow = displayCategory.toLowerCase().includes("total");
+                
+                // Color formatting matching Tailwind context parameters
+                const rowBg = isTotalRow 
+                    ? "bg-neutral-900/60 font-black border-t-2 border-neutral-700/60" 
+                    : "hover:bg-neutral-500/5 transition-colors duration-100";
+                
+                const colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
+                
+                htmlBuilder += `
+                    <tr class="${rowBg} border-b theme-border">
+                        <td class="p-2 pl-2.5 font-semibold">
+                            <div class="flex items-center gap-2">
+                                ${colorHex ? `<span class="inline-block w-2.5 h-2.5 rounded-sm border border-neutral-700/50 shrink-0" style="background-color: ${colorHex}"></span>` : ''}
+                                <span class="${isTotalRow ? 'text-amber-500 font-extrabold uppercase' : 'theme-text'}">${displayCategory}</span>
+                            </div>
+                        </td>
+                        <td class="p-2 text-center theme-text-muted font-medium">${row.km || '-'}</td>
+                        <td class="p-2 text-center font-mono text-[10px] ${isTotalRow ? 'text-neutral-500' : 'text-amber-600 dark:text-amber-400'}">${row.cot || '-'}</td>
+                        <td class="p-2 text-center font-bold font-mono pr-2.5 ${isTotalRow ? 'text-indigo-500 text-xs' : 'text-blue-600 dark:text-blue-400'}">${row.runners !== undefined ? row.runners : 0}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = htmlBuilder;
         }
 
         const dbRequest = indexedDB.open("RaceLoggerDB", 1);
@@ -875,11 +924,14 @@
             initBatteryMonitoring();
             checkPwaDisplay(); 
             resetSyncTimer();
+            
+            const localCache = localStorage.getItem("lastCachedSummaryRows");
+            if (localCache) renderSummaryDashboard(JSON.parse(localCache));
+
             if (syncUrl && syncIntervalMs > 0) {
                 attemptSync();
                 pullServerRecords(); 
             }
-
             ['bibInput', 'remarkInput'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -918,13 +970,11 @@
             const inputUrl = document.getElementById("syncUrlInput").value.trim();
             const feedback = document.getElementById("testConnectionStatusFeedback");
             const btn = document.getElementById("connectionTesterBtn");
-
             if(!inputUrl) {
                 feedback.textContent = "❌ Error: URL Field is empty.";
                 feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
                 return;
             }
-
             feedback.textContent = "⏳ Testing ping connection request...";
             feedback.className = "text-[10px] text-neutral-400 font-bold block leading-tight mt-1";
             btn.disabled = true;
@@ -939,20 +989,21 @@
                 try {
                     const parsed = JSON.parse(txt);
                     if (parsed.status === "success" || parsed.message.includes("Unknown action")) {
-                        const rowInfo = (typeof parsed.rowCount === 'number') ? ` (${parsed.rowCount} logs currently on server)` : '';
+                        const rowInfo = (typeof parsed.rowCount === 'number') ? ` (${parsed.rowCount} logs on server)` : '';
                         feedback.textContent = `✅ Connected Successfully!${rowInfo}`;
                         feedback.className = "text-[10px] text-emerald-500 font-bold block leading-tight mt-1";
+                        if (parsed.summary) renderSummaryDashboard(parsed.summary);
                     } else {
                         feedback.textContent = `❌ Script error context: ${txt.slice(0, 60)}`;
                         feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
                     }
                 } catch(e) {
-                    feedback.textContent = `❌ Response format issue (Not JSON). Endpoint mismatched.`;
+                    feedback.textContent = `❌ Response format issue (Not JSON).`;
                     feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
                 }
             })
             .catch(err => {
-                feedback.textContent = `❌ ${err.message || 'Endpoint Fault: Unable to resolve request. Verify URL format structure.'}`;
+                feedback.textContent = `❌ ${err.message || 'Endpoint Fault'}`;
                 feedback.className = "text-[10px] text-red-500 font-bold block leading-tight mt-1";
             })
             .finally(() => {
@@ -963,32 +1014,26 @@
         function importBackupJSONDataFile(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
                     if (!Array.isArray(importedData)) {
-                        alert("❌ Validation error: Root JSON container structure must be an Array.");
+                        alert("❌ Validation error: JSON must be an Array.");
                         return;
                     }
-
                     if (importedData.length === 0) {
-                        alert("⚠️ Target loaded array database is completely empty.");
+                        alert("⚠️ Array is empty.");
                         return;
                     }
-
-                    const confirmInject = confirm(`⚠️ Are you sure you want to load ${importedData.length} records back into local database? Existing matching items will merge.`);
+                    const confirmInject = confirm(`⚠️ Restore ${importedData.length} records into database?`);
                     if (!confirmInject) return;
-
                     const tx = db.transaction(["logs"], "readwrite");
                     const store = tx.objectStore("logs");
-
                     store.getAll().onsuccess = function(ev) {
                         const existingLogs = ev.target.result || [];
                         const existingUids = new Set(existingLogs.map(l => l.uid));
                         let itemsAdded = 0;
-
                         importedData.forEach(item => {
                             if (item.uid && !existingUids.has(item.uid)) {
                                 delete item.id; 
@@ -996,15 +1041,14 @@
                                 itemsAdded++;
                             }
                         });
-
                         tx.oncomplete = function() {
-                            alert(`✅ Database reload finished successfully! Restored ${itemsAdded} unique logs.`);
+                            alert(`✅ Restored ${itemsAdded} unique logs.`);
                             loadHistory();
                             updateSettingsWipeCounterFootprint();
                         };
                     };
                 } catch(err) {
-                    alert("❌ Failed to parse payload matrix. Ensure file is a standard formatted JSON backup dump.");
+                    alert("❌ Failed to parse payload matrix.");
                 }
             };
             reader.readAsText(file);
@@ -1014,7 +1058,6 @@
         function saveSettings() { 
             syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; 
             localStorage.setItem("syncUrl", syncUrl); 
-
             let requestedDupWindow = parseInt(document.getElementById("dupWindowInput").value, 10) || 2;
             if (requestedDupWindow < 2) requestedDupWindow = 2; 
 
@@ -1039,7 +1082,6 @@
             localStorage.setItem("batterySaverManual", batterySaverManual);
 
             document.getElementById("dupWindowInput").value = dupWindow;
-
             toggleSettings(); 
             updateSyncStatusLabel(); 
             applyLayoutOrientation();
@@ -1049,7 +1091,6 @@
             } else {
                 deactivateBatterySafeMode();
             }
-
             resetSyncTimer();
             if (syncUrl && syncIntervalMs > 0) {
                 attemptSync(); 
@@ -1102,7 +1143,7 @@
             return fetch(url, { ...options, signal: controller.signal })
                 .catch(err => {
                     if (err.name === 'AbortError') {
-                        throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s — server may be slow or unreachable.`);
+                        throw new Error(`Timeout after ${Math.round(timeoutMs / 1000)}s`);
                     }
                     throw err;
                 })
@@ -1126,22 +1167,13 @@
         function updateSyncHealthUI() {
             const badge = document.getElementById("syncErrorBadge");
             if (!badge) return;
-            if (syncFailureStreak >= 3) {
-                badge.classList.remove("hidden");
-            } else {
-                badge.classList.add("hidden");
-            }
+            if (syncFailureStreak >= 3) badge.classList.remove("hidden");
+            else badge.classList.add("hidden");
         }
 
         function showSyncErrorDetails() {
             const lastOk = lastSyncSuccessAt ? new Date(lastSyncSuccessAt).toLocaleString() : "Never";
-            alert(
-                `⚠️ Sync trouble\n\n` +
-                `Last error: ${lastSyncError || "Unknown"}\n` +
-                `Consecutive failed attempts: ${syncFailureStreak}\n` +
-                `Last successful sync: ${lastOk}\n\n` +
-                `Your logs are safely saved on this phone and will keep retrying automatically.`
-            );
+            alert(`⚠️ Sync trouble\n\nError: ${lastSyncError || "Unknown"}\nStreak: ${syncFailureStreak}\nLast Success: ${lastOk}`);
         }
         
         function toggleLock() { isSetupLocked = !isSetupLocked; localStorage.setItem("settingsLocked", isSetupLocked); applyLockState(); }
@@ -1203,35 +1235,28 @@
             const bI = document.getElementById('bibInput');
             const bib = bI.value.trim().toUpperCase();
             if (!bib) return;
-            
             const cpV = (document.getElementById('checkpoint')?.value || '').trim();
             const volV = (document.getElementById('volunteer')?.value || '').trim();
-            
             if (!cpV || !volV) { 
-                alert("⚠️ Setup incomplete! Please fill Checkpoint and Volunteer fields first."); 
+                alert("⚠️ Setup incomplete!"); 
                 bI.focus();
                 return; 
             }
-
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const duplicate = e.target.result.find(log => 
                     log.bib === bib && 
                     log.checkpoint.toUpperCase() === cpV.toUpperCase() && 
                     (new Date() - parseCustomOrIsoDate(log.time)) < (dupWindow * 60 * 1000)
                 );
-                
                 if (duplicate) {
-                    const confirmLog = confirm(`⚠️ Bib ${bib} logged recently at ${cpV.toUpperCase()}. Log again?`);
-                    if (!confirmLog) {
+                    if (!confirm(`⚠️ Bib ${bib} logged recently. Log again?`)) {
                         bI.value = ''; 
                     } else {
                         triggerInlineAnimationFlag = true;
                         logEntry(bib);
                     }
                     bI.focus();
-                    setTimeout(() => {
-                        handleViewportResize();
-                    }, 80);
+                    setTimeout(() => handleViewportResize(), 80);
                 } else { 
                     triggerInlineAnimationFlag = true;
                     logEntry(bib); 
@@ -1251,7 +1276,6 @@
 
         function logEntry(bib) {
             if (remarkDebounceTimeout) { clearTimeout(remarkDebounceTimeout); remarkDebounceTimeout = null; }
-
             const checkpoint = document.getElementById('checkpoint').value.trim();
             const volunteer = document.getElementById('volunteer').value.trim();
             const remarkInput = document.getElementById('remarkInput');
@@ -1271,9 +1295,9 @@
                 synced: false,
                 remake: false,
                 syncAttempts: 0,
-                speed: "",     // Optional speed slot
-                pace: "",      // Optional pace slot
-                category: ""   // Optional category slot
+                speed: "",     
+                pace: "",      
+                category: ""   
             };
 
             lastCreatedUid = entry.uid;
@@ -1286,29 +1310,22 @@
                 triggerSuccessToast(); 
                 if (syncIntervalMs > 0) attemptSync();
             };
-            
             bibInput.value = '';
             remarkInput.value = ''; 
             shutOffGPSHardware();
-            
             bibInput.focus();
-            setTimeout(() => {
-                handleViewportResize();
-            }, 80);
+            setTimeout(() => handleViewportResize(), 80);
         }
 
         function handleRemarkTyping() {
             if (!lastCreatedUid) return; 
             if (remarkDebounceTimeout) clearTimeout(remarkDebounceTimeout);
-
             remarkDebounceTimeout = setTimeout(() => {
                 const remarkInput = document.getElementById('remarkInput');
                 if (remarkInput.disabled) { remarkDebounceTimeout = null; return; }
-                
                 const currentRemark = remarkInput.value.trim();
                 const tx = db.transaction(["logs"], "readwrite");
                 const store = tx.objectStore("logs");
-                
                 store.getAll().onsuccess = function(e) {
                     const logToUpdate = e.target.result.find(l => l.uid === lastCreatedUid);
                     if (logToUpdate) {
@@ -1322,9 +1339,7 @@
                             loadHistory();
                             if (syncIntervalMs > 0) attemptSync(); 
                         };
-                    } else {
-                        remarkDebounceTimeout = null;
-                    }
+                    } else { remarkDebounceTimeout = null; }
                 };
             }, 2500); 
         }
@@ -1350,11 +1365,7 @@
                 const item = document.createElement("div");
                 item.className = "py-2.5 flex justify-between items-center text-xs theme-text-muted";
                 const titleText = log.remake ? `<strong class="text-sm font-black text-red-500 animate-pulse">REMAKE REQUIRED</strong>` : `<strong class="text-sm font-black text-yellow-600 dark:text-yellow-500">Bib ${log.bib}</strong>`;
-
-                const stuckBadge = (log.syncAttempts || 0) >= SYNC_STUCK_ATTEMPTS_THRESHOLD
-                    ? `<div class="text-[9px] text-red-500 font-bold mt-0.5">⚠️ Failed ${log.syncAttempts}x</div>`
-                    : '';
-                
+                const stuckBadge = (log.syncAttempts || 0) >= SYNC_STUCK_ATTEMPTS_THRESHOLD ? `<div class="text-[9px] text-red-500 font-bold mt-0.5">⚠️ Failed ${log.syncAttempts}x</div>` : '';
                 item.innerHTML = `
                     <div class="flex flex-col">
                         <div>${titleText} at <span class="font-bold">${log.checkpoint}</span></div>
@@ -1377,30 +1388,24 @@
                 body: JSON.stringify({ action: "batch_sync", data: [row] })
             }, 20000)
             .then(async res => {
-                const rawText = await res.text();
-                if (rawText.trim().startsWith("<")) throw new Error("Web app returned HTML page.");
-                const data = JSON.parse(rawText);
-                if (data.status !== "success") throw new Error(data.message || "Server rejected context.");
-
+                const data = JSON.parse(await res.text());
+                if (data.status !== "success") throw new Error(data.message || "Rejected");
                 const confirmedIds = new Set(data.confirmedIds || []);
                 const remakeIds = new Set(data.remakeIds || []);
                 const tx = db.transaction(["logs"], "readwrite");
-                
                 if (remakeIds.has(row.uid)) {
                     row.synced = false; row.remake = true; row.syncAttempts = 0;
-                    alert(`Log UID ${row.uid} altered on server.`);
                 } else if (confirmedIds.has(row.uid)) {
                     row.synced = true; row.remake = false; row.syncAttempts = 0;
-                } else {
-                    row.syncAttempts = (row.syncAttempts || 0) + 1;
                 }
                 tx.objectStore("logs").put(row);
-                tx.oncomplete = function() { recordSyncSuccess(); loadHistory(); };
+                tx.oncomplete = function() { 
+                    recordSyncSuccess(); 
+                    loadHistory(); 
+                    if (data.summary) renderSummaryDashboard(data.summary);
+                };
             }).catch(err => {
-                console.error(err);
                 recordSyncFailure(err.message || String(err));
-                alert(`❌ Sync failed: ${err.message || err}`);
-
                 const tx = db.transaction(["logs"], "readwrite");
                 row.syncAttempts = (row.syncAttempts || 0) + 1;
                 tx.objectStore("logs").put(row);
@@ -1412,11 +1417,9 @@
             if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
             isSyncing = true;
             if (syncRetryTimeoutId) { clearTimeout(syncRetryTimeoutId); syncRetryTimeoutId = null; }
-
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const unsynced = e.target.result.filter(log => !log.synced);
                 if (unsynced.length === 0) { isSyncing = false; return; }
-
                 fetchWithTimeout(syncUrl, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -1424,43 +1427,33 @@
                     body: JSON.stringify({ action: "batch_sync", data: unsynced })
                 }, 25000)
                 .then(async res => {
-                    const rawText = await res.text();
-                    if (rawText.trim().startsWith("<")) throw new Error("Server response page fault error.");
-                    const data = JSON.parse(rawText);
-                    if (data.status !== "success") throw new Error(data.message || "Rejected.");
-
+                    const data = JSON.parse(await res.text());
+                    if (data.status !== "success") throw new Error(data.message || "Rejected");
                     const confirmedIds = new Set(data.confirmedIds || []);
                     const remakeIds = new Set(data.remakeIds || []);
                     const tx = db.transaction(["logs"], "readwrite");
                     const store = tx.objectStore("logs");
-                    
                     unsynced.forEach(log => {
                         if (remakeIds.has(log.uid)) {
                             log.synced = false; log.remake = true; log.syncAttempts = 0; store.put(log);
                         } else if (confirmedIds.has(log.uid)) {
                             log.synced = true; log.remake = false; log.syncAttempts = 0; store.put(log); 
                         } else {
-                            log.syncAttempts = (log.syncAttempts || 0) + 1;
-                            store.put(log);
+                            log.syncAttempts = (log.syncAttempts || 0) + 1; store.put(log);
                         }
                     });
                     tx.oncomplete = function() {
                         recordSyncSuccess();
                         loadHistory();
+                        if (data.summary) renderSummaryDashboard(data.summary);
                     };
                 })
                 .catch(err => {
-                    console.error(err);
                     recordSyncFailure(err.message || String(err));
-
                     const tx = db.transaction(["logs"], "readwrite");
                     const store = tx.objectStore("logs");
-                    unsynced.forEach(log => {
-                        log.syncAttempts = (log.syncAttempts || 0) + 1;
-                        store.put(log);
-                    });
+                    unsynced.forEach(log => { log.syncAttempts = (log.syncAttempts || 0) + 1; store.put(log); });
                     tx.oncomplete = function() { loadHistory(); };
-
                     const backoffMs = Math.min(5000 * Math.pow(2, Math.min(syncFailureStreak, 5)), 60000);
                     syncRetryTimeoutId = setTimeout(() => { if (!isSyncing) attemptSync(); }, backoffMs);
                 })
@@ -1475,42 +1468,38 @@
             if (!syncUrl) return;
             try {
                 const targetRequestUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}sinceRow=${currentLastSyncedRowMarker}`;
-                
                 const response = await fetchWithTimeout(targetRequestUrl, {}, 15000);
                 const result = await response.json();
                 if (result.status !== "success") {
-                    recordSyncFailure(result.message || "Pull request rejected by server.");
+                    recordSyncFailure(result.message || "Pull request rejected.");
                     return;
                 }
 
+                // If summary data exists, map out to the dashboard dynamically
+                if (result.summary) {
+                    renderSummaryDashboard(result.summary);
+                }
+
                 const serverRecords = result.data || [];
-                
                 if (result.lastRow && result.lastRow > currentLastSyncedRowMarker) {
                     currentLastSyncedRowMarker = result.lastRow;
                     localStorage.setItem("lastDataRowMarker", String(currentLastSyncedRowMarker));
                 }
-
                 if (serverRecords.length === 0) return; 
 
                 const serverMap = new Map(serverRecords.map(r => [r.uid, r]));
                 const tx = db.transaction(["logs"], "readwrite");
                 const store = tx.objectStore("logs");
-
                 store.getAll().onsuccess = function(e) {
                     const localLogs = e.target.result;
                     const localUids = new Set(localLogs.map(l => l.uid));
                     let changed = false;
-
                     localLogs.forEach(localLog => {
                         const match = serverMap.get(localLog.uid);
                         if (localLog.synced && (!match || match.bib === "")) {
-                            localLog.synced = false;
-                            localLog.remake = true;
-                            store.put(localLog);
-                            changed = true;
+                            localLog.synced = false; localLog.remake = true; store.put(localLog); changed = true;
                         }
                     });
-
                     serverRecords.forEach(serverRecord => {
                         if (!serverRecord.uid || localUids.has(serverRecord.uid)) return;
                         store.add({
@@ -1533,11 +1522,9 @@
                         });
                         changed = true;
                     });
-
                     if (changed) tx.oncomplete = function() { loadHistory(); };
                 };
             } catch (e) {
-                console.error("Incremental pull failed:", e);
                 recordSyncFailure(e.message || String(e));
             }
         }
@@ -1557,14 +1544,9 @@
 
         function calculateLiveSplits(logs) {
             const splitLastRunner = document.getElementById("splitLastRunner");
-            if (logs.length < 1) { 
-                splitLastRunner.textContent = "-"; 
-                return; 
-            }
-            
+            if (logs.length < 1) { splitLastRunner.textContent = "-"; return; }
             const sorted = [...logs].sort((a, b) => parseCustomOrIsoDate(a.time) - parseCustomOrIsoDate(b.time));
             const targetedLastFour = sorted.slice(-4).reverse();
-            
             let HTMLBuilder = "";
             targetedLastFour.forEach((item, index) => {
                 if (index === 0 && triggerInlineAnimationFlag) {
@@ -1572,21 +1554,16 @@
                 } else {
                     HTMLBuilder += `<span class="bib-text-highlight">${item.bib}</span>`;
                 }
-                
-                if (index < targetedLastFour.length - 1) {
-                    HTMLBuilder += ` <span class="text-neutral-500 font-bold mx-0.5">,</span> `;
-                }
+                if (index < targetedLastFour.length - 1) HTMLBuilder += ` <span class="text-neutral-500 font-bold mx-0.5">,</span> `;
             });
-
             splitLastRunner.innerHTML = HTMLBuilder;
-
-            if (triggerInlineAnimationFlag) {
-                triggerInlineAnimationFlag = false;
-            }
+            if (triggerInlineAnimationFlag) triggerInlineAnimationFlag = false;
             
-            const diffSeconds = Math.floor((parseCustomOrIsoDate(sorted[sorted.length - 1].time) - parseCustomOrIsoDate(sorted[sorted.length - 2].time)) / 1000);
-            const mins = Math.floor(diffSeconds / 60), secs = diffSeconds % 60;
-            document.getElementById("splitGapTime").textContent = mins > 0 ? `+${mins}m ${secs}s` : `+${secs}s`;
+            if(sorted.length >= 2) {
+                const diffSeconds = Math.floor((parseCustomOrIsoDate(sorted[sorted.length - 1].time) - parseCustomOrIsoDate(sorted[sorted.length - 2].time)) / 1000);
+                const mins = Math.floor(diffSeconds / 60), secs = diffSeconds % 60;
+                document.getElementById("splitGapTime").textContent = mins > 0 ? `+${mins}m ${secs}s` : `+${secs}s`;
+            }
         }
 
         function isEditable(logTimeStr) { return (new Date() - parseCustomOrIsoDate(logTimeStr)) < 300000; }
@@ -1599,8 +1576,7 @@
                     alert("⚠️ You can only edit entries logged from this device.");
                     return;
                 }
-                editingRowId = id;
-                loadHistory();
+                editingRowId = id; loadHistory();
             };
         }
         function cancelEditing() { editingRowId = null; loadHistory(); }
@@ -1609,7 +1585,6 @@
             const newBib = document.getElementById(`edit-bib-${id}`).value.trim().toUpperCase();
             const newRemark = document.getElementById(`edit-remark-${id}`).value.trim();
             if (!newBib) return;
-
             const tx = db.transaction(["logs"], "readwrite");
             const store = tx.objectStore("logs");
             store.get(id).onsuccess = function(e) {
@@ -1617,8 +1592,7 @@
                 log.bib = newBib; log.remark = newRemark; log.synced = false; log.remake = false; log.syncAttempts = 0;
                 store.put(log);
                 tx.oncomplete = function() { 
-                    editingRowId = null; 
-                    loadHistory(); 
+                    editingRowId = null; loadHistory(); 
                     if (syncIntervalMs > 0) attemptSync(); 
                     document.getElementById('bibInput').focus();
                 };
@@ -1631,7 +1605,6 @@
             let hours = date.getHours();
             const ampm = hours >= 12 ? 'PM' : 'AM';
             hours = hours % 12 || 12;
-            
             const formatted = `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()} ${pad(hours)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
             const diff = Math.floor((new Date() - date) / 1000);
             let ago = diff < 60 ? "Just now" : (diff < 3600 ? Math.floor(diff / 60) + "m ago" : Math.floor(diff / 3600) + "h ago");
@@ -1640,12 +1613,10 @@
 
         function switchToDisplayAllLogsFromFooter() {
             if (activeScopeFilter === 'current') {
-                currentCpHistoryLimit = 'all';
-                localStorage.setItem("currentCpHistoryLimit", 'all');
+                currentCpHistoryLimit = 'all'; localStorage.setItem("currentCpHistoryLimit", 'all');
                 document.getElementById("currentCpHistoryLimitSelect").value = 'all';
             } else {
-                globalHistoryLimit = 'all';
-                localStorage.setItem("globalHistoryLimit", 'all');
+                globalHistoryLimit = 'all'; localStorage.setItem("globalHistoryLimit", 'all');
                 document.getElementById("globalHistoryLimitSelect").value = 'all';
             }
             loadHistory();
@@ -1659,21 +1630,16 @@
                 const currentCP = (document.getElementById('checkpoint').value || '').trim().toUpperCase();
 
                 let scopedLogs = [...logs];
-                if (activeScopeFilter === 'current') {
-                    scopedLogs = logs.filter(l => l.checkpoint.toUpperCase() === currentCP);
-                }
+                if (activeScopeFilter === 'current') scopedLogs = logs.filter(l => l.checkpoint.toUpperCase() === currentCP);
 
                 document.getElementById('totalCount').textContent = scopedLogs.length;
                 document.getElementById('uniqueCount').textContent = new Set(scopedLogs.map(l => l.bib)).size;
-
                 calculateLiveSplits(scopedLogs); 
                 updateQueueStatus();
 
                 const frequencies = {}; 
                 scopedLogs.forEach(l => frequencies[l.bib] = (frequencies[l.bib] || 0) + 1);
-                
-                const logList = document.getElementById('logList'); 
-                logList.innerHTML = '';
+                const logList = document.getElementById('logList'); logList.innerHTML = '';
 
                 let filteredLogs = scopedLogs.reverse().filter(log => {
                     return log.bib.toLowerCase().includes(query) || 
@@ -1686,66 +1652,50 @@
                 const totalFilteredCount = filteredLogs.length;
                 const footerToggle = document.getElementById("historyFooterOption");
                 const footerUncapButton = document.getElementById("footerUncapButton");
-                
                 const isForcedLandscape = document.body.classList.contains("forced-landscape");
 
                 if (isForcedLandscape) {
                     const targetSettingMode = (activeScopeFilter === 'current') ? currentCpHistoryLimit : globalHistoryLimit;
-                    
                     if (targetSettingMode === 'all') {
-                        if (isHighEndSoc && !lowBatteryThresholdActive && !batterySaverManual) {
-                            footerToggle.classList.add("hidden"); 
-                        } else {
-                            if (totalFilteredCount > currentAdaptiveViewClamp) {
-                                filteredLogs = filteredLogs.slice(0, currentAdaptiveViewClamp);
-                                footerUncapButton.textContent = `Adaptive Engine Active: Capped at ${currentAdaptiveViewClamp} of ${totalFilteredCount} logs for stability 📱`;
-                                footerToggle.classList.remove("hidden");
-                            } else {
-                                footerToggle.classList.add("hidden");
-                            }
-                        }
+                        if (isHighEndSoc && !lowBatteryThresholdActive && !batterySaverManual) { footerToggle.classList.add("hidden"); } 
+                        else if (totalFilteredCount > currentAdaptiveViewClamp) {
+                            filteredLogs = filteredLogs.slice(0, currentAdaptiveViewClamp);
+                            footerUncapButton.textContent = `Adaptive Cap: ${currentAdaptiveViewClamp} of ${totalFilteredCount} logs 📱`;
+                            footerToggle.classList.remove("hidden");
+                        } else { footerToggle.classList.add("hidden"); }
                     } else {
                         const limitSize = parseInt(targetSettingMode === 'current' ? currentCpHistoryLimit : globalHistoryLimit, 10) || 100;
                         if (totalFilteredCount > limitSize) {
                             filteredLogs = filteredLogs.slice(0, limitSize);
                             footerUncapButton.textContent = `Show All Logs (${totalFilteredCount}) 📋`;
                             footerToggle.classList.remove("hidden");
-                        } else {
-                            footerToggle.classList.add("hidden");
-                        }
+                        } else { footerToggle.classList.add("hidden"); }
                     }
                 } else if (activeScopeFilter === 'current' && currentCpHistoryLimit !== 'all') {
                     const maxCpRows = parseInt(currentCpHistoryLimit, 10);
                     if (!isNaN(maxCpRows) && totalFilteredCount > maxCpRows) {
                         filteredLogs = filteredLogs.slice(0, maxCpRows);
-                        footerUncapButton.textContent = `Show All Entries in ${currentCP || 'Current CP'} (${totalFilteredCount}) 📋`;
+                        footerUncapButton.textContent = `Show All Entries (${totalFilteredCount}) 📋`;
                         footerToggle.classList.remove("hidden");
-                    } else {
-                        footerToggle.classList.add("hidden");
-                    }
+                    } else { footerToggle.classList.add("hidden"); }
                 } else if (activeScopeFilter === 'global' && globalHistoryLimit !== 'all') {
                     const maxGlobalRows = parseInt(globalHistoryLimit, 10);
                     if (!isNaN(maxGlobalRows) && totalFilteredCount > maxGlobalRows) {
                         filteredLogs = filteredLogs.slice(0, maxGlobalRows);
-                        footerUncapButton.textContent = `Uncap Global History View Constraints (${totalFilteredCount}) 📋`;
+                        footerUncapButton.textContent = `Uncap Global History (${totalFilteredCount}) 📋`;
                         footerToggle.classList.remove("hidden");
-                    } else {
-                        footerToggle.classList.add("hidden");
-                    }
+                    } else { footerToggle.classList.add("hidden"); }
                 } else {
                     if (totalFilteredCount > currentAdaptiveViewClamp) {
                         filteredLogs = filteredLogs.slice(0, currentAdaptiveViewClamp);
-                        footerUncapButton.textContent = `Adaptive Engine Active: Showing ${currentAdaptiveViewClamp} of ${totalFilteredCount} logs 📋`;
+                        footerUncapButton.textContent = `Adaptive Engine: Showing ${currentAdaptiveViewClamp} of ${totalFilteredCount} 📋`;
                         footerToggle.classList.remove("hidden");
-                    } else {
-                        footerToggle.classList.add("hidden");
-                    }
+                    } else { footerToggle.classList.add("hidden"); }
                 }
 
                 filteredLogs.forEach(log => {
                     const row = document.createElement('div');
                     row.className = 'px-4 py-3 flex flex-col justify-center hover:bg-neutral-500/10 border-b theme-border';
-                    
                     if (editingRowId === log.id) {
                         row.innerHTML = `
                             <div class="flex flex-col gap-2">
@@ -1762,13 +1712,11 @@
                     } else {
                         const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-955 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
-                        
-                        // Integrated Optional Data Metrics (Category, Speed, Pace tags)
                         const categoryBadge = log.category ? `<span class="text-[10px] bg-neutral-800 border border-neutral-700 px-1.5 py-0.5 rounded text-neutral-300 font-bold tracking-wide uppercase">${log.category}</span>` : '';
                         
                         let runtimeMetricsHTML = '';
                         if (log.speed || log.pace) {
-                            runtimeMetricsHTML = `<div class="flex items-center gap-2 mt-1 text-[10px] font-mono text-cyan-500 bg-cyan-950/20 border border-cyan-900/40 rounded px-1.5 py-0.5 w-max">`;
+                            runtimeMetricsHTML = `<div class="flex items-center gap-2 mt-1 text-[10px] font-mono text-cyan-600 dark:text-cyan-400 bg-cyan-950/20 border border-cyan-900/40 rounded px-1.5 py-0.5 w-max">`;
                             if (log.pace) runtimeMetricsHTML += `⏱️ Pace: ${log.pace}`;
                             if (log.speed && log.pace) runtimeMetricsHTML += ` | `;
                             if (log.speed) runtimeMetricsHTML += `⚡ Speed: ${log.speed}`;
@@ -1778,7 +1726,6 @@
                         const ownEntry = isOwnEntry(log);
                         const editButtonHTML = (ownEntry && (isEditable(log.time) || log.remake)) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
                         const deleteButtonHTML = (ownEntry && isDeletable(log.time)) ? `<button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 p-1 text-base">🗑️</button>` : '';
-
                         let statusText = log.synced ? 'Synced' : 'Queued';
                         let statusClass = log.synced ? 'text-emerald-600 font-extrabold' : 'text-yellow-600 font-extrabold';
                         if (log.remake) { statusText = 'REMAKE REQ'; statusClass = 'text-red-500 font-black animate-pulse'; }
@@ -1808,14 +1755,9 @@
         }
 
         function deleteRow(id, bib, time) {
-            const txReadOnly = db.transaction(["logs"], "readonly");
-            txReadOnly.objectStore("logs").get(id).onsuccess = function(e) {
+            db.transaction(["logs"], "readonly").objectStore("logs").get(id).onsuccess = function(e) {
                 const log = e.target.result;
-                if (!log) return;
-                if (!isOwnEntry(log)) {
-                    alert("⚠️ You can only delete entries logged from this device.");
-                    return;
-                }
+                if (!log || !isOwnEntry(log)) return;
                 if (!confirm(`Delete entry for Bib ${bib}?`)) return;
                 if (!syncUrl) {
                     const txWrite = db.transaction(["logs"], "readwrite");
@@ -1832,58 +1774,48 @@
                     if (data.status === "success") {
                         const txWrite = db.transaction(["logs"], "readwrite");
                         txWrite.objectStore("logs").delete(id);
-                        txWrite.oncomplete = function() { loadHistory(); updateSettingsWipeCounterFootprint(); };
+                        txWrite.oncomplete = function() { 
+                            loadHistory(); updateSettingsWipeCounterFootprint(); 
+                            if (data.summary) renderSummaryDashboard(data.summary);
+                        };
                     }
-                }).catch(() => alert("Could not delete from Sheet. Check connection."));
+                }).catch(() => alert("Connection error."));
             };
         }
 
         function exportCSV() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const logs = e.target.result;
-                if (logs.length === 0) { alert("⚠️ No logs available to export yet!"); return; }
+                if (logs.length === 0) { alert("⚠️ No logs available!"); return; }
                 let csvContent = "ID,Bib,Time,Checkpoint,Volunteer,Category,Pace,Speed,Remark,Device\r\n";
                 logs.forEach(l => { csvContent += `${l.id},"${l.bib}","${l.time}","${l.checkpoint}","${l.volunteer}","${l.category || ''}","${l.pace || ''}","${l.speed || ''}","${l.remark || ''}","${getDeviceLabel(l.device)}"\r\n`; });
-                
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a"); 
                 link.setAttribute("href", url);
                 link.setAttribute("download", `Race_Logs_${new Date().toISOString().split('T')[0]}.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link); 
-                link.click(); 
-                document.body.removeChild(link);
-                setTimeout(() => URL.revokeObjectURL(url), 100);
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
             };
         }
 
         function exportJSON() {
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const logs = e.target.result;
-                if (logs.length === 0) { alert("⚠️ No logs available to export yet!"); return; }
+                if (logs.length === 0) { alert("⚠️ No logs available!"); return; }
                 const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
                 link.setAttribute("href", url);
                 link.setAttribute("download", `Race_Logs_Backup_${new Date().toISOString().split('T')[0]}.json`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                setTimeout(() => URL.revokeObjectURL(url), 100);
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
             };
         }
 
         function clearDatabaseFromSettings() {
-            if (prompt("⚠️ CRITICAL ACTION: LOCAL WIPE\nType '0000' to completely clear the log history on this phone:") !== "0000") return;
+            if (prompt("Type '0000' to clear log history:") !== "0000") return;
             const tx = db.transaction(["logs"], "readwrite");
             tx.objectStore("logs").clear();
-            tx.oncomplete = function() { 
-                loadHistory(); 
-                alert("Local storage wiped."); 
-                toggleSettings();
-            };
+            tx.oncomplete = function() { loadHistory(); alert("Storage wiped."); toggleSettings(); };
         }
 
         document.getElementById('bibInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') checkDuplicateAndLog(); });
