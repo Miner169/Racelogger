@@ -63,7 +63,6 @@
         .theme-text-muted { color: var(--text-muted); }
         .theme-border { border-color: var(--border-color); }
         
-        /* High Contrast Outlined Text Layer */
         .text-outlined-contrast {
             text-shadow: 
                 -1px -1px 0 var(--outline-color),  
@@ -148,7 +147,6 @@
             grid-template-columns: minmax(320px, 460px) 1fr !important;
         }
 
-        /* Accordion Panel Layouts */
         .collapsible-log-panel {
             max-height: 0;
             overflow: hidden;
@@ -167,7 +165,6 @@
             transform: rotate(180deg);
         }
 
-        /* Centered Mobile and Dropdown PC Tooltip Adjustments */
         .metrics-info-trigger:hover .metrics-tooltip-card {
             display: block;
         }
@@ -223,7 +220,7 @@
                 <div id="testConnectionStatusFeedback" class="text-[10px] font-bold hidden leading-tight"></div>
             </div>
 
-            <!-- Card 2: Layout & View Controls -->
+            <!-- Card 2: Layout Controls -->
             <div class="theme-card flex flex-col gap-3">
                 <h4 class="text-xs font-bold text-indigo-500 uppercase tracking-wider">🖥️ Layout View Controls (Tablet & PC)</h4>
                 <div>
@@ -327,7 +324,7 @@
             <div class="theme-card border-red-900/40 flex flex-col gap-2">
                 <h4 class="text-xs font-bold text-red-500 uppercase tracking-wider">⚠️ Destructive Action Frameworks</h4>
                 <div class="grid grid-cols-2 gap-2">
-                    <button type="button" onclick="forceClearAppCache()" class="bg-neutral-900 hover:bg-neutral-800 text-neutral-400 border border-neutral-800 font-bold py-2 rounded-lg text-[10px] transition">Reset App Shell Caches</button>
+                    <button type="button" onclick="forceClearAppCache()" class="bg-neutral-950 hover:bg-neutral-900 text-red-400 border border-red-900 font-bold py-2 rounded-lg text-[10px] transition shadow-lg">Reset App Shell Caches</button>
                     <button type="button" id="wipeEntireDatabaseActionBtn" onclick="clearDatabaseFromSettings()" class="bg-red-955 hover:bg-red-955/70 text-red-400 border border-red-900/40 font-bold py-2 rounded-lg text-[10px] transition truncate">Wipe Database (0)</button>
                 </div>
             </div>
@@ -343,7 +340,7 @@
     <main class="flex-grow p-4 mx-auto w-full max-w-[1600px]">
         <div id="mainGridSplitter" class="grid grid-cols-1 lg:grid-cols-[minmax(320px,460px)_1fr] gap-4 items-start">
             
-            <!-- Left Panel Side: Inputs Controls Layout Group -->
+            <!-- Left Panel Side -->
             <div class="flex flex-col gap-3 w-full">
                 <!-- Checkpoint Setup Panel -->
                 <section class="theme-panel p-3 rounded-xl border shadow transition-all duration-300 flex flex-col gap-2">
@@ -431,29 +428,26 @@
                     </div>
                 </section>
 
-                <!-- --- DYNAMIC DASHBOARD OVERVIEW COMPONENT BLOCK --- -->
+                <!-- Category Overview Dashboard -->
                 <section class="theme-panel rounded-xl border shadow flex flex-col overflow-hidden">
-                    <!-- Clickable Header Block -->
                     <div onclick="toggleDashboardCollapse()" class="p-3 bg-neutral-900/10 cursor-pointer select-none flex items-center justify-between border-b theme-border transition-colors hover:bg-neutral-500/5">
                         <h2 class="text-[10px] font-bold theme-text-muted uppercase tracking-wider flex items-center gap-2">
                             <span>📊 Category Overview Dashboard</span>
-                            <span class="text-[9px] font-mono text-neutral-500 lowercase hidden sm:inline">(Range S2:Z8)</span>
                         </h2>
                         <span id="dashboardCollapseArrow" class="text-xs theme-text-muted font-bold transition-transform duration-200">▼</span>
                     </div>
                     
-                    <!-- Collapsible Container Body Area -->
                     <div id="dashboardCollapseContent" class="p-3 flex flex-col gap-2 transition-all duration-200">
                         <div class="overflow-x-auto rounded-lg border theme-border">
                             <table class="w-full text-left border-collapse text-[11px]">
                                 <thead>
                                     <tr style="background-color: var(--th-bg);" class="text-neutral-950 dark:text-white font-black border-b theme-border uppercase tracking-wider text-[11px] text-outlined-contrast">
-                                        <th class="p-2 pl-2.5" title="Race distance category">Category</th>
-                                        <th class="p-2 text-center" title="Distance in kilometers">KM</th>
-                                        <th class="p-2 text-center" title="Which bib number range belongs to this category">BIB Rule</th>
-                                        <th class="p-2 text-center" title="Cut-Off Time — the time limit runners must finish within">COT</th>
-                                        <th class="p-2 text-center" title="Clock time of the cut-off (e.g. 6h from race start)">COT Time</th>
-                                        <th class="p-2 text-center pr-2.5" title="Number of runners entered in this category">Runners</th>
+                                        <th class="p-2 pl-2.5">Category</th>
+                                        <th class="p-2 text-center">KM</th>
+                                        <th class="p-2 text-center">BIB Rule</th>
+                                        <th class="p-2 text-center">COT</th>
+                                        <th class="p-2 text-center">COT Time</th>
+                                        <th class="p-2 text-center pr-2.5">Runners</th>
                                     </tr>
                                 </thead>
                                 <tbody id="summaryTableBody" class="divide-y theme-border">
@@ -466,13 +460,12 @@
                     </div>
                 </section>
 
-                <!-- CSV Export Trigger Layout Module -->
                 <section class="hidden lg:block">
                     <button onclick="exportCSV()" class="w-full bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2 text-sm">📥 Export & Download CSV Data</button>
                 </section>
             </div>
 
-            <!-- Right Panel Side: Expansive Running Logs Grid Engine -->
+            <!-- Right Panel Side -->
             <div class="w-full h-full flex flex-col">
                 <section class="theme-panel rounded-xl border shadow flex flex-col overflow-hidden min-h-[450px] lg:min-h-[640px] w-full h-full">
                     <div class="px-3 py-2.5 border-b theme-border flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap bg-neutral-900/10">
@@ -483,10 +476,8 @@
                                 <button onclick="setScopeFilter('global')" id="scopeBtn-global" class="px-2 py-0.5 rounded text-neutral-400 transition-colors duration-150">Global</button>
                             </div>
                             
-                            <!-- Space Saving Emoji Only Toggle Button -->
-                            <button id="expandCollapseAllBtn" onclick="toggleAllLogAccordionPanels()" class="text-[11px] bg-neutral-800 hover:bg-neutral-700 theme-text border theme-border px-2 py-0.5 rounded font-bold transition shrink-0" title="Toggle Expand/Collapse All">↔️</button>
+                            <button id="expandCollapseAllBtn" onclick="toggleAllLogAccordionPanels()" class="text-[11px] bg-neutral-800 hover:bg-neutral-700 theme-text border theme-border px-2 py-0.5 rounded font-bold transition shrink-0">↔️</button>
                             
-                            <!-- Tooltip Indicator -->
                             <div class="relative inline-block metrics-info-trigger cursor-help z-40 shrink-0">
                                 <span class="text-xs bg-blue-955 text-blue-400 border border-blue-800 rounded-full w-4 h-4 flex items-center justify-center font-bold font-mono">?</span>
                                 <div class="hidden metrics-tooltip-card absolute left-0 top-6 bg-neutral-950/95 backdrop-blur-md border border-neutral-800 p-3 rounded-lg shadow-2xl w-72 text-[11px] leading-normal theme-text-muted text-left z-50">
@@ -514,7 +505,6 @@
                     </div>
                 </section>
 
-                <!-- CSV Export Trigger Mobile Layout Module fallback -->
                 <section class="block lg:hidden mt-3">
                     <button onclick="exportCSV()" class="w-full bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2">📥 Export & Download CSV</button>
                 </section>
@@ -523,7 +513,7 @@
         </div>
     </main>
 
-    <!-- Transparent See-Through Success Toast Notification Overlay Wrapper -->
+    <!-- Transparent Success Toast -->
     <div id="successToast" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] cursor-pointer bg-neutral-950/40 backdrop-blur-md rounded-2xl p-6 flex flex-col items-center justify-center select-none border border-neutral-800" onclick="hideSuccessToast()">
         <span class="text-7xl filter drop-shadow-md opacity-90 transform transition-transform active:scale-90">✅</span>
         <span class="text-[10px] text-emerald-400 font-black tracking-widest uppercase mt-1 opacity-95">Logged</span>
@@ -664,26 +654,38 @@
         document.getElementById('remarkInput').addEventListener('focus', handleViewportResize);
         document.getElementById('remarkInput').addEventListener('blur', () => setTimeout(handleViewportResize, 100));
 
-        function forceClearAppCache() {
+        // Flawless programmatic clear method for all browser caches and service layers
+        async function forceClearAppCache() {
             const explicitWarningPrompt = 
-                "⚠️ CRITICAL ACTION: APPLICATION SHELL CACHE PURGE\n\n" +
-                "This action will completely remove the old code files stored locally.\n\n" +
-                "👉 To proceed, type the number 2 below and hit OK:";
+                "⚠️ CRITICAL ACTION: PURGE APP STORAGE & SHELL CACHES\n\n" +
+                "This will unregister active service workers, wipe asset caches, and fix sync drops.\n\n" +
+                "👉 Type the number 2 below and hit OK to reset:";
             const userVerification = prompt(explicitWarningPrompt);
             if (userVerification === "2") {
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.getRegistrations().then(registrations => {
-                        for (let registration of registrations) registration.unregister();
-                    });
-                }
-                if ('caches' in window) {
-                    caches.keys().then(keys => {
-                        return Promise.all(keys.map(key => caches.delete(key)));
-                    }).then(() => {
-                        alert("✅ Cache erased! App will reload.");
-                        window.location.reload(true);
-                    }).catch(() => window.location.reload(true));
-                } else {
+                try {
+                    // 1. Clear Service Workers
+                    if ('serviceWorker' in navigator) {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        for (let registration of registrations) {
+                            await registration.unregister();
+                        }
+                    }
+                    // 2. Clear HTTP Asset Caches
+                    if ('caches' in window) {
+                        const keys = await caches.keys();
+                        for (let key of keys) {
+                            await caches.delete(key);
+                        }
+                    }
+                    // 3. Clear LocalStorage tracking indicators except SyncUrl configurations
+                    const storedUrl = localStorage.getItem("syncUrl");
+                    localStorage.clear();
+                    if (storedUrl) localStorage.setItem("syncUrl", storedUrl);
+
+                    alert("✅ App context successfully reset! Hard-reloading page shell...");
+                    window.location.reload(true);
+                } catch (err) {
+                    console.error("Cache purge failed: ", err);
                     window.location.reload(true);
                 }
             }
@@ -943,19 +945,9 @@
         function formatDashboardDateStr(dateInput) {
             if (!dateInput) return "-";
             try {
-                let parsedDate = new Date(dateInput);
-                if (isNaN(parsedDate.getTime())) {
-                    parsedDate = parseCustomOrIsoDate(dateInput);
-                }
+                let parsedDate = parseCustomOrIsoDate(dateInput);
                 if (isNaN(parsedDate.getTime())) return String(dateInput);
-                
-                const pad = (n) => String(n).padStart(2, '0');
-                const dd = pad(parsedDate.getDate());
-                const mm = pad(parsedDate.getMonth() + 1);
-                const h = parsedDate.getHours();
-                const min = pad(parsedDate.getMinutes());
-                
-                return `${dd}/${mm} ${h}:${min}`;
+                return getFormattedTimestamp(parsedDate);
             } catch (e) {
                 return String(dateInput);
             }
@@ -1110,8 +1102,7 @@
             feedback.className = "text-[10px] text-neutral-400 font-bold block leading-tight mt-1";
             btn.disabled = true;
 
-            // Appending unique cache-busting timestamp to prevent front-end from getting old responses
-            const testUrl = `${inputUrl}${inputUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+            const testUrl = `${inputUrl}${inputUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`;
 
             fetchWithTimeout(testUrl, {
                 method: "POST",
@@ -1400,12 +1391,14 @@
 
         function generateUID() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11); }
 
+        // Returns date structured exactly to requested format style: 20/07/2026 00:27:11 AM/PM
         function getFormattedTimestamp(date = new Date()) {
             const pad = (num) => String(num).padStart(2, '0');
             let hours = date.getHours();
             const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12 || 12;
-            return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()} ${pad(hours)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
+            hours = hours % 12;
+            hours = hours ? hours : 12; // mapping hour '0' to '12'
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(hours)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
         }
 
         function logEntry(bib) {
@@ -1516,8 +1509,7 @@
 
         function syncSingleRow(row) {
             if (!syncUrl || remarkDebounceTimeout) return;
-            // Add custom dynamic query token to bypass browser asset network caches for rapid row submissions
-            const targetUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+            const targetUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`;
             
             fetchWithTimeout(targetUrl, {
                 method: "POST",
@@ -1558,8 +1550,7 @@
                 const unsynced = e.target.result.filter(log => !log.synced);
                 if (unsynced.length === 0) { isSyncing = false; return; }
                 
-                // Add an explicit timestamp cache-buster token to force live pipeline refreshing
-                const liveSyncUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+                const liveSyncUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`;
 
                 fetchWithTimeout(liveSyncUrl, {
                     method: "POST",
@@ -1608,8 +1599,7 @@
         async function pullServerRecords() {
             if (!syncUrl) return;
             try {
-                // Appending a random token parameter to defeat aggressive ISP/Browser proxy caching
-                const targetRequestUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}sinceRow=${currentLastSyncedRowMarker}&v=${Date.now()}`;
+                const targetRequestUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}sinceRow=${currentLastSyncedRowMarker}&nocache=${Date.now()}`;
                 const response = await fetchWithTimeout(targetRequestUrl, {}, 15000);
                 const result = await response.json();
                 if (result.status !== "success") {
@@ -1645,7 +1635,7 @@
                         if (!serverRecord.uid || localUids.has(serverRecord.uid)) return;
                         store.add({
                             bib: serverRecord.bib,
-                            time: serverRecord.time,
+                            time: serverRecord.time, 
                             checkpoint: serverRecord.checkpoint,
                             volunteer: serverRecord.volunteer,
                             remark: serverRecord.remark || "",
@@ -1674,14 +1664,23 @@
             }
         }
 
+        // Custom matching logic optimized explicitly for DD/MM/YYYY hh:mm:ss AM/PM strings
         function parseCustomOrIsoDate(timeStr) {
             if (!timeStr) return new Date();
-            let match = timeStr.match(/^(\d{2})-(\d{2})-(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)?$/i);
+            let match = String(timeStr).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)?$/i);
             if (match) {
                 let hr = parseInt(match[4], 10);
                 if (match[7]?.toUpperCase() === 'PM' && hr < 12) hr += 12;
                 if (match[7]?.toUpperCase() === 'AM' && hr === 12) hr = 0;
                 return new Date(parseInt(match[3], 10), parseInt(match[2], 10) - 1, parseInt(match[1], 10), hr, parseInt(match[5], 10), parseInt(match[6], 10));
+            }
+            // Fallback strategy for alternate dash-based or standard ISO schemas
+            let secondaryMatch = String(timeStr).trim().match(/^(\d{2})-(\d{2})-(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)?$/i);
+            if (secondaryMatch) {
+                let hr = parseInt(secondaryMatch[4], 10);
+                if (secondaryMatch[7]?.toUpperCase() === 'PM' && hr < 12) hr += 12;
+                if (secondaryMatch[7]?.toUpperCase() === 'AM' && hr === 12) hr = 0;
+                return new Date(parseInt(secondaryMatch[3], 10), parseInt(secondaryMatch[2], 10) - 1, parseInt(secondaryMatch[1], 10), hr, parseInt(secondaryMatch[5], 10), parseInt(secondaryMatch[6], 10));
             }
             const d = new Date(timeStr);
             return isNaN(d.getTime()) ? new Date() : d;
@@ -1746,11 +1745,7 @@
 
         function formatLogTime(timeStr) {
             const date = parseCustomOrIsoDate(timeStr);
-            const pad = (num) => String(num).padStart(2, '0');
-            let hours = date.getHours();
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12 || 12;
-            const formatted = `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()} ${pad(hours)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
+            const formatted = getFormattedTimestamp(date);
             const diff = Math.floor((new Date() - date) / 1000);
             let ago = diff < 60 ? "Just now" : (diff < 3600 ? Math.floor(diff / 60) + "m ago" : Math.floor(diff / 3600) + "h ago");
             return `${formatted} (${ago})`;
@@ -1773,8 +1768,6 @@
         function toggleAllLogAccordionPanels() {
             const panels = document.querySelectorAll('.collapsible-log-panel');
             const chevrons = document.querySelectorAll('.chevron-rotate');
-
-            // Toggle state dynamically depending on if any are closed
             const shouldExpandAll = panels.length > 0 && Array.from(panels).some(p => !p.classList.contains('expanded'));
 
             panels.forEach(panel => {
@@ -1924,7 +1917,6 @@
                         }
 
                         row.innerHTML = `
-                            <!-- Clickable Trigger Header -->
                             <div onclick="inlineLogPanelAccordionToggle('${log.uid}')" class="px-4 py-3 flex justify-between items-center cursor-pointer select-none">
                                 <div class="flex-grow">
                                     <div class="flex items-center gap-2 flex-wrap">
@@ -1943,7 +1935,6 @@
                                 </div>
                             </div>
 
-                            <!-- Expandable Detailed Metrics Panel -->
                             <div id="accordion-panel-${log.uid}" data-uid="${log.uid}" class="collapsible-log-panel ${panelExpandedClass} px-4 bg-neutral-900/15 dark:bg-neutral-950/20 border-t border-dashed theme-border">
                                 <div class="py-3 overflow-x-auto">
                                     <table class="w-full text-left border-collapse text-[10px] font-mono text-neutral-800 dark:text-neutral-300">
@@ -1991,7 +1982,7 @@
                     return;
                 }
                 
-                const deleteTargetUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+                const deleteTargetUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`;
 
                 fetch(deleteTargetUrl, {
                     method: "POST",
