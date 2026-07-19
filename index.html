@@ -1796,7 +1796,7 @@
                         
                         let runtimeMetricsHTML = '';
                         if (log.speed || log.pace) {
-                            runtimeMetricsHTML = `<div class="flex items-center gap-2 mt-1 text-[10px] font-mono text-cyan-600 dark:text-cyan-400 bg-cyan-950/20 border border-cyan-900/40 rounded px-1.5 py-0.5 w-max">`;
+runtimeMetricsHTML = `<div class="flex items-center gap-2 mt-1 text-[10px] font-mono text-black dark:text-white bg-cyan-950/20 border border-cyan-900/40 rounded px-1.5 py-0.5 w-max">`;
                             if (log.pace) runtimeMetricsHTML += `⏱️ Pace: ${log.pace}`;
                             if (log.speed && log.pace) runtimeMetricsHTML += ` | `;
                             if (log.speed) runtimeMetricsHTML += `⚡ Speed: ${log.speed}`;
