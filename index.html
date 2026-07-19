@@ -167,9 +167,21 @@
             transform: rotate(180deg);
         }
 
-        /* Tooltip layouts */
+        /* Centered Mobile and Dropdown PC Tooltip Adjustments */
         .metrics-info-trigger:hover .metrics-tooltip-card {
             display: block;
+        }
+
+        @media (max-width: 640px) {
+            .metrics-tooltip-card {
+                position: fixed !important;
+                left: 5% !important;
+                right: 5% !important;
+                top: 30% !important;
+                width: 90% !important;
+                margin: 0 auto !important;
+                transform: none !important;
+            }
         }
     </style>
 </head>
@@ -471,22 +483,22 @@
                                 <button onclick="setScopeFilter('global')" id="scopeBtn-global" class="px-2 py-0.5 rounded text-neutral-400 transition-colors duration-150">Global</button>
                             </div>
                             
-                            <!-- Global Accordion Actions -->
-                            <button id="expandCollapseAllBtn" onclick="toggleAllLogAccordionPanels()" class="text-[9px] bg-neutral-800 hover:bg-neutral-700 theme-text border theme-border px-1.5 py-0.5 rounded font-bold transition shrink-0">↔️ Expand All</button>
+                            <!-- Space Saving Emoji Only Toggle Button -->
+                            <button id="expandCollapseAllBtn" onclick="toggleAllLogAccordionPanels()" class="text-[11px] bg-neutral-800 hover:bg-neutral-700 theme-text border theme-border px-2 py-0.5 rounded font-bold transition shrink-0" title="Toggle Expand/Collapse All">↔️</button>
                             
                             <!-- Tooltip Indicator -->
                             <div class="relative inline-block metrics-info-trigger cursor-help z-40 shrink-0">
                                 <span class="text-xs bg-blue-955 text-blue-400 border border-blue-800 rounded-full w-4 h-4 flex items-center justify-center font-bold font-mono">?</span>
-                                <div class="hidden metrics-tooltip-card absolute left-0 top-6 bg-neutral-950/95 backdrop-blur-md border border-neutral-800 p-3 rounded-lg shadow-2xl w-72 text-[11px] leading-normal theme-text-muted text-left">
+                                <div class="hidden metrics-tooltip-card absolute left-0 top-6 bg-neutral-950/95 backdrop-blur-md border border-neutral-800 p-3 rounded-lg shadow-2xl w-72 text-[11px] leading-normal theme-text-muted text-left z-50">
                                     <strong class="text-blue-400 block border-b border-neutral-800 pb-1 mb-1.5 uppercase tracking-wider text-[10px]">📊 Race Metric Parameter Index</strong>
                                     <ul class="space-y-1.5 font-sans">
-                                        <li>🔹 <strong>Categories:</strong> Which distance/race category this runner is entered in.</li>
-                                        <li>🔹 <strong>Lap/CP & Time:</strong> Which lap or checkpoint this was, and what time it was logged.</li>
-                                        <li>🔹 <strong>Time per lap/CP:</strong> How long since their previous checkpoint — a "split" time.</li>
-                                        <li>🔹 <strong>Total time:</strong> Total time elapsed since the race start.</li>
-                                        <li>🔹 <strong>Pace:</strong> Minutes per kilometer (min/km). <span class="text-neutral-400">Lower = faster.</span></li>
-                                        <li>🔹 <strong>Speed:</strong> Kilometers per hour (km/h). <span class="text-neutral-400">Higher = faster.</span></li>
-                                        <li>🔹 <strong>Projected Finish time:</strong> Estimated finish time if they keep this same pace.</li>
+                                        <li>🔹 <strong>Categories:</strong> Which distance category this runner belongs to.</li>
+                                        <li>🔹 <strong>Lap/CP & Time:</strong> The specific checkpoint lap marker index.</li>
+                                        <li>🔹 <strong>Time per lap/CP:</strong> Split timeline elapsed since prior checkpoint.</li>
+                                        <li>🔹 <strong>Total time:</strong> Overall accumulated timeline duration since start.</li>
+                                        <li>🔹 <strong>Pace:</strong> Time taken per distance (min/km). <span class="text-amber-400 font-bold font-mono">(Lower = faster pace)</span></li>
+                                        <li>🔹 <strong>Speed:</strong> Calculated rate of movement (km/h). <span class="text-emerald-400 font-bold font-mono">(Higher = faster speed)</span></li>
+                                        <li>🔹 <strong>Projected Finish:</strong> Expected total completion time based on current performance.</li>
                                     </ul>
                                 </div>
                             </div>
@@ -1098,7 +1110,10 @@
             feedback.className = "text-[10px] text-neutral-400 font-bold block leading-tight mt-1";
             btn.disabled = true;
 
-            fetchWithTimeout(inputUrl, {
+            // Appending unique cache-busting timestamp to prevent front-end from getting old responses
+            const testUrl = `${inputUrl}${inputUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+
+            fetchWithTimeout(testUrl, {
                 method: "POST",
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify({ action: "ping" })
@@ -1501,7 +1516,10 @@
 
         function syncSingleRow(row) {
             if (!syncUrl || remarkDebounceTimeout) return;
-            fetchWithTimeout(syncUrl, {
+            // Add custom dynamic query token to bypass browser asset network caches for rapid row submissions
+            const targetUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+            
+            fetchWithTimeout(targetUrl, {
                 method: "POST",
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify({ action: "batch_sync", data: [row] })
@@ -1539,7 +1557,11 @@
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const unsynced = e.target.result.filter(log => !log.synced);
                 if (unsynced.length === 0) { isSyncing = false; return; }
-                fetchWithTimeout(syncUrl, {
+                
+                // Add an explicit timestamp cache-buster token to force live pipeline refreshing
+                const liveSyncUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+
+                fetchWithTimeout(liveSyncUrl, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
                     redirect: "follow", 
@@ -1586,7 +1608,8 @@
         async function pullServerRecords() {
             if (!syncUrl) return;
             try {
-                const targetRequestUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}sinceRow=${currentLastSyncedRowMarker}`;
+                // Appending a random token parameter to defeat aggressive ISP/Browser proxy caching
+                const targetRequestUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}sinceRow=${currentLastSyncedRowMarker}&v=${Date.now()}`;
                 const response = await fetchWithTimeout(targetRequestUrl, {}, 15000);
                 const result = await response.json();
                 if (result.status !== "success") {
@@ -1750,10 +1773,8 @@
         function toggleAllLogAccordionPanels() {
             const panels = document.querySelectorAll('.collapsible-log-panel');
             const chevrons = document.querySelectorAll('.chevron-rotate');
-            const btn = document.getElementById('expandCollapseAllBtn');
 
-            // Decide direction from current state: if anything is currently collapsed,
-            // the next click expands everything; otherwise it collapses everything.
+            // Toggle state dynamically depending on if any are closed
             const shouldExpandAll = panels.length > 0 && Array.from(panels).some(p => !p.classList.contains('expanded'));
 
             panels.forEach(panel => {
@@ -1771,16 +1792,6 @@
                 if (shouldExpandAll) chevron.classList.add('expanded');
                 else chevron.classList.remove('expanded');
             });
-
-            if (btn) btn.textContent = shouldExpandAll ? '📋 Collapse All' : '↔️ Expand All';
-        }
-
-        function syncExpandCollapseAllButtonLabel() {
-            const btn = document.getElementById('expandCollapseAllBtn');
-            if (!btn) return;
-            const panels = document.querySelectorAll('.collapsible-log-panel');
-            const anyCollapsed = panels.length > 0 && Array.from(panels).some(p => !p.classList.contains('expanded'));
-            btn.textContent = anyCollapsed ? '↔️ Expand All' : '📋 Collapse All';
         }
 
         function inlineLogPanelAccordionToggle(uid) {
@@ -1798,7 +1809,6 @@
                 if (chevron) chevron.classList.remove('expanded');
                 activeExpandedUids.delete(uid);
             }
-            syncExpandCollapseAllButtonLabel();
         }
         
         function loadHistory() {
@@ -1966,7 +1976,6 @@
                     }
                     logList.appendChild(row);
                 });
-                syncExpandCollapseAllButtonLabel();
             };
         }
 
@@ -1981,7 +1990,10 @@
                     txWrite.oncomplete = function() { loadHistory(); updateSettingsWipeCounterFootprint(); };
                     return;
                 }
-                fetch(syncUrl, {
+                
+                const deleteTargetUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+
+                fetch(deleteTargetUrl, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({ action: "delete", uid: log.uid, bib: bib, time: time })
