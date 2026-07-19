@@ -123,7 +123,7 @@
         
         .animate-new-bib-bounce {
             display: inline-block;
-            animation: inlineBibBounceShift 3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            animation: inlineBibBounceShift 5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
             position: relative;
             z-index: 20;
         }
@@ -1241,10 +1241,6 @@
 
         function generateUID() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11); }
 
-        document.getElementById('checkpoint').addEventListener('input', function() {
-            // Reset core validation hook on modification
-        });
-
         function getFormattedTimestamp(date = new Date()) {
             const pad = (num) => String(num).padStart(2, '0');
             let hours = date.getHours();
@@ -1274,7 +1270,10 @@
                 uid: generateUID(),
                 synced: false,
                 remake: false,
-                syncAttempts: 0
+                syncAttempts: 0,
+                speed: "",     // Optional speed slot
+                pace: "",      // Optional pace slot
+                category: ""   // Optional category slot
             };
 
             lastCreatedUid = entry.uid;
@@ -1527,7 +1526,10 @@
                             uid: serverRecord.uid,
                             synced: true,
                             remake: false,
-                            syncAttempts: 0
+                            syncAttempts: 0,
+                            speed: serverRecord.speed || "",
+                            pace: serverRecord.pace || "",
+                            category: serverRecord.category || ""
                         });
                         changed = true;
                     });
@@ -1577,6 +1579,10 @@
             });
 
             splitLastRunner.innerHTML = HTMLBuilder;
+
+            if (triggerInlineAnimationFlag) {
+                triggerInlineAnimationFlag = false;
+            }
             
             const diffSeconds = Math.floor((parseCustomOrIsoDate(sorted[sorted.length - 1].time) - parseCustomOrIsoDate(sorted[sorted.length - 2].time)) / 1000);
             const mins = Math.floor(diffSeconds / 60), secs = diffSeconds % 60;
@@ -1673,6 +1679,7 @@
                     return log.bib.toLowerCase().includes(query) || 
                            log.checkpoint.toLowerCase().includes(query) || 
                            (log.remark && log.remark.toLowerCase().includes(query)) ||
+                           (log.category && log.category.toLowerCase().includes(query)) ||
                            (log.volunteer && log.volunteer.toLowerCase().includes(query));
                 });
 
@@ -1755,6 +1762,19 @@
                     } else {
                         const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-600 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-955 text-indigo-400 border border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
+                        
+                        // Integrated Optional Data Metrics (Category, Speed, Pace tags)
+                        const categoryBadge = log.category ? `<span class="text-[10px] bg-neutral-800 border border-neutral-700 px-1.5 py-0.5 rounded text-neutral-300 font-bold tracking-wide uppercase">${log.category}</span>` : '';
+                        
+                        let runtimeMetricsHTML = '';
+                        if (log.speed || log.pace) {
+                            runtimeMetricsHTML = `<div class="flex items-center gap-2 mt-1 text-[10px] font-mono text-cyan-500 bg-cyan-950/20 border border-cyan-900/40 rounded px-1.5 py-0.5 w-max">`;
+                            if (log.pace) runtimeMetricsHTML += `⏱️ Pace: ${log.pace}`;
+                            if (log.speed && log.pace) runtimeMetricsHTML += ` | `;
+                            if (log.speed) runtimeMetricsHTML += `⚡ Speed: ${log.speed}`;
+                            runtimeMetricsHTML += `</div>`;
+                        }
+
                         const ownEntry = isOwnEntry(log);
                         const editButtonHTML = (ownEntry && (isEditable(log.time) || log.remake)) ? `<button onclick="startEditing(${log.id})" class="text-xs text-blue-600 font-bold border border-blue-600/30 px-1.5 py-0.5 rounded">✏️ Edit</button>` : '';
                         const deleteButtonHTML = (ownEntry && isDeletable(log.time)) ? `<button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}')" class="text-red-600 p-1 text-base">🗑️</button>` : '';
@@ -1766,12 +1786,14 @@
                         row.innerHTML = `
                             <div class="flex justify-between items-center w-full">
                                 <div class="flex-grow">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
                                         <span class="text-xl ${log.remake ? 'text-red-600 line-through opacity-60' : 'bib-text-highlight'}">${log.bib || '??'}</span>
+                                        ${categoryBadge}
                                         ${freqBadge}
                                         <span class="text-[10px] bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
                                     </div>
                                     <div class="text-[10px] theme-text-muted mt-0.5 font-semibold">${formatLogTime(log.time)} • By: ${log.volunteer}</div>
+                                    ${runtimeMetricsHTML}
                                     ${remarkHTML}
                                 </div>
                                 <div class="text-right flex items-center gap-2.5 shrink-0">
@@ -1820,8 +1842,8 @@
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const logs = e.target.result;
                 if (logs.length === 0) { alert("⚠️ No logs available to export yet!"); return; }
-                let csvContent = "ID,Bib,Time,Checkpoint,Volunteer,Remark,Device\r\n";
-                logs.forEach(l => { csvContent += `${l.id},"${l.bib}","${l.time}","${l.checkpoint}","${l.volunteer}","${l.remark || ''}","${getDeviceLabel(l.device)}"\r\n`; });
+                let csvContent = "ID,Bib,Time,Checkpoint,Volunteer,Category,Pace,Speed,Remark,Device\r\n";
+                logs.forEach(l => { csvContent += `${l.id},"${l.bib}","${l.time}","${l.checkpoint}","${l.volunteer}","${l.category || ''}","${l.pace || ''}","${l.speed || ''}","${l.remark || ''}","${getDeviceLabel(l.device)}"\r\n`; });
                 
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
