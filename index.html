@@ -2277,6 +2277,9 @@
 
         let isDirectorModeOpen = false;
         let lastKnownSummaryRows = [];
+        // PWA-side metric config — fed from every sync response (Setup sheet data).
+        // Seeded from localStorage so metrics work immediately after a page reload.
+        let categoryConfig = (() => { try { return JSON.parse(localStorage.getItem('lastCachedSummaryRows') || '[]'); } catch(e) { return []; } })();
         let directorClockIntervalId = null;
         let directorCotIntervalId = null;
         
@@ -2807,6 +2810,7 @@
             if (!tbody) return;
 
             lastKnownSummaryRows = summaryRows || [];
+            categoryConfig = lastKnownSummaryRows; // keep PWA metric calculator in sync
             if (isDirectorModeOpen) renderDirectorSummaryTable_(lastKnownSummaryRows);
 
             if (!summaryRows || summaryRows.length === 0) {
@@ -3508,14 +3512,20 @@
                 const data = JSON.parse(await res.text());
                 if (data.status !== "success") throw new Error(data.message || "Rejected");
                 const confirmedIds = new Set(data.confirmedIds || []);
-                const remakeIds = new Set(data.remakeIds || []);
+                const remakeIds   = new Set(data.remakeIds    || []);
+                const deletedIds  = new Set(data.deletedUids  || []);
                 const tx = db.transaction(["logs"], "readwrite");
-                if (remakeIds.has(row.uid)) {
-                    row.synced = false; row.remake = true; row.syncAttempts = 0;
-                } else if (confirmedIds.has(row.uid)) {
-                    row.synced = true; row.remake = false; row.syncAttempts = 0;
+                if (deletedIds.has(row.uid)) {
+                    // Server rejected this bib (previously deleted by admin) — remove locally
+                    tx.objectStore("logs").delete(row.id);
+                } else {
+                    if (remakeIds.has(row.uid)) {
+                        row.synced = false; row.remake = true; row.syncAttempts = 0;
+                    } else if (confirmedIds.has(row.uid)) {
+                        row.synced = true; row.remake = false; row.syncAttempts = 0;
+                    }
+                    tx.objectStore("logs").put(row);
                 }
-                tx.objectStore("logs").put(row);
                 tx.oncomplete = function() { 
                     recordSyncSuccess(); 
                     loadHistory(); 
@@ -3550,11 +3560,14 @@
                     const data = JSON.parse(await res.text());
                     if (data.status !== "success") throw new Error(data.message || "Rejected");
                     const confirmedIds = new Set(data.confirmedIds || []);
-                    const remakeIds = new Set(data.remakeIds || []);
+                    const remakeIds   = new Set(data.remakeIds    || []);
+                    const deletedIds  = new Set(data.deletedUids  || []);
                     const tx = db.transaction(["logs"], "readwrite");
                     const store = tx.objectStore("logs");
                     unsynced.forEach(log => {
-                        if (remakeIds.has(log.uid)) {
+                        if (deletedIds.has(log.uid)) {
+                            store.delete(log.id); // server rejected this bib
+                        } else if (remakeIds.has(log.uid)) {
                             log.synced = false; log.remake = true; log.syncAttempts = 0; store.put(log);
                         } else if (confirmedIds.has(log.uid)) {
                             log.synced = true; log.remake = false; log.syncAttempts = 0; store.put(log); 
@@ -3623,15 +3636,22 @@
                     const localUids = new Set(localLogs.map(l => l.uid));
                     const localIdByUid = new Map(localLogs.map(l => [l.uid, l.id]));
                     let changed = false;
+
+                    // ── Server-rejected bibs (deletedUids) ──────────────────────────
+                    // Returned when a bib+checkpoint was deleted and another device still
+                    // had an unsynced copy — delete those locally now so they won't push
+                    // back into the sheet on the next sync cycle.
+                    if (result.deletedUids && result.deletedUids.length) {
+                        const rejectedUids = new Set(result.deletedUids);
+                        localLogs.forEach(l => {
+                            if (rejectedUids.has(l.uid)) { store.delete(l.id); changed = true; }
+                        });
+                    }
+
                     serverRecords.forEach(serverRecord => {
                         if (!serverRecord.uid) return;
 
-                        // Purge instruction: an admin deleted this entry server-side
-                        // (via the app or the Sheets "Race Log Admin" menu). Remove it
-                        // locally right away instead of leaving a stale copy around —
-                        // this is the actual deletion-propagation path; the periodic
-                        // performFullReconciliation_() below is only a slower fallback
-                        // for edits made outside both of those (e.g. raw cell edits).
+                        // Purge instruction: an admin tombstoned this entry server-side.
                         if (serverRecord.purge) {
                             const localId = localIdByUid.get(serverRecord.uid);
                             if (localId !== undefined) { store.delete(localId); changed = true; }
@@ -3639,27 +3659,24 @@
                         }
 
                         if (localUids.has(serverRecord.uid)) return;
+
+                        // Store raw scan data only — metrics are computed locally by
+                        // withLivePreview_() at render time using the Setup sheet config.
                         store.add({
-                            bib: serverRecord.bib,
-                            time: serverRecord.time, 
-                            checkpoint: serverRecord.checkpoint,
-                            volunteer: serverRecord.volunteer,
-                            remark: serverRecord.remark || "",
-                            device: serverRecord.device || "",
-                            creatorId: parseCreatorId(serverRecord.device),
-                            latitude: serverRecord.latitude,
-                            longitude: serverRecord.longitude,
-                            uid: serverRecord.uid,
-                            synced: true,
-                            remake: false,
-                            syncAttempts: 0,
-                            speed: serverRecord.speed || "",
-                            pace: serverRecord.pace || "",
-                            category: serverRecord.category || "",
-                            lap: serverRecord.lap || "-",         
-                            timePerLap: serverRecord.timePerLap || "-",    
-                            totalTime: serverRecord.totalTime || "-",      
-                            projectedFinish: serverRecord.projectedFinish || "-"
+                            bib:          serverRecord.bib,
+                            time:         serverRecord.time,
+                            checkpoint:   serverRecord.checkpoint,
+                            volunteer:    serverRecord.volunteer,
+                            remark:       serverRecord.remark || "",
+                            device:       serverRecord.device || "",
+                            creatorId:    parseCreatorId(serverRecord.device),
+                            latitude:     serverRecord.latitude,
+                            longitude:    serverRecord.longitude,
+                            uid:          serverRecord.uid,
+                            synced:       true,
+                            remake:       false,
+                            syncAttempts: 0
+                            // No metric fields — PWA computes those from Setup config
                         });
                         changed = true;
                     });
@@ -3887,17 +3904,22 @@
             const speedKmh = distanceKm / (totalSeconds / 3600);
             const paceDisplay = formatPaceMinSec_(paceSecondsPerKm);
 
+            // Projected finish: flagoff + total elapsed time (= pace extrapolated to
+            // full race distance, which simplifies to the current scan timestamp).
+            let projectedFinish = '-';
+            try {
+                const projMs = flagoffDate.getTime() + totalSeconds * 1000;
+                projectedFinish = getFormattedTimestamp(new Date(projMs));
+            } catch(_) {}
+
             return {
-                category: cfg.category || 'Unknown',
-                lap: lapDisplay,
-                timePerLap: formatDurationHMS_(timePerLapSeconds),
-                totalTime: formatDurationHMS_(totalSeconds),
-                pace: paceDisplay ? `${paceDisplay} min/km*` : '',
-                speed: isFinite(speedKmh) ? `${speedKmh.toFixed(1)} km/h*` : '',
-                // NOTE: intentionally not attempting a real "projected finish" preview —
-                // that needs the authoritative flag-off/pace math from the sheet and is
-                // best left blank on-device rather than guessed at.
-                projectedFinish: '-'
+                category:      cfg.category || 'Unknown',
+                lap:           lapDisplay,
+                timePerLap:    formatDurationHMS_(timePerLapSeconds),
+                totalTime:     formatDurationHMS_(totalSeconds),
+                pace:          paceDisplay ? `${paceDisplay} min/km` : '',
+                speed:         isFinite(speedKmh) ? `${speedKmh.toFixed(1)} km/h` : '',
+                projectedFinish
             };
         }
 
@@ -3917,12 +3939,16 @@
             return map;
         }
 
-        /** Returns a display-ready version of `log`, filling in a live preview for the
-         * metric fields when the authoritative server values haven't arrived yet. */
-        function withLivePreview_(log, bibHistoryMap, categoryConfig) {
-            if (log.synced || log.category) return log; // already has authoritative data
+        /**
+         * Returns a display-ready version of `log` with all metric fields (category,
+         * lap, pace, speed, projectedFinish) computed locally from the Setup-sheet
+         * config.  The server no longer sends metric data — this is the single source
+         * of truth for those values regardless of sync state.
+         */
+        function withLivePreview_(log, bibHistoryMap, catCfg) {
+            if (!log.bib || log.remake) return log; // nothing useful to compute
             const history = bibHistoryMap.get(log.bib) || [log];
-            const preview = computeLivePreviewMetrics_(log, history, categoryConfig);
+            const preview = computeLivePreviewMetrics_(log, history, catCfg);
             return preview ? Object.assign({}, log, preview) : log;
         }
 
@@ -4945,7 +4971,15 @@
         function loadHistory() {
             if (!db) return;
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
-                const logs = e.target.result;
+                // ── Compute all metrics client-side from Setup config ────────────────
+                // The server sends raw scan data only; every derived field (category,
+                // lap, pace, speed, projected finish) is computed here using the
+                // current categoryConfig sourced from the Setup sheet.
+                const rawLogs = e.target.result;
+                const _bibMap = buildBibHistoryMap_(rawLogs);
+                const logs = rawLogs.map(l => withLivePreview_(l, _bibMap, categoryConfig));
+                // ────────────────────────────────────────────────────────────────────
+
                 const query = document.getElementById('searchBar').value.toLowerCase().trim();
                 const currentCP = (document.getElementById('checkpoint').value || '').trim().toUpperCase();
 
@@ -5018,9 +5052,9 @@
                     } else { footerToggle.classList.add("hidden"); }
                 }
 
-                const bibHistoryMap = buildBibHistoryMap_(logs);
-                filteredLogs.forEach(rawLog => {
-                    const log = withLivePreview_(rawLog, bibHistoryMap, lastKnownSummaryRows);
+                filteredLogs.forEach(log => {
+                    // `log` is already enriched — withLivePreview_() ran at the top of
+                    // loadHistory() over the full log set before any filtering.
                     const row = document.createElement('div');
                     row.className = 'flex flex-col border-b theme-border bg-neutral-100/0 dark:bg-neutral-500/0 hover:bg-neutral-200/50 dark:hover:bg-neutral-500/5 transition-colors duration-700';
                     if (triggerScanHistorySlideFlag && log.uid === lastCreatedUid) {
