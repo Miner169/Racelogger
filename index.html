@@ -111,6 +111,32 @@
            Checkpoints list. Border-only (no layout shift) so it's cheap to repaint. */
         .checkpoint-valid { border-color: #10b981 !important; box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.35); }
         .checkpoint-invalid { border-color: #ef4444 !important; box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.35); }
+        /* Brief flash on the bib input when a space is rejected -- spaces are never valid in a bib. */
+        .bib-space-rejected { border-color: #ef4444 !important; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4) !important; transition: border-color 0.1s, box-shadow 0.1s; }
+
+        /* Auto-Sync header pill -> icon-only transition. Starts as the normal wide
+           text pill so its meaning is clear on load, then (once the sync state is
+           good/idle) collapses down to a small icon after a few seconds to save
+           header space. Width/padding/border-radius animate together over ~0.6s;
+           the inner content itself is swapped from text to icon at the same time
+           via JS so it reads as one continuous morph rather than a hard cut. Tapping
+           the collapsed icon re-expands it briefly (see toggleSyncBadgeExpand_). */
+        #syncStatus {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            white-space: nowrap;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), padding 0.6s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.3s ease;
+        }
+        #syncStatus.sync-badge-collapsed {
+            width: 1.5rem;
+            height: 1.5rem;
+            padding: 0 !important;
+            border-radius: 9999px;
+            font-size: 11px;
+            cursor: pointer;
+        }
         .theme-input::placeholder {
             color: var(--input-placeholder);
             opacity: 1;
@@ -1610,9 +1636,9 @@
                     <div>
                         <label class="block text-[10px] theme-text-muted mb-1 font-bold">Current CP History Limit</label>
                         <select id="currentCpHistoryLimitSelect" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs focus:outline-none font-semibold">
-                            <option value="20">Latest 20 Logs</option>
+                            <option value="20" selected>Latest 20 Logs</option>
                             <option value="50">Latest 50 Logs</option>
-                            <option value="all" selected>Show All Logs</option>
+                            <option value="all">Show All Logs</option>
                         </select>
                     </div>
                     <div>
@@ -1890,7 +1916,7 @@
          director/safety officer can account for every runner, not just
          review scan history.
          ══════════════════════════════════════════════════════════════════ -->
-    <div id="safetyLogView" class="hidden fixed inset-0 z-[60] theme-bg overflow-y-auto">
+    <div id="safetyLogView" class="hidden fixed inset-0 z-[60] theme-bg overflow-y-auto" style="padding-top: env(safe-area-inset-top, 0px);">
         <div class="max-w-[1400px] mx-auto p-4 flex flex-col gap-4">
             <div class="flex items-center justify-between gap-2 flex-wrap">
                 <h2 class="text-lg sm:text-xl font-black theme-header-text flex items-center gap-2">🛟 Runner Safety Log</h2>
@@ -1909,12 +1935,21 @@
                 </div>
                 <div class="flex flex-wrap gap-2 items-center">
                     <input type="text" id="safetySearchBar" oninput="renderSafetyLog_()" placeholder="🔍 Search bib, category, checkpoint, remark..." class="flex-grow min-w-[180px] theme-input border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-red-600">
-                    <select id="safetySortSelect" onchange="renderSafetyLog_()" class="theme-input border rounded-md px-2 py-1.5 text-xs focus:outline-none">
-                        <option value="bib">Sort: Bib / Name</option>
-                        <option value="category">Sort: Category</option>
-                        <option value="checkpoint">Sort: Last Checkpoint</option>
-                        <option value="status">Sort: Safety Status</option>
-                        <option value="lastSeen">Sort: Last Seen (newest)</option>
+                    <div class="flex items-center gap-1">
+                        <select id="safetySortSelect" onchange="renderSafetyLog_()" class="theme-input border rounded-md px-2 py-1.5 text-xs focus:outline-none">
+                            <option value="bib">Sort: Bib / Name</option>
+                            <option value="category">Sort: Category</option>
+                            <option value="checkpoint">Sort: Last Checkpoint</option>
+                            <option value="status">Sort: Safety Status</option>
+                            <option value="lastSeen">Sort: Last Seen</option>
+                        </select>
+                        <button type="button" id="safetySortDirBtn" onclick="toggleSafetySortDirection_()" title="Toggle sort direction" class="theme-input border rounded-md px-2 py-1.5 text-xs font-bold focus:outline-none shrink-0">⬆️ Asc</button>
+                    </div>
+                    <select id="safetyCheckpointFilterSelect" onchange="renderSafetyLog_()" class="theme-input border rounded-md px-2 py-1.5 text-xs focus:outline-none">
+                        <option value="">All checkpoints</option>
+                    </select>
+                    <select id="safetyVolunteerFilterSelect" onchange="renderSafetyLog_()" class="theme-input border rounded-md px-2 py-1.5 text-xs focus:outline-none">
+                        <option value="">All volunteers</option>
                     </select>
                     <select id="safetyStatusFilterSelect" onchange="renderSafetyLog_()" class="theme-input border rounded-md px-2 py-1.5 text-xs focus:outline-none">
                         <option value="">All statuses</option>
@@ -2000,7 +2035,7 @@
                     <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
                     <div class="flex gap-3 items-stretch">
                         <div class="flex-grow relative">
-                            <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" oninput="warmUpGPS(); autoScaleBibFontSize_();" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl pl-12 pr-2 focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
+                            <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" onkeydown="blockBibSpace_(event)" oninput="warmUpGPS(); stripBibSpaces_(this); autoScaleBibFontSize_();" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl pl-12 pr-2 focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
                             <button type="button" onclick="toggleKeyboardMode(this)" class="icon-tap-target absolute left-2.5 top-1/2 -translate-y-1/2 text-lg p-1 bg-neutral-200/80 dark:bg-neutral-900/80 rounded-lg border theme-border select-none shadow" title="Switch Keyboard Mode">🔢</button>
                         </div>
                         <button id="logActionButton" onclick="checkDuplicateAndLog()" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-90 duration-75 text-white font-extrabold text-lg px-8 rounded-xl shadow-lg transition-all flex items-center justify-center">LOG</button>
@@ -2255,6 +2290,14 @@
 
                 <!-- Export button -->
                 <section class="hidden lg:block">
+                    <div class="mb-1.5">
+                        <label class="block text-[10px] theme-text-muted mb-1 font-bold uppercase tracking-wide">Backup Scope</label>
+                        <select id="exportScopeSelect" onchange="const m = document.getElementById('exportScopeSelectMobile'); if (m) m.value = this.value;" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs focus:outline-none font-semibold">
+                            <option value="currentCp" selected>📍 Current CP only</option>
+                            <option value="currentDevice">📱 Current device only</option>
+                            <option value="global">🌐 Global (all CPs, all devices)</option>
+                        </select>
+                    </div>
                     <div class="flex gap-2">
                         <button onclick="exportCSV()" class="flex-1 bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2 text-sm">📥 CSV</button>
                         <button onclick="exportJSON()" class="flex-1 bg-indigo-700 dark:bg-indigo-800 hover:bg-indigo-600 dark:hover:bg-indigo-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2 text-sm">📦 JSON</button>
@@ -2303,6 +2346,11 @@
                 </section>
 
                 <section class="block lg:hidden mt-3">
+                    <select id="exportScopeSelectMobile" onchange="document.getElementById('exportScopeSelect').value = this.value;" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs focus:outline-none font-semibold mb-2">
+                        <option value="currentCp" selected>📍 Current CP only</option>
+                        <option value="currentDevice">📱 Current device only</option>
+                        <option value="global">🌐 Global (all CPs, all devices)</option>
+                    </select>
                     <button onclick="exportCSV()" class="w-full bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2">📥 Export & Download CSV</button>
                 </section>
             </div>
@@ -2336,6 +2384,14 @@
         let isSyncing = false;      
         let syncRerunQueued = false; 
 
+        // Auto-Sync header pill: starts expanded (full "Auto-Sync" text) so its meaning
+        // is clear, then collapses to a small icon after SYNC_BADGE_COLLAPSE_DELAY_MS --
+        // see initSyncBadgeCollapseTimer_() and updateSyncStatusLabel().
+        const SYNC_BADGE_COLLAPSE_DELAY_MS = 5000;
+        let syncBadgeCollapsed_ = false;
+        let syncBadgeCollapseTimeoutId_ = null;
+        let syncBadgeExpandTimeoutId_ = null; // re-collapse timer after a tap-to-peek
+
         let gpsWarmupTimeout = null;
         let isGpsHardwareRunning = false;
 
@@ -2345,7 +2401,7 @@
         let dupWindow = 10; 
         let batterySaverManual = false;
         let globalHistoryLimit = '100';
-        let currentCpHistoryLimit = 'all';
+        let currentCpHistoryLimit = '20';
         let layoutOrientation = 'auto';
         let activeScopeFilter = 'current'; 
         let currentLastSyncedRowMarker = parseInt(localStorage.getItem("lastDataRowMarker") || "1", 10);
@@ -2644,6 +2700,43 @@
             const el = document.getElementById('bibInput');
             if (!el) return;
             el.style.fontSize = computeBibFontSizeRem_(el.value.length) + 'rem';
+        }
+
+        /** Bib numbers never contain spaces (e.g. "V 2344" must become "V2344"). The
+         * numeric keypad has no space key, but switching to the text keyboard
+         * (toggleKeyboardMode) or autocomplete/predictive text can still introduce one --
+         * this blocks the spacebar outright on keydown, with a brief red-border flash so
+         * the rejection is visible instead of silently doing nothing. */
+        function blockBibSpace_(evt) {
+            if (evt.code === 'Space' || evt.key === ' ' || evt.keyCode === 32) {
+                evt.preventDefault();
+                flashBibSpaceRejected_();
+            }
+        }
+
+        /** Belt-and-suspenders: strips any whitespace that reaches the value another way
+         * (paste, autocomplete, predictive text bar) so the bib is always space-free even
+         * if a keydown handler couldn't catch it. */
+        function stripBibSpaces_(el) {
+            if (/\s/.test(el.value)) {
+                const pos = el.selectionStart;
+                const before = el.value;
+                el.value = el.value.replace(/\s+/g, '');
+                // Keep the caret roughly where the user was typing instead of jumping to the end.
+                const removedBeforeCaret = before.slice(0, pos).length - before.slice(0, pos).replace(/\s+/g, '').length;
+                const newPos = Math.max(0, (pos || el.value.length) - removedBeforeCaret);
+                try { el.setSelectionRange(newPos, newPos); } catch (e) { /* some input types don't support this */ }
+                flashBibSpaceRejected_();
+            }
+        }
+
+        let bibSpaceFlashTimeout_;
+        function flashBibSpaceRejected_() {
+            const el = document.getElementById('bibInput');
+            if (!el) return;
+            el.classList.add('bib-space-rejected');
+            clearTimeout(bibSpaceFlashTimeout_);
+            bibSpaceFlashTimeout_ = setTimeout(() => el.classList.remove('bib-space-rejected'), 250);
         }
 
         function warmUpGPS() {
@@ -2980,6 +3073,7 @@
             applyTheme(); 
             profileDevicePerformanceCapabilities(); 
             updateSyncStatusLabel();
+            initSyncBadgeCollapseTimer_();
             loadSettingsState();
             updateSearchBoxPlaceholder();
             loadHistory();
@@ -3254,7 +3348,7 @@
             dupWindow = parseInt(localStorage.getItem("dupWindow") || "10", 10);
             if (dupWindow < 2) dupWindow = 2;
             globalHistoryLimit = localStorage.getItem("globalHistoryLimit") || "100";
-            currentCpHistoryLimit = localStorage.getItem("currentCpHistoryLimit") || "all";
+            currentCpHistoryLimit = localStorage.getItem("currentCpHistoryLimit") || "20";
             layoutOrientation = localStorage.getItem("layoutOrientation") || "auto";
             batterySaverManual = localStorage.getItem("batterySaverManual") === "true";
             activeScopeFilter = localStorage.getItem("activeScopeFilter") || "current";
@@ -3275,10 +3369,62 @@
             if (batterySaverManual) activateBatterySafeMode(true);
         }
 
+        /** Renders the header sync badge. Two independent states:
+         *   - "no syncUrl configured" (Offline Mode): always full text, never collapses --
+         *     this is a setup problem the person needs to notice and fix, not idle chatter.
+         *   - "syncUrl configured" (Auto-Sync): the healthy/idle state. Renders as full text
+         *     until syncBadgeCollapsed_ flips true (after SYNC_BADGE_COLLAPSE_DELAY_MS via
+         *     initSyncBadgeCollapseTimer_), then renders as a small icon to save header
+         *     space. The CSS transition on #syncStatus (width/padding/border-radius) is what
+         *     actually animates the shrink; this function just swaps the class + inner content
+         *     at the same moment so it reads as one continuous morph.
+         */
         function updateSyncStatusLabel() { 
             const s = document.getElementById("syncStatus"); 
-            s.textContent = !syncUrl ? "Offline Mode" : "Auto-Sync"; 
-            s.className = !syncUrl ? "text-[10px] bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-800 px-2 py-0.5 rounded-full font-bold" : "text-[10px] bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded-full font-bold"; 
+            if (!s) return;
+            if (!syncUrl) {
+                // Offline Mode: always expanded, never collapses -- this needs to stay visible.
+                s.onclick = null;
+                s.classList.remove('sync-badge-collapsed');
+                s.textContent = "Offline Mode";
+                s.className = "text-[10px] bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-800 px-2 py-0.5 rounded-full font-bold";
+                return;
+            }
+            // Auto-Sync (healthy/idle) state.
+            s.onclick = syncBadgeCollapsed_ ? toggleSyncBadgeExpand_ : null;
+            if (syncBadgeCollapsed_) {
+                s.className = "sync-badge-collapsed bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 font-bold";
+                s.textContent = "🔄";
+                s.title = "Auto-Sync — tap to expand";
+            } else {
+                s.className = "text-[10px] bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded-full font-bold";
+                s.textContent = "Auto-Sync";
+                s.title = "";
+            }
+        }
+
+        /** Starts (once) the one-shot timer that collapses the Auto-Sync pill down to
+         * an icon after SYNC_BADGE_COLLAPSE_DELAY_MS. Called once on startup. Does
+         * nothing if a sync URL isn't configured yet (Offline Mode never collapses),
+         * but the timer itself still runs so it takes effect immediately once one is set. */
+        function initSyncBadgeCollapseTimer_() {
+            if (syncBadgeCollapseTimeoutId_) return; // already scheduled
+            syncBadgeCollapseTimeoutId_ = setTimeout(() => {
+                syncBadgeCollapsed_ = true;
+                updateSyncStatusLabel();
+            }, SYNC_BADGE_COLLAPSE_DELAY_MS);
+        }
+
+        /** Tap-to-peek: expands the collapsed icon back to full "Auto-Sync" text for a
+         * few seconds so it's always easy to double check, then re-collapses. */
+        function toggleSyncBadgeExpand_() {
+            syncBadgeCollapsed_ = false;
+            updateSyncStatusLabel();
+            clearTimeout(syncBadgeExpandTimeoutId_);
+            syncBadgeExpandTimeoutId_ = setTimeout(() => {
+                syncBadgeCollapsed_ = true;
+                updateSyncStatusLabel();
+            }, SYNC_BADGE_COLLAPSE_DELAY_MS);
         }
 
         function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
@@ -4554,6 +4700,16 @@
         const SAFETY_STATUS_LABELS_ = { ok: '✅ OK', withdrawn: '🚫 Withdrawn', medical: '🚑 Medical', missing: '❓ Missing' };
         let localSafetyNotes_ = {}; // bib -> {bib,status,remark,updatedBy,updatedAt}
         let safetyQuickFilter_ = 'all'; // 'all' | 'missing' | 'overdue'
+        let safetySortAscending_ = true; // toggled by toggleSafetySortDirection_()
+
+        /** Flips the sort direction (largest-to-smallest vs smallest-to-largest for
+         * bib, or reverses whatever the current sort field is) and re-renders. */
+        function toggleSafetySortDirection_() {
+            safetySortAscending_ = !safetySortAscending_;
+            const btn = document.getElementById('safetySortDirBtn');
+            if (btn) btn.innerHTML = safetySortAscending_ ? '⬆️ Asc' : '⬇️ Desc';
+            renderSafetyLog_();
+        }
 
         /**
          * A bib is "overdue" if its category's cutoff time (COT, from the Setup
@@ -4627,6 +4783,20 @@
             return Array.from(byBib.values());
         }
 
+        /** Repopulates the checkpoint/volunteer filter dropdowns from whatever values
+         * actually appear in the current roster, preserving the user's current
+         * selection if it's still a valid option. Called every render so a newly-seen
+         * checkpoint or volunteer shows up without needing to reopen the log. */
+        function refreshSafetyDropdownOptions_(selectId, values, allLabel) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            const current = select.value;
+            const unique = Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+            select.innerHTML = `<option value="">${allLabel}</option>` +
+                unique.map(v => `<option value="${v.replace(/"/g,'&quot;')}">${v}</option>`).join('');
+            if (unique.includes(current)) select.value = current;
+        }
+
         function renderSafetyLog_() {
             const body = document.getElementById('safetyLogBody');
             const emptyState = document.getElementById('safetyLogEmptyState');
@@ -4635,9 +4805,16 @@
             getEnrichedLogsFromDb_(function(logs) {
                 let roster = buildSafetyRosterFromLogs_(logs);
 
+                // Keep the checkpoint/volunteer dropdown options in sync with the data
+                // BEFORE reading their .value, so a just-added option isn't missed.
+                refreshSafetyDropdownOptions_('safetyCheckpointFilterSelect', roster.map(r => r.checkpoint), 'All checkpoints');
+                refreshSafetyDropdownOptions_('safetyVolunteerFilterSelect', roster.map(r => r.volunteer), 'All volunteers');
+
                 const query = (document.getElementById('safetySearchBar')?.value || '').toLowerCase().trim();
                 const sortBy = document.getElementById('safetySortSelect')?.value || 'bib';
                 const statusFilter = document.getElementById('safetyStatusFilterSelect')?.value || '';
+                const checkpointFilter = document.getElementById('safetyCheckpointFilterSelect')?.value || '';
+                const volunteerFilter = document.getElementById('safetyVolunteerFilterSelect')?.value || '';
 
                 roster = roster.map(r => {
                     const note = localSafetyNotes_[r.bib] || null;
@@ -4658,6 +4835,8 @@
                     );
                 }
                 if (statusFilter) roster = roster.filter(r => r._safetyStatus === statusFilter);
+                if (checkpointFilter) roster = roster.filter(r => (r.checkpoint || '') === checkpointFilter);
+                if (volunteerFilter) roster = roster.filter(r => (r.volunteer || '') === volunteerFilter);
 
                 // Counts reflect the search box (so the badges match what "All" would show)
                 // but not the quick-filter itself, so switching between chips is meaningful.
@@ -4676,15 +4855,19 @@
                     roster = roster.filter(r => isBibOverdue_(r) && r._safetyStatus !== 'ok' && r._safetyStatus !== 'withdrawn');
                 }
 
+                // Base comparator always sorts ascending; toggleSafetySortDirection_() flips
+                // the final result rather than every branch, so "largest to smallest" works
+                // consistently whether sorting by bib, category, checkpoint, or status.
                 roster.sort((a, b) => {
                     switch (sortBy) {
                         case 'category':   return (a.category||'').localeCompare(b.category||'') || (a.bib||'').localeCompare(b.bib||'', undefined, {numeric:true});
                         case 'checkpoint': return (a.checkpoint||'').localeCompare(b.checkpoint||'') || (a.bib||'').localeCompare(b.bib||'', undefined, {numeric:true});
                         case 'status':     return (a._safetyStatus||'zzz').localeCompare(b._safetyStatus||'zzz') || (a.bib||'').localeCompare(b.bib||'', undefined, {numeric:true});
-                        case 'lastSeen':   return b._ts - a._ts;
+                        case 'lastSeen':   return a._ts - b._ts;
                         default:           return (a.bib||'').localeCompare(b.bib||'', undefined, {numeric:true});
                     }
                 });
+                if (!safetySortAscending_) roster.reverse();
 
                 if (emptyState) emptyState.classList.toggle('hidden', roster.length > 0);
 
@@ -5552,6 +5735,10 @@
             };
         }
 
+        // NOTE: this base exportCSV() is superseded at load time by patchExportCSV_()
+        // further down the file, which reassigns window.exportCSV with backup-scope
+        // filtering (current CP / current device / global) plus lat/long and analytics
+        // columns. This copy never actually runs -- edit patchExportCSV_() instead.
         function exportCSV() {
             // Enriched (not raw) logs: raw IndexedDB rows only hold bib/time/checkpoint/
             // volunteer/remark/device — category, lap, pace, speed, projectedFinish and
@@ -6853,20 +7040,63 @@
         }
 
         /* Enrich exportCSV with analytics columns (pace zone / trend), on top of the
-           already-enriched category/lap/pace/speed/projectedFinish/flagoff fields. */
+           already-enriched category/lap/pace/speed/projectedFinish/flagoff fields.
+
+           Column order matches the Racelog Google Sheet's own column order for the
+           first 8 data columns (BIB, Time, Checkpoint, Volunteer, Remark, Device,
+           Latitude, Longitude -- see HEADERS in Code.gs) so this export can be pasted
+           straight into the Racelog sheet without reordering. UID/ID and the PWA-only
+           computed columns (Category, Lap, Pace, Speed, analytics, etc.) come after,
+           since the sheet itself doesn't have those columns.
+
+           Backup scope (current CP / current device / global) is read from
+           #exportScopeSelect, defaulting to "Current CP only" per the app's own
+           default -- exporting a single station's data should never silently include
+           every other checkpoint's logs too. */
+        function filterLogsByExportScope_(logs) {
+            const scope = document.getElementById('exportScopeSelect')?.value || 'currentCp';
+            if (scope === 'currentDevice') return logs.filter(l => isOwnEntry(l));
+            if (scope === 'global') return logs;
+            // currentCp (default): match the checkpoint currently typed into Setup.
+            const cp = (document.getElementById('checkpoint')?.value || '').trim().toUpperCase();
+            if (!cp) return logs; // Setup not filled in yet -- nothing to scope against, export everything rather than silently empty the file
+            return logs.filter(l => (l.checkpoint || '').toUpperCase() === cp);
+        }
+
+        function exportScopeLabel_() {
+            const scope = document.getElementById('exportScopeSelect')?.value || 'currentCp';
+            if (scope === 'currentDevice') return 'ThisDevice';
+            if (scope === 'global') return 'Global';
+            const cp = (document.getElementById('checkpoint')?.value || '').trim().toUpperCase();
+            return cp ? cp.replace(/[^a-zA-Z0-9_-]/g, '') : 'CurrentCP';
+        }
+
         (function patchExportCSV_() {
             window.exportCSV = function() {
-                getEnrichedLogsFromDb_(function(logs) {
-                    if (!logs || logs.length === 0) { alert('⚠️ No logs available!'); return; }
-                    let csvContent = 'ID,Bib,Time,Checkpoint,Volunteer,Category,Lap,TimePerLap,TotalTime,Pace,Speed,ProjectedFinish,Flagoff,Remark,Device,PaceZone,PaceSecs,SpeedFloat,TrendLabel\r\n';
+                getEnrichedLogsFromDb_(function(allLogs) {
+                    const logs = filterLogsByExportScope_(allLogs || []);
+                    if (!logs || logs.length === 0) { alert('⚠️ No logs available for this backup scope!'); return; }
+
+                    // Time is kept as quoted text (not a bare unquoted value), which stops
+                    // spreadsheet apps from reinterpreting the "DD/MM/YYYY hh:mm:ss AM/PM"
+                    // string (see getFormattedTimestamp) as a date/number and truncating the
+                    // display to ##### for a too-narrow column. A UTF-8 BOM is prepended below
+                    // so Excel opens the file as UTF-8 instead of guessing a legacy codepage,
+                    // which is the other common cause of a CSV looking corrupted on open.
+                    let csvContent = 'BIB,Time,Checkpoint,Volunteer,Remark,Device,Latitude,Longitude,ID,UID,Category,Lap,TimePerLap,TotalTime,Pace,Speed,ProjectedFinish,Flagoff,PaceZone,PaceSecs,SpeedFloat,TrendLabel\r\n';
                     logs.forEach(l => {
                         const enriched = enrichLogForExport_(l, logs);
                         csvContent += [
-                            l.id,
                             `"${(l.bib||'').replace(/"/g,'""')}"`,
                             `"${(l.time||'').replace(/"/g,'""')}"`,
                             `"${(l.checkpoint||'').replace(/"/g,'""')}"`,
                             `"${(l.volunteer||'').replace(/"/g,'""')}"`,
+                            `"${(l.remark||'').replace(/"/g,'""')}"`,
+                            `"${getDeviceLabel(l.device)}"`,
+                            (l.latitude !== undefined && l.latitude !== null && l.latitude !== '') ? l.latitude : '',
+                            (l.longitude !== undefined && l.longitude !== null && l.longitude !== '') ? l.longitude : '',
+                            l.id,
+                            `"${(l.uid||'').replace(/"/g,'""')}"`,
                             `"${(l.category||'').replace(/"/g,'""')}"`,
                             `"${(l.lap||'').replace(/"/g,'""')}"`,
                             `"${(l.timePerLap||'').replace(/"/g,'""')}"`,
@@ -6875,19 +7105,18 @@
                             `"${(l.speed||'').replace(/"/g,'""')}"`,
                             `"${(l.projectedFinish||'').replace(/"/g,'""')}"`,
                             `"${(l.flagoff||'').replace(/"/g,'""')}"`,
-                            `"${(l.remark||'').replace(/"/g,'""')}"`,
-                            `"${getDeviceLabel(l.device)}"`,
                             `"${enriched.paceZone}"`,
                             enriched.paceSeconds,
                             enriched.speedFloat,
                             `"${enriched.trendLabel}"`,
                         ].join(',') + '\r\n';
                     });
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const BOM = '\uFEFF';
+                    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
                     const url  = URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.setAttribute('href', url);
-                    link.setAttribute('download', `Race_Logs_Enhanced_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.setAttribute('download', `Race_Logs_${exportScopeLabel_()}_${new Date().toISOString().split('T')[0]}.csv`);
                     document.body.appendChild(link); link.click(); document.body.removeChild(link);
                     setTimeout(() => URL.revokeObjectURL(url), 10000);
                 });
@@ -7162,6 +7391,7 @@
                 const badge = document.getElementById('syncStatus');
                 if (!badge) return;
                 if (!isOnline) {
+                    badge.onclick = null;
                     badge.textContent = '⚡ Offline';
                     badge.className = 'text-[10px] bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-800 px-2 py-0.5 rounded-full font-bold';
                 } else {
