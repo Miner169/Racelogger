@@ -1,4 +1,4 @@
-const CACHE_NAME = 'race-logger-v3-cache';
+const CACHE_NAME = 'race-logger-v4-cache';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
