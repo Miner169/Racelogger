@@ -2214,13 +2214,12 @@
                                         <th class="p-2 text-center">KM</th>
                                         <th class="p-2 text-center">BIB Rule</th>
                                         <th class="p-2 text-center">COT</th>
-                                        <th class="p-2 text-center">COT Time</th>
                                         <th class="p-2 text-center pr-2.5">Runners</th>
                                     </tr>
                                 </thead>
                                 <tbody id="summaryTableBody" class="divide-y theme-border">
                                     <tr>
-                                        <td colspan="6" class="p-3 text-center theme-text-muted text-[10px]">Awaiting background live-sync routine...</td>
+                                        <td colspan="5" class="p-3 text-center theme-text-muted text-[10px]">Awaiting background live-sync routine...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -2959,6 +2958,22 @@
             }
         }
 
+        /** Counts unique scanned bibs per Setup row, matching each log's bib against that
+         * row's own bib range (not by category name -- the same category name can appear
+         * at several distance tiers, e.g. "Men Open" at both 100km and 6km, so matching by
+         * name alone would merge tiers together). bibRule is unique per Setup row, so it
+         * doubles as a reliable per-row key here. */
+        function countScannedBibsByRow_(summaryRows, allLogs) {
+            const scannedSets = new Map(); // bibRule -> Set of unique bibs seen
+            summaryRows.forEach(row => { if (row.bibRule) scannedSets.set(row.bibRule, new Set()); });
+            (allLogs || []).forEach(l => {
+                if (!l.bib || l.remake) return;
+                const cfg = findCategoryConfigForBib_(l.bib, summaryRows);
+                if (cfg && cfg.bibRule && scannedSets.has(cfg.bibRule)) scannedSets.get(cfg.bibRule).add(l.bib);
+            });
+            return scannedSets;
+        }
+
         function renderSummaryDashboard(summaryRows) {
             const tbody = document.getElementById("summaryTableBody");
             if (!tbody) return;
@@ -2968,48 +2983,59 @@
             if (isDirectorModeOpen) renderDirectorSummaryTable_(lastKnownSummaryRows);
 
             if (!summaryRows || summaryRows.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center theme-text-muted text-[10px]">No category configs found on server range.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center theme-text-muted text-[10px]">No category configs found on server range.</td></tr>`;
                 return;
             }
             
             localStorage.setItem("lastCachedSummaryRows", JSON.stringify(summaryRows));
-            
-            let htmlBuilder = "";
-            summaryRows.forEach(row => {
-                if (!row.category && !row.runners && !row.bibRule) return;
-                
-                const displayCategory = row.category || row.bibRule || "";
-                const isTotalRow = displayCategory.toLowerCase().includes("total");
-                
-                const rowBg = isTotalRow 
-                    ? "bg-neutral-300/80 dark:bg-neutral-900/80 font-black border-t-2 border-neutral-400 dark:border-neutral-600 shadow-sm" 
-                    : "hover:bg-neutral-200/50 dark:hover:bg-neutral-500/10 transition-colors duration-100";
-                
-                const colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
-                
-                const textClass = isTotalRow 
-                    ? 'text-amber-700 dark:text-amber-400 font-black uppercase text-outlined-contrast' 
-                    : 'text-neutral-900 dark:text-white font-extrabold text-outlined-contrast';
-                
-                const runnerClass = isTotalRow ? 'text-blue-800 dark:text-cyan-400 text-xs' : 'text-blue-700 dark:text-cyan-400';
-                
+
+            getEnrichedLogsFromDb_(function(allLogs) {
+                const scannedByRow = countScannedBibsByRow_(summaryRows, allLogs);
+                let totalScanned = 0, totalRegistered = 0;
+
+                let htmlBuilder = "";
+                summaryRows.forEach(row => {
+                    if (!row.category && !row.runners && !row.bibRule) return;
+
+                    const displayCategory = row.category || row.bibRule || "";
+                    const isTotalRow = displayCategory.toLowerCase().includes("total");
+                    if (isTotalRow) return; // superseded by the always-computed totals row appended below
+
+                    const rowBg = "hover:bg-neutral-200/50 dark:hover:bg-neutral-500/10 transition-colors duration-100";
+                    const colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
+                    const textClass = 'text-neutral-900 dark:text-white font-extrabold text-outlined-contrast';
+
+                    const registered = parseInt(row.runners, 10) || 0;
+                    const scanned = row.bibRule && scannedByRow.has(row.bibRule) ? scannedByRow.get(row.bibRule).size : 0;
+                    totalScanned += scanned;
+                    totalRegistered += registered;
+
+                    htmlBuilder += `
+                        <tr class="${rowBg} border-b theme-border text-neutral-900 dark:text-white">
+                            <td class="p-2 pl-2.5 font-bold">
+                                <div class="flex items-center gap-2">
+                                    ${colorHex ? `<span class="inline-block w-2.5 h-2.5 rounded-sm border border-neutral-400/50 dark:border-neutral-700/50 shrink-0" style="background-color: ${colorHex}"></span>` : ''}
+                                    <span class="${textClass}">${displayCategory}</span>
+                                </div>
+                            </td>
+                            <td class="p-2 text-center font-bold text-outlined-contrast">${row.km || '-'}</td>
+                            <td class="p-2 text-center font-mono font-bold text-indigo-700 dark:text-indigo-400 text-outlined-contrast">${row.bibRule || '-'}</td>
+                            <td class="p-2 text-center font-mono font-bold text-amber-700 dark:text-amber-400 text-outlined-contrast">${row.cot || '-'}</td>
+                            <td class="p-2 text-center font-black font-mono pr-2.5 text-blue-700 dark:text-cyan-400 text-outlined-contrast text-sm">${scanned}/${registered}</td>
+                        </tr>
+                    `;
+                });
+
                 htmlBuilder += `
-                    <tr class="${rowBg} border-b theme-border text-neutral-900 dark:text-white">
-                        <td class="p-2 pl-2.5 font-bold">
-                            <div class="flex items-center gap-2">
-                                ${colorHex ? `<span class="inline-block w-2.5 h-2.5 rounded-sm border border-neutral-400/50 dark:border-neutral-700/50 shrink-0" style="background-color: ${colorHex}"></span>` : ''}
-                                <span class="${textClass}">${displayCategory}</span>
-                            </div>
-                        </td>
-                        <td class="p-2 text-center font-bold text-outlined-contrast">${row.km || '-'}</td>
-                        <td class="p-2 text-center font-mono font-bold text-indigo-700 dark:text-indigo-400 text-outlined-contrast">${row.bibRule || '-'}</td>
-                        <td class="p-2 text-center font-mono font-bold ${isTotalRow ? 'text-neutral-600 dark:text-neutral-500' : 'text-amber-700 dark:text-amber-400'} text-outlined-contrast">${row.cot || '-'}</td>
-                        <td class="p-2 text-center font-mono font-medium text-neutral-800 dark:text-neutral-300 text-[10px]">${isTotalRow ? '-' : formatDashboardDateStr(row.cotTime)}</td>
-                        <td class="p-2 text-center font-black font-mono pr-2.5 ${runnerClass} text-outlined-contrast text-sm">${row.runners !== undefined ? row.runners : 0}</td>
+                    <tr class="bg-neutral-300/80 dark:bg-neutral-900/80 font-black border-t-2 border-neutral-400 dark:border-neutral-600 shadow-sm text-neutral-900 dark:text-white">
+                        <td class="p-2 pl-2.5 font-black uppercase text-amber-700 dark:text-amber-400 text-outlined-contrast" colspan="3">Total runner</td>
+                        <td class="p-2 text-center">-</td>
+                        <td class="p-2 text-center font-black font-mono pr-2.5 text-blue-800 dark:text-cyan-400 text-outlined-contrast text-xs">${totalScanned}/${totalRegistered}</td>
                     </tr>
                 `;
+
+                tbody.innerHTML = htmlBuilder;
             });
-            tbody.innerHTML = htmlBuilder;
         }
 
         function toggleDashboardCollapse() {
@@ -4058,10 +4084,34 @@
         // authoritative server value comes back through pullServerRecords().
         // ============================================================
 
+        /** Parses a Setup-sheet bib rule like "1001-1378" or "V8301-V8348" into its
+         * letter prefix (if any) and numeric lo/hi bounds. Returns null if the rule
+         * doesn't match that shape (e.g. blank/malformed rows). */
+        function parseBibRange_(rule) {
+            const m = String(rule || '').match(/^([A-Za-z]*)(\d+)-[A-Za-z]*(\d+)$/);
+            if (!m) return null;
+            return { prefix: m[1].toUpperCase(), lo: parseInt(m[2], 10), hi: parseInt(m[3], 10) };
+        }
+
+        /** Finds which category config row a bib belongs to by checking whether the
+         * bib's numeric value (and letter prefix, if any) actually falls within that
+         * row's bib range -- e.g. bib 1405 matches "1401-1412", not "1001-1378",
+         * even though both ranges start with the same leading digit. Previously this
+         * compared a synthesized "1xxx"-style key against the real range string
+         * ("1001-1378"), which could never match anything -- every bib silently
+         * returned null, so category/pace/speed/lap live-preview metrics never had
+         * real data to work with. */
         function findCategoryConfigForBib_(bib, categoryConfig) {
             if (!bib || !categoryConfig || !categoryConfig.length) return null;
-            const key = (bib.charAt(0) + 'xxx').toLowerCase();
-            return categoryConfig.find(c => (c.bibRule || '').toLowerCase() === key) || null;
+            const m = String(bib).match(/^([A-Za-z]*)(\d+)$/);
+            if (!m) return null;
+            const bibPrefix = m[1].toUpperCase();
+            const bibNum = parseInt(m[2], 10);
+            for (const c of categoryConfig) {
+                const r = parseBibRange_(c.bibRule);
+                if (r && r.prefix === bibPrefix && bibNum >= r.lo && bibNum <= r.hi) return c;
+            }
+            return null;
         }
 
         function formatDurationHMS_(totalSeconds) {
@@ -5029,31 +5079,51 @@
                 tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center theme-text-muted text-xs">No category configs found on server range.</td></tr>`;
                 return;
             }
-            let html = '';
-            summaryRows.forEach(row => {
-                if (!row.category && !row.runners && !row.bibRule) return;
-                const displayCategory = row.category || row.bibRule || '';
-                const isTotalRow = displayCategory.toLowerCase().includes('total');
-                const rowBg = isTotalRow
-                    ? 'bg-neutral-300/80 dark:bg-neutral-900/80 font-black border-t-2 border-neutral-400 dark:border-neutral-600'
-                    : 'hover:bg-neutral-200/50 dark:hover:bg-neutral-500/10 transition-colors duration-100';
-                const colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
+
+            getEnrichedLogsFromDb_(function(allLogs) {
+                const scannedByRow = countScannedBibsByRow_(summaryRows, allLogs);
+                let totalScanned = 0, totalRegistered = 0;
+
+                let html = '';
+                summaryRows.forEach(row => {
+                    if (!row.category && !row.runners && !row.bibRule) return;
+                    const displayCategory = row.category || row.bibRule || '';
+                    const isTotalRow = displayCategory.toLowerCase().includes('total');
+                    if (isTotalRow) return; // superseded by the always-computed totals row appended below
+
+                    const rowBg = 'hover:bg-neutral-200/50 dark:hover:bg-neutral-500/10 transition-colors duration-100';
+                    const colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
+
+                    const registered = parseInt(row.runners, 10) || 0;
+                    const scanned = row.bibRule && scannedByRow.has(row.bibRule) ? scannedByRow.get(row.bibRule).size : 0;
+                    totalScanned += scanned;
+                    totalRegistered += registered;
+
+                    html += `
+                        <tr class="${rowBg} border-b theme-border text-neutral-900 dark:text-white">
+                            <td class="p-2 sm:p-3 pl-3 font-bold">
+                                <div class="flex items-center gap-2">
+                                    ${colorHex ? `<span class="inline-block w-2.5 h-2.5 rounded-sm border border-neutral-400/50 dark:border-neutral-700/50 shrink-0" style="background-color: ${colorHex}"></span>` : ''}
+                                    <span>${displayCategory}</span>
+                                </div>
+                            </td>
+                            <td class="p-2 sm:p-3 text-center font-bold">${row.km || '-'}</td>
+                            <td class="p-2 sm:p-3 text-center font-mono font-bold text-indigo-700 dark:text-indigo-400">${row.bibRule || '-'}</td>
+                            <td class="p-2 sm:p-3 text-center font-mono font-bold text-amber-700 dark:text-amber-400">${row.cot || '-'}</td>
+                            <td class="p-2 sm:p-3 text-center font-mono text-[10px] sm:text-xs">${formatDashboardDateStr(row.cotTime)}</td>
+                            <td class="p-2 sm:p-3 text-center font-black font-mono pr-3 text-blue-700 dark:text-cyan-400">${scanned}/${registered}</td>
+                        </tr>`;
+                });
+
                 html += `
-                    <tr class="${rowBg} border-b theme-border text-neutral-900 dark:text-white">
-                        <td class="p-2 sm:p-3 pl-3 font-bold">
-                            <div class="flex items-center gap-2">
-                                ${colorHex ? `<span class="inline-block w-2.5 h-2.5 rounded-sm border border-neutral-400/50 dark:border-neutral-700/50 shrink-0" style="background-color: ${colorHex}"></span>` : ''}
-                                <span>${displayCategory}</span>
-                            </div>
-                        </td>
-                        <td class="p-2 sm:p-3 text-center font-bold">${row.km || '-'}</td>
-                        <td class="p-2 sm:p-3 text-center font-mono font-bold text-indigo-700 dark:text-indigo-400">${row.bibRule || '-'}</td>
-                        <td class="p-2 sm:p-3 text-center font-mono font-bold text-amber-700 dark:text-amber-400">${row.cot || '-'}</td>
-                        <td class="p-2 sm:p-3 text-center font-mono text-[10px] sm:text-xs">${isTotalRow ? '-' : formatDashboardDateStr(row.cotTime)}</td>
-                        <td class="p-2 sm:p-3 text-center font-black font-mono pr-3 text-blue-700 dark:text-cyan-400">${row.runners !== undefined ? row.runners : 0}</td>
+                    <tr class="bg-neutral-300/80 dark:bg-neutral-900/80 font-black border-t-2 border-neutral-400 dark:border-neutral-600 text-neutral-900 dark:text-white">
+                        <td class="p-2 sm:p-3 pl-3 font-black uppercase text-amber-700 dark:text-amber-400" colspan="4">Total runner</td>
+                        <td class="p-2 sm:p-3 text-center">-</td>
+                        <td class="p-2 sm:p-3 text-center font-black font-mono pr-3 text-blue-800 dark:text-cyan-400">${totalScanned}/${totalRegistered}</td>
                     </tr>`;
+
+                tbody.innerHTML = html;
             });
-            tbody.innerHTML = html;
         }
 
         /**
