@@ -1680,13 +1680,7 @@
             <!-- Card 5: Extractions Container -->
             <div class="theme-card flex flex-col gap-2">
                 <h4 class="text-xs font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider">💾 Emergency Diagnostics & Backups</h4>
-                <div class="grid grid-cols-2 gap-2">
-                    <button type="button" onclick="exportJSON()" class="bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-emerald-700 dark:text-emerald-400 border border-neutral-300 dark:border-neutral-800 font-bold py-2 rounded-lg text-xs transition">📥 Export JSON</button>
-                    <label class="bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-cyan-700 dark:text-cyan-400 border border-neutral-300 dark:border-neutral-800 font-bold py-2 rounded-lg text-xs transition text-center cursor-pointer select-none">
-                        📤 Import JSON
-                        <input type="file" id="jsonFileInputTrigger" accept=".json" onchange="importBackupJSONDataFile(event)" class="hidden">
-                    </label>
-                </div>
+                <button type="button" onclick="exportCSV()" class="w-full bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-emerald-700 dark:text-emerald-400 border border-neutral-300 dark:border-neutral-800 font-bold py-2 rounded-lg text-xs transition">📥 Export &amp; Download CSV</button>
             </div>
 
             <!-- Card 6: Danger Zones Counter Box -->
@@ -2398,10 +2392,7 @@
 
                 <!-- Export button (backup scope is asked via a prompt when tapped — see openExportScopePrompt_) -->
                 <section class="hidden lg:block">
-                    <div class="flex gap-2">
-                        <button onclick="exportCSV()" class="flex-1 bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2 text-sm">📥 CSV</button>
-                        <button onclick="exportJSON()" class="flex-1 bg-indigo-700 dark:bg-indigo-800 hover:bg-indigo-600 dark:hover:bg-indigo-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2 text-sm">📦 JSON</button>
-                    </div>
+                    <button onclick="exportCSV()" class="w-full bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2 text-sm">📥 Export &amp; Download CSV</button>
                 </section>
             </div>
 
@@ -2446,8 +2437,7 @@
                 </section>
 
                 <section class="block lg:hidden mt-3">
-                    <button onclick="exportCSV()" class="w-full bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2 mb-2">📥 Export & Download CSV</button>
-                    <button onclick="exportJSON()" class="w-full bg-indigo-700 dark:bg-indigo-800 hover:bg-indigo-600 dark:hover:bg-indigo-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2">📦 Export & Download JSON</button>
+                    <button onclick="exportCSV()" class="w-full bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2">📥 Export &amp; Download CSV</button>
                 </section>
             </div>
 
@@ -3091,15 +3081,15 @@
                 let totalScanned = 0, totalRegistered = 0;
 
                 let htmlBuilder = "";
-                // ── Group colour forward-fill ────────────────────────────────────
-                // In the Setup sheet the bib colour is a merged cell covering EVERY
-                // category of a distance (e.g. blue covers all four 80KM rows), but
-                // the config only carries the colour on the group's first row. Carry
-                // it forward across consecutive rows of the same KM+COT group so the
-                // colour visually covers the whole group here too — a coloured bar
-                // down the left edge of every row in the group, like the sheet.
+                // Code.gs now forward-fills km/cot/cotTime/color across every row of
+                // a merged-cell Setup group server-side (see getCategorySummaryData_),
+                // so every row already carries its group's values directly. The
+                // group-key carry-forward below is kept only as a defensive fallback
+                // for a stale cached summary (localStorage lastCachedSummaryRows) saved
+                // by an older version of this backend, before that fix existed.
                 let lastGroupColor = null;
                 let lastGroupKey = null;
+                let lastGroupKm = '', lastGroupCot = '', lastGroupCotTime = '';
                 summaryRows.forEach(row => {
                     if (!row.category && !row.runners && !row.bibRule) return;
 
@@ -3109,15 +3099,19 @@
 
                     const rowBg = "hover:bg-neutral-200/50 dark:hover:bg-neutral-500/10 transition-colors duration-100";
                     let colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
-                    const groupKey = `${row.km || ''}|${row.cot || ''}`;
-                    if (colorHex) {
-                        lastGroupColor = colorHex;
-                        lastGroupKey = groupKey;
-                    } else if (lastGroupColor && groupKey === lastGroupKey) {
-                        colorHex = lastGroupColor; // inherit the group's colour (merged-cell behaviour)
+                    let km = row.km || '';
+                    let cot = row.cot || '';
+                    let cotTime = row.cotTime || '';
+                    // A row starts a new group whenever it actually carries its own
+                    // km/cot (already-forward-filled server data means this is almost
+                    // always true; only a legacy blank cached row falls through below).
+                    if (km || cot) {
+                        lastGroupKm = km; lastGroupCot = cot; lastGroupCotTime = cotTime;
+                        if (colorHex) lastGroupColor = colorHex;
+                        lastGroupKey = `${km}|${cot}`;
                     } else {
-                        lastGroupColor = null;
-                        lastGroupKey = null;
+                        km = lastGroupKm; cot = lastGroupCot; cotTime = cotTime || lastGroupCotTime;
+                        if (!colorHex) colorHex = lastGroupColor;
                     }
                     const textClass = 'text-neutral-900 dark:text-white font-extrabold text-outlined-contrast';
 
@@ -3134,9 +3128,9 @@
                                     <span class="${textClass}">${displayCategory}</span>
                                 </div>
                             </td>
-                            <td class="p-2 text-center font-bold text-outlined-contrast">${row.km || '-'}</td>
+                            <td class="p-2 text-center font-bold text-outlined-contrast">${km || '-'}</td>
                             <td class="p-2 text-center font-mono font-bold text-indigo-700 dark:text-indigo-400 text-outlined-contrast">${row.bibRule || '-'}</td>
-                            <td class="p-2 text-center font-mono font-bold text-amber-700 dark:text-amber-400 text-outlined-contrast">${row.cot || '-'}</td>
+                            <td class="p-2 text-center font-mono font-bold text-amber-700 dark:text-amber-400 text-outlined-contrast">${cot || '-'}</td>
                             <td class="p-2 text-center font-black font-mono pr-2.5 text-blue-700 dark:text-cyan-400 text-outlined-contrast text-sm">${scanned}/${registered}</td>
                         </tr>
                     `;
@@ -3382,57 +3376,9 @@
             });
         }
 
-        function importBackupJSONDataFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    if (!Array.isArray(importedData)) {
-                        alert("❌ Validation error: JSON must be an Array.");
-                        return;
-                    }
-                    if (importedData.length === 0) {
-                        alert("⚠️ Array is empty.");
-                        return;
-                    }
-                    const confirmInject = confirm(`⚠️ Restore ${importedData.length} records into database?`);
-                    if (!confirmInject) return;
-                    const tx = db.transaction(["logs"], "readwrite");
-                    const store = tx.objectStore("logs");
-                    store.getAll().onsuccess = function(ev) {
-                        const existingLogs = ev.target.result || [];
-                        const existingUids = new Set(existingLogs.map(l => l.uid));
-                        let itemsAdded = 0;
-                        // Backups now include computed fields (category, lap, pace, speed,
-                        // projectedFinish, flagoff, etc.) so the file is self-describing to
-                        // a human/spreadsheet. But the IndexedDB store is a pure data store —
-                        // those values are always recomputed live from the Setup config — so
-                        // strip them back out before writing, otherwise a stale snapshot could
-                        // sit in the DB and confuse a future diff against fresh computations.
-                        const DERIVED_FIELDS = ['category','lap','timePerLap','totalTime','pace','speed','projectedFinish','flagoff'];
-                        importedData.forEach(item => {
-                            if (item.uid && !existingUids.has(item.uid)) {
-                                delete item.id;
-                                DERIVED_FIELDS.forEach(f => delete item[f]);
-                                store.add(item);
-                                itemsAdded++;
-                            }
-                        });
-                        tx.oncomplete = function() {
-                            alert(`✅ Restored ${itemsAdded} unique logs.`);
-                            loadHistory();
-                            updateSettingsWipeCounterFootprint();
-                        };
-                    };
-                } catch(err) {
-                    alert("❌ Failed to parse payload matrix.");
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = ''; 
-        }
+        // NOTE: importBackupJSONDataFile (JSON restore) was removed along with the
+        // "Import JSON" button — CSV is now the only export/backup format, so
+        // there is no JSON file to import any more.
 
         function saveSettings() { 
             syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; 
@@ -3802,7 +3748,7 @@
         }
 
         function handleStaleQueueBannerClick_() {
-            exportJSON('global'); // automated safety backup — always everything, no prompt
+            exportCSV('global'); // automated safety backup — always everything, no prompt
             alert("📥 Backup downloaded. Once these entries finally sync (or once you've saved this backup somewhere safe), this warning will go away on its own.");
         }
 
@@ -5242,11 +5188,12 @@
                 let totalScanned = 0, totalRegistered = 0;
 
                 let html = '';
-                // Same merged-cell colour behaviour as renderSummaryDashboard: the
-                // colour on a group's first row covers every category row of that
-                // KM+COT group via a coloured bar down the left edge.
+                // Code.gs now forward-fills km/cot/cotTime/color across every row of
+                // a merged-cell Setup group server-side (see getCategorySummaryData_).
+                // The carry-forward below is kept only as a defensive fallback for a
+                // stale cached summary saved by an older version of this backend.
                 let lastGroupColor = null;
-                let lastGroupKey = null;
+                let lastGroupKm = '', lastGroupCot = '', lastGroupCotTime = '';
                 summaryRows.forEach(row => {
                     if (!row.category && !row.runners && !row.bibRule) return;
                     const displayCategory = row.category || row.bibRule || '';
@@ -5255,15 +5202,15 @@
 
                     const rowBg = 'hover:bg-neutral-200/50 dark:hover:bg-neutral-500/10 transition-colors duration-100';
                     let colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
-                    const groupKey = `${row.km || ''}|${row.cot || ''}`;
-                    if (colorHex) {
-                        lastGroupColor = colorHex;
-                        lastGroupKey = groupKey;
-                    } else if (lastGroupColor && groupKey === lastGroupKey) {
-                        colorHex = lastGroupColor;
+                    let km = row.km || '';
+                    let cot = row.cot || '';
+                    let cotTime = row.cotTime || '';
+                    if (km || cot) {
+                        lastGroupKm = km; lastGroupCot = cot; lastGroupCotTime = cotTime;
+                        if (colorHex) lastGroupColor = colorHex;
                     } else {
-                        lastGroupColor = null;
-                        lastGroupKey = null;
+                        km = lastGroupKm; cot = lastGroupCot; cotTime = cotTime || lastGroupCotTime;
+                        if (!colorHex) colorHex = lastGroupColor;
                     }
 
                     const registered = parseInt(row.runners, 10) || 0;
@@ -5279,10 +5226,10 @@
                                     <span>${displayCategory}</span>
                                 </div>
                             </td>
-                            <td class="p-2 sm:p-3 text-center font-bold">${row.km || '-'}</td>
+                            <td class="p-2 sm:p-3 text-center font-bold">${km || '-'}</td>
                             <td class="p-2 sm:p-3 text-center font-mono font-bold text-indigo-700 dark:text-indigo-400">${row.bibRule || '-'}</td>
-                            <td class="p-2 sm:p-3 text-center font-mono font-bold text-amber-700 dark:text-amber-400">${row.cot || '-'}</td>
-                            <td class="p-2 sm:p-3 text-center font-mono text-[10px] sm:text-xs">${formatDashboardDateStr(row.cotTime)}</td>
+                            <td class="p-2 sm:p-3 text-center font-mono font-bold text-amber-700 dark:text-amber-400">${cot || '-'}</td>
+                            <td class="p-2 sm:p-3 text-center font-mono text-[10px] sm:text-xs">${formatDashboardDateStr(cotTime)}</td>
                             <td class="p-2 sm:p-3 text-center font-black font-mono pr-3 text-blue-700 dark:text-cyan-400">${scanned}/${registered}</td>
                         </tr>`;
                 });
@@ -6048,30 +5995,12 @@
             });
         }
 
-        function exportJSON(scope) {
-            // No explicit scope means the user tapped the button — ask them what
-            // the backup should include (Current CP / this device / global) via
-            // the scope chooser modal, which calls back here with their pick.
-            // Programmatic safety backups (Start Fresh Event, stale-queue banner,
-            // event-epoch mismatch) always pass 'global' so nothing is lost and
-            // no modal interrupts an automated flow.
-            if (!scope) { openExportScopePrompt_('json'); return; }
-            // Back up the enriched view (with projectedFinish and flagoff baked in
-            // per record) so the JSON backup is fully self-describing — useful for
-            // restoring into the PWA on a new device, or for an offline audit,
-            // without needing the live Setup-sheet config to reconstruct those numbers.
-            getEnrichedLogsFromDb_(function(allLogs) {
-                const logs = filterLogsByExportScope_(allLogs || [], scope);
-                if (logs.length === 0) { alert("⚠️ No logs available for this backup scope!"); return; }
-                const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.setAttribute("href", url);
-                link.setAttribute("download", `Race_Logs_Backup_${exportScopeLabel_(scope)}_${new Date().toISOString().split('T')[0]}.json`);
-                document.body.appendChild(link); link.click(); document.body.removeChild(link);
-                setTimeout(() => URL.revokeObjectURL(url), 10000);
-            });
-        }
+        // NOTE: exportJSON() was removed — it was not producing usable backups
+        // (see the removed "📦 JSON" buttons). exportCSV() is the one confirmed-
+        // working export/backup path and is what every internal safety-backup
+        // call site (Start Fresh Event, stale-queue banner, storage-full
+        // warning, event-epoch mismatch) now uses instead.
+
 
         function clearDatabaseFromSettings() {
             if (prompt("Type '0000' to clear log history:") !== "0000") return;
@@ -6134,8 +6063,8 @@
 
             const unsyncedCount = await new Promise(resolve => countUnsyncedLocalLogs_(resolve));
             if (unsyncedCount > 0) {
-                alert(`⚠️ This device has ${unsyncedCount} entr${unsyncedCount === 1 ? 'y' : 'ies'} that haven't synced to the server yet. Exporting a JSON backup now — please save it somewhere safe, then press "Start Fresh Event" again to actually wipe everything.`);
-                exportJSON('global'); // automated safety backup — always everything, no prompt
+                alert(`⚠️ This device has ${unsyncedCount} entr${unsyncedCount === 1 ? 'y' : 'ies'} that haven't synced to the server yet. Exporting a CSV backup now — please save it somewhere safe, then press "Start Fresh Event" again to actually wipe everything.`);
+                exportCSV('global'); // automated safety backup — always everything, no prompt
                 return;
             }
 
@@ -6194,8 +6123,8 @@
             countUnsyncedLocalLogs_((unsyncedCount) => {
                 if (unsyncedCount > 0) {
                     epochWarningShownForEpoch_ = serverEpoch;
-                    alert(`⚠️ A new event has been started on the server, but this device still has ${unsyncedCount} unsynced entr${unsyncedCount === 1 ? 'y' : 'ies'} that can no longer reach the (now-cleared) sheet. Exporting a JSON backup now — please save it somewhere safe.`);
-                    exportJSON('global'); // automated safety backup — always everything, no prompt
+                    alert(`⚠️ A new event has been started on the server, but this device still has ${unsyncedCount} unsynced entr${unsyncedCount === 1 ? 'y' : 'ies'} that can no longer reach the (now-cleared) sheet. Exporting a CSV backup now — please save it somewhere safe.`);
+                    exportCSV('global'); // automated safety backup — always everything, no prompt
                     // No admin token needed here — the destructive server-side action
                     // already happened elsewhere; this device is just catching up.
                     // Give the download a moment to actually start before asking.
@@ -7280,10 +7209,10 @@
         })();
 
         /* ════════════════════════════════════════════════════════════════════
-           PERFORMANCE EXPORT MODULE — CSV + JSON enrichment
+           PERFORMANCE EXPORT MODULE — CSV enrichment
            ════════════════════════════════════════════════════════════════════
 
-           Extends the existing exportCSV() and exportJSON() with analytics-
+           Extends the existing exportCSV() with analytics-
            enriched columns:
            • paceZone           — 'Elite' | 'Fast' | 'Moderate' | 'Steady' | 'Walk'
            • paceSeconds        — numeric pace in seconds/km (easier to sort in Excel)
@@ -7328,10 +7257,11 @@
            since the sheet itself doesn't have those columns.
 
            Backup scope (current CP / current device / global) is no longer a
-           standing dropdown — tapping CSV or JSON opens the #exportScopeModal
-           chooser, which explains the three options and passes the pick back
-           into exportCSV(scope)/exportJSON(scope). Programmatic safety backups
-           call exportJSON('global') directly so they never show the modal. */
+           standing dropdown — tapping the CSV export button opens the
+           #exportScopeModal chooser, which explains the three options and
+           passes the pick back into exportCSV(scope). Programmatic safety
+           backups call exportCSV('global') directly so they never show the
+           modal. */
         function filterLogsByExportScope_(logs, scope) {
             scope = scope || 'currentCp';
             if (scope === 'currentDevice') return logs.filter(l => isOwnEntry(l));
@@ -7351,17 +7281,12 @@
         }
 
         /* ── Export scope chooser modal ──────────────────────────────────────
-           Opened whenever an export button is tapped without an explicit scope.
-           Remembers which format was requested, personalizes the Current CP
-           option with the actual checkpoint name, and dispatches the pick. */
-        let pendingExportFormat_ = null;
-
-        function openExportScopePrompt_(format) {
-            pendingExportFormat_ = format;
+           Opened whenever the CSV export button is tapped without an explicit
+           scope. Personalizes the Current CP option with the actual checkpoint
+           name, then dispatches the pick to exportCSV(scope). */
+        function openExportScopePrompt_() {
             const titleEl = document.getElementById('exportScopeModalTitle');
-            if (titleEl) titleEl.textContent = format === 'json'
-                ? '📦 What should this JSON backup include?'
-                : '📥 What should this CSV backup include?';
+            if (titleEl) titleEl.textContent = '📥 What should this CSV backup include?';
             const cp = (document.getElementById('checkpoint')?.value || '').trim().toUpperCase();
             const cpDescEl = document.getElementById('exportScopeCpDesc');
             if (cpDescEl) {
@@ -7373,20 +7298,17 @@
         }
 
         function closeExportScopePrompt_() {
-            pendingExportFormat_ = null;
             document.getElementById('exportScopeModal')?.classList.add('hidden');
         }
 
         function chooseExportScope_(scope) {
-            const format = pendingExportFormat_;
             closeExportScopePrompt_();
-            if (format === 'json') exportJSON(scope);
-            else exportCSV(scope);
+            exportCSV(scope);
         }
 
         (function patchExportCSV_() {
             window.exportCSV = function(scope) {
-                if (!scope) { openExportScopePrompt_('csv'); return; }
+                if (!scope) { openExportScopePrompt_(); return; }
                 getEnrichedLogsFromDb_(function(allLogs) {
                     const logs = filterLogsByExportScope_(allLogs || [], scope);
                     if (!logs || logs.length === 0) { alert('⚠️ No logs available for this backup scope!'); return; }
@@ -7740,7 +7662,7 @@
                 guaranteed for a web app, this is the standard way to opt in.
              2. Periodically check navigator.storage.estimate() and warn (once)
                 if usage is getting close to quota, so a volunteer can back up
-                via Export JSON before anything is at risk.
+                via Export CSV before anything is at risk.
            ════════════════════════════════════════════════════════════════════ */
         (function setupOfflineStorageResilience_() {
             if (navigator.storage && navigator.storage.persist) {
@@ -7756,7 +7678,7 @@
                     const ratio = usage / quota;
                     if (ratio > 0.8 && !quotaWarningShown) {
                         quotaWarningShown = true;
-                        alert('⚠️ This device\'s local storage is over 80% full. Please use Settings → Export JSON to back up your logs, and free up device storage if possible.');
+                        alert('⚠️ This device\'s local storage is over 80% full. Please use the Export & Download CSV button to back up your logs, and free up device storage if possible.');
                     }
                 } catch (e) { /* not fatal */ }
             }
@@ -9559,6 +9481,15 @@
         let availableCameraDevices_ = [];
         let currentCameraDeviceId_ = null;
         let bibScannerUsingFallback_ = false;
+        // Declared here (rather than down near detectPersonBox_/coco-ssd, where
+        // they used to live) alongside every other piece of scanner state so
+        // there's a single, obvious place that owns "is the camera modal open
+        // and what has it seen" — and so nothing referencing them can ever run
+        // before they exist, regardless of how this file gets bundled/minified.
+        let lastPersonBox_ = null;
+        let detectionTickCounter_ = 0;
+        let cocoSsdModel_ = null;
+        let cocoSsdLoadPromise_ = null;
 
         const OCR_MIN_CONFIDENCE = 55;      // 0-100, Tesseract's own confidence score
         const OCR_MIN_DIGITS = 1;           // shortest plausible bib number
@@ -9723,11 +9654,9 @@
            (where a bib actually is) instead of trusting the person to hold
            still inside a fixed on-screen box. Loaded lazily and only on
            devices with WebGL + a mid/high performance tier (see
-           getOcrDeviceProfile_). */
-        let cocoSsdModel_ = null;
-        let cocoSsdLoadPromise_ = null;
-        let lastPersonBox_ = null;
-        let detectionTickCounter_ = 0;
+           getOcrDeviceProfile_). cocoSsdModel_/cocoSsdLoadPromise_/
+           lastPersonBox_/detectionTickCounter_ are declared in the main
+           scanner-state block near the top of this section. */
 
         async function ensureObjectDetectionLoaded_() {
             if (cocoSsdModel_) return;
