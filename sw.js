@@ -1,10 +1,23 @@
-const CACHE_NAME = 'race-logger-v5-cache';
+// v6: bumped so every device drops the old cached app shell and picks up the
+// new index.html (deleted-status purging, camera scanner fixes, export scope
+// prompt). The fetch strategy below is also network-first for the app shell
+// now — the old cache-first strategy served a stale index.html forever, which
+// is why UI fixes (e.g. the camera button) never seemed to arrive on devices.
+const CACHE_NAME = 'race-logger-v6-cache';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/tailwind.css',
   '/manifest.json'
 ];
+
+// App-shell URLs that should always prefer the network (so deploys actually
+// reach devices) while still falling back to cache offline.
+function isShellRequest_(request) {
+  if (request.mode === 'navigate') return true;
+  const url = new URL(request.url);
+  return ASSETS_TO_CACHE.some((path) => url.pathname === path || url.pathname.endsWith('/index.html') || url.pathname.endsWith('/tailwind.css') || url.pathname.endsWith('/manifest.json'));
+}
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -40,6 +53,29 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (event.request.url.includes('script.google.com')) return;
 
+  // ── App shell: NETWORK-FIRST with cache fallback ─────────────────────────
+  // Fresh HTML/CSS whenever online, cached copy when offline. This replaces
+  // the old cache-first behavior that pinned devices to whatever index.html
+  // they first installed.
+  if (isShellRequest_(event.request)) {
+    event.respondWith(
+      fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+        }
+        return networkResponse;
+      }).catch(() => {
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          if (event.request.mode === 'navigate') return caches.match('/index.html');
+        });
+      })
+    );
+    return;
+  }
+
+  // ── Everything else: cache-first (offline-friendly CDN libs, icons, etc.) ─
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
@@ -111,19 +147,23 @@ async function syncPendingLogs() {
           if (result.status === "success") {
             const confirmedIds = new Set(result.confirmedIds || []);
             const remakeIds = new Set(result.remakeIds || []);
+            const deletedUidsSet = new Set(result.deletedUids || []);
             const writeTx = db.transaction(["logs"], "readwrite");
             const writeStore = writeTx.objectStore("logs");
 
-            if (result.deletedUids && result.deletedUids.length) {
-              const uidsToDelete = new Set(result.deletedUids);
-              allLogs.forEach(l => { if (uidsToDelete.has(l.uid)) writeStore.delete(l.id); });
+            if (deletedUidsSet.size) {
+              allLogs.forEach(l => { if (deletedUidsSet.has(l.uid)) writeStore.delete(l.id); });
             }
 
             unsynced.forEach(log => {
+              // Deleted server-side (admin delete / already-deleted UID): the
+              // delete above is final — skip every other branch so a put()
+              // below can't quietly resurrect the record.
+              if (deletedUidsSet.has(log.uid)) return;
               if (remakeIds.has(log.uid)) { log.synced = false; log.remake = true; log.syncAttempts = 0; writeStore.put(log); }
               else if (log.pendingDelete) {
                 // Queued delete (see deleteRow() in index.html): confirmedIds here means
-                // the server tombstoned it, so remove the local record entirely instead
+                // the server marked it Deleted, so remove the local record entirely instead
                 // of marking it synced -- this is what lets a delete made while offline
                 // still reach every other device once connectivity (or just background
                 // sync) comes back, even if the tab that queued it is now closed.
