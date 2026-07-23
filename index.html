@@ -188,6 +188,24 @@
         .icon-tap-target:not(.absolute) {
             position: relative;
         }
+        /* ── Bib-scanner modal utility fallbacks ─────────────────────────────
+           The compiled tailwind.css was generated before the scanner modal was
+           added, so several utilities it uses don't exist in that file — which
+           left the modal mis-rendering (video area collapsed, guide box
+           misplaced, wrong stacking). Defined here so the modal always renders
+           correctly even against the older cached stylesheet. */
+        .aspect-\[4\/3\] { aspect-ratio: 4 / 3; }
+        .bg-black { background-color: #000; }
+        .bg-black\/60 { background-color: rgba(0,0,0,.6); }
+        .bg-black\/95 { background-color: rgba(0,0,0,.95); }
+        .border-emerald-400\/80 { border-color: rgba(52,211,153,.8); }
+        .bottom-2 { bottom: .5rem; }
+        .left-2 { left: .5rem; }
+        .inset-x-8 { left: 2rem; right: 2rem; }
+        .object-cover { -o-object-fit: cover; object-fit: cover; }
+        .h-12 { height: 3rem; }
+        .z-\[80\] { z-index: 80; }
+        .-mt-1 { margin-top: -.25rem; }
         .icon-tap-target::after {
             content: "";
             position: absolute;
@@ -1695,6 +1713,33 @@
         </div>
     </div>
 
+    <!-- Export Backup Scope chooser: shown when CSV/JSON export is tapped, so the
+         volunteer picks (and understands) exactly what ends up in the file. -->
+    <div id="exportScopeModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[100]" onclick="if (event.target === this) closeExportScopePrompt_()">
+        <div class="theme-panel border theme-border rounded-2xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-3 max-h-[85vh] overflow-y-auto">
+            <div class="flex items-center justify-between">
+                <h3 id="exportScopeModalTitle" class="text-base font-bold theme-text">📥 What should this backup include?</h3>
+                <button type="button" onclick="closeExportScopePrompt_()" class="text-xs text-neutral-600 dark:text-neutral-400 hover:theme-text font-bold px-1">✕</button>
+            </div>
+            <p class="text-[11px] theme-text-muted leading-snug -mt-1">The three options below export different slices of the locally stored logs — pick the one that matches why you're backing up:</p>
+
+            <button type="button" onclick="chooseExportScope_('currentCp')" class="text-left theme-input border theme-border rounded-xl p-3 hover:opacity-80 active:scale-95 transition flex flex-col gap-0.5">
+                <span class="text-sm font-black theme-text">📍 Current CP only</span>
+                <span id="exportScopeCpDesc" class="text-[11px] theme-text-muted leading-snug">Only entries logged at this device's current checkpoint — from every device that scanned there. Best for an end-of-shift backup of this station's records.</span>
+            </button>
+
+            <button type="button" onclick="chooseExportScope_('currentDevice')" class="text-left theme-input border theme-border rounded-xl p-3 hover:opacity-80 active:scale-95 transition flex flex-col gap-0.5">
+                <span class="text-sm font-black theme-text">📱 Current device only</span>
+                <span class="text-[11px] theme-text-muted leading-snug">Only entries created on THIS device, from any checkpoint it was used at. Best for auditing exactly what you personally logged (e.g. before wiping this device).</span>
+            </button>
+
+            <button type="button" onclick="chooseExportScope_('global')" class="text-left theme-input border theme-border rounded-xl p-3 hover:opacity-80 active:scale-95 transition flex flex-col gap-0.5">
+                <span class="text-sm font-black theme-text">🌐 Global (all CPs, all devices)</span>
+                <span class="text-[11px] theme-text-muted leading-snug">Everything stored locally: every checkpoint and every device that has synced so far. The biggest file — best for a full-race master backup or handing to the race director.</span>
+            </button>
+        </div>
+    </div>
+
     <!-- Bib Scanner: point the camera at a runner's bib, OCR reads the number, volunteer
          confirms/edits before it lands in the Bib field. Engine is switchable between
          Tesseract.js (default, fully client-side, works offline once its language data is
@@ -2351,16 +2396,8 @@
                     </div>
                 </section>
 
-                <!-- Export button -->
+                <!-- Export button (backup scope is asked via a prompt when tapped — see openExportScopePrompt_) -->
                 <section class="hidden lg:block">
-                    <div class="mb-1.5">
-                        <label class="block text-[10px] theme-text-muted mb-1 font-bold uppercase tracking-wide">Backup Scope</label>
-                        <select id="exportScopeSelect" onchange="const m = document.getElementById('exportScopeSelectMobile'); if (m) m.value = this.value;" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs focus:outline-none font-semibold">
-                            <option value="currentCp" selected>📍 Current CP only</option>
-                            <option value="currentDevice">📱 Current device only</option>
-                            <option value="global">🌐 Global (all CPs, all devices)</option>
-                        </select>
-                    </div>
                     <div class="flex gap-2">
                         <button onclick="exportCSV()" class="flex-1 bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2 text-sm">📥 CSV</button>
                         <button onclick="exportJSON()" class="flex-1 bg-indigo-700 dark:bg-indigo-800 hover:bg-indigo-600 dark:hover:bg-indigo-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2 text-sm">📦 JSON</button>
@@ -2409,12 +2446,8 @@
                 </section>
 
                 <section class="block lg:hidden mt-3">
-                    <select id="exportScopeSelectMobile" onchange="document.getElementById('exportScopeSelect').value = this.value;" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs focus:outline-none font-semibold mb-2">
-                        <option value="currentCp" selected>📍 Current CP only</option>
-                        <option value="currentDevice">📱 Current device only</option>
-                        <option value="global">🌐 Global (all CPs, all devices)</option>
-                    </select>
-                    <button onclick="exportCSV()" class="w-full bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2">📥 Export & Download CSV</button>
+                    <button onclick="exportCSV()" class="w-full bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2 mb-2">📥 Export & Download CSV</button>
+                    <button onclick="exportJSON()" class="w-full bg-indigo-700 dark:bg-indigo-800 hover:bg-indigo-600 dark:hover:bg-indigo-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex justify-center items-center gap-2">📦 Export & Download JSON</button>
                 </section>
             </div>
 
@@ -3058,6 +3091,15 @@
                 let totalScanned = 0, totalRegistered = 0;
 
                 let htmlBuilder = "";
+                // ── Group colour forward-fill ────────────────────────────────────
+                // In the Setup sheet the bib colour is a merged cell covering EVERY
+                // category of a distance (e.g. blue covers all four 80KM rows), but
+                // the config only carries the colour on the group's first row. Carry
+                // it forward across consecutive rows of the same KM+COT group so the
+                // colour visually covers the whole group here too — a coloured bar
+                // down the left edge of every row in the group, like the sheet.
+                let lastGroupColor = null;
+                let lastGroupKey = null;
                 summaryRows.forEach(row => {
                     if (!row.category && !row.runners && !row.bibRule) return;
 
@@ -3066,7 +3108,17 @@
                     if (isTotalRow) return; // superseded by the always-computed totals row appended below
 
                     const rowBg = "hover:bg-neutral-200/50 dark:hover:bg-neutral-500/10 transition-colors duration-100";
-                    const colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
+                    let colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
+                    const groupKey = `${row.km || ''}|${row.cot || ''}`;
+                    if (colorHex) {
+                        lastGroupColor = colorHex;
+                        lastGroupKey = groupKey;
+                    } else if (lastGroupColor && groupKey === lastGroupKey) {
+                        colorHex = lastGroupColor; // inherit the group's colour (merged-cell behaviour)
+                    } else {
+                        lastGroupColor = null;
+                        lastGroupKey = null;
+                    }
                     const textClass = 'text-neutral-900 dark:text-white font-extrabold text-outlined-contrast';
 
                     const registered = parseInt(row.runners, 10) || 0;
@@ -3076,7 +3128,7 @@
 
                     htmlBuilder += `
                         <tr class="${rowBg} border-b theme-border text-neutral-900 dark:text-white">
-                            <td class="p-2 pl-2.5 font-bold">
+                            <td class="p-2 pl-2.5 font-bold" ${colorHex ? `style="box-shadow: inset 5px 0 0 0 ${colorHex};"` : ''}>
                                 <div class="flex items-center gap-2">
                                     ${colorHex ? `<span class="inline-block w-2.5 h-2.5 rounded-sm border border-neutral-400/50 dark:border-neutral-700/50 shrink-0" style="background-color: ${colorHex}"></span>` : ''}
                                     <span class="${textClass}">${displayCategory}</span>
@@ -3750,7 +3802,7 @@
         }
 
         function handleStaleQueueBannerClick_() {
-            exportJSON();
+            exportJSON('global'); // automated safety backup — always everything, no prompt
             alert("📥 Backup downloaded. Once these entries finally sync (or once you've saved this backup somewhere safe), this warning will go away on its own.");
         }
 
@@ -3938,11 +3990,16 @@
                 if (result.eventEpoch) handleEventEpochFromServer_(result.eventEpoch);
 
                 const serverRecords = result.data || [];
+                const serverDeletedUids = result.deletedUids || [];
                 if (result.lastRow && result.lastRow > currentLastSyncedRowMarker) {
                     currentLastSyncedRowMarker = result.lastRow;
                     localStorage.setItem("lastDataRowMarker", String(currentLastSyncedRowMarker));
                 }
-                if (serverRecords.length === 0) return; 
+                // IMPORTANT: don't early-return just because there are no NEW rows —
+                // deletes happen in place on already-synced rows, so the only way this
+                // device hears about them between full reconciliations is the
+                // deletedUids list, which arrives even when data[] is empty.
+                if (serverRecords.length === 0 && serverDeletedUids.length === 0) return; 
 
                 // NOTE: this is an INCREMENTAL delta (only rows added since the last
                 // marker) -- it deliberately does NOT check already-synced local entries
@@ -3961,12 +4018,14 @@
                     const localIdByUid = new Map(localLogs.map(l => [l.uid, l.id]));
                     let changed = false;
 
-                    // ── Server-rejected bibs (deletedUids) ──────────────────────────
-                    // Returned when a bib+checkpoint was deleted and another device still
-                    // had an unsynced copy — delete those locally now so they won't push
-                    // back into the sheet on the next sync cycle.
-                    if (result.deletedUids && result.deletedUids.length) {
-                        const rejectedUids = new Set(result.deletedUids);
+                    // ── Server-side deletions (deletedUids) ─────────────────────────
+                    // Covers BOTH cases: a bib+checkpoint rejected because an admin
+                    // deleted it while this device held an unsynced copy, AND rows whose
+                    // Status was flipped to "Deleted" in place after this device already
+                    // synced them (the incremental sinceRow pull can't re-read those, so
+                    // this list is how the delete reaches every device).
+                    if (serverDeletedUids.length) {
+                        const rejectedUids = new Set(serverDeletedUids);
                         localLogs.forEach(l => {
                             if (rejectedUids.has(l.uid)) { store.delete(l.id); changed = true; }
                         });
@@ -3975,8 +4034,10 @@
                     serverRecords.forEach(serverRecord => {
                         if (!serverRecord.uid) return;
 
-                        // Purge instruction: an admin tombstoned this entry server-side.
-                        if (serverRecord.purge) {
+                        // Purge instruction: this entry's Status is "Deleted" server-side
+                        // (col K in the Racelog sheet). Remove it locally so deleted
+                        // entries never show in the PWA on any device.
+                        if (serverRecord.purge || String(serverRecord.status || '').toLowerCase() === 'deleted') {
                             const localId = localIdByUid.get(serverRecord.uid);
                             if (localId !== undefined) { store.delete(localId); changed = true; }
                             return;
@@ -5181,6 +5242,11 @@
                 let totalScanned = 0, totalRegistered = 0;
 
                 let html = '';
+                // Same merged-cell colour behaviour as renderSummaryDashboard: the
+                // colour on a group's first row covers every category row of that
+                // KM+COT group via a coloured bar down the left edge.
+                let lastGroupColor = null;
+                let lastGroupKey = null;
                 summaryRows.forEach(row => {
                     if (!row.category && !row.runners && !row.bibRule) return;
                     const displayCategory = row.category || row.bibRule || '';
@@ -5188,7 +5254,17 @@
                     if (isTotalRow) return; // superseded by the always-computed totals row appended below
 
                     const rowBg = 'hover:bg-neutral-200/50 dark:hover:bg-neutral-500/10 transition-colors duration-100';
-                    const colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
+                    let colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
+                    const groupKey = `${row.km || ''}|${row.cot || ''}`;
+                    if (colorHex) {
+                        lastGroupColor = colorHex;
+                        lastGroupKey = groupKey;
+                    } else if (lastGroupColor && groupKey === lastGroupKey) {
+                        colorHex = lastGroupColor;
+                    } else {
+                        lastGroupColor = null;
+                        lastGroupKey = null;
+                    }
 
                     const registered = parseInt(row.runners, 10) || 0;
                     const scanned = row.bibRule && scannedByRow.has(row.bibRule) ? scannedByRow.get(row.bibRule).size : 0;
@@ -5197,7 +5273,7 @@
 
                     html += `
                         <tr class="${rowBg} border-b theme-border text-neutral-900 dark:text-white">
-                            <td class="p-2 sm:p-3 pl-3 font-bold">
+                            <td class="p-2 sm:p-3 pl-3 font-bold" ${colorHex ? `style="box-shadow: inset 5px 0 0 0 ${colorHex};"` : ''}>
                                 <div class="flex items-center gap-2">
                                     ${colorHex ? `<span class="inline-block w-2.5 h-2.5 rounded-sm border border-neutral-400/50 dark:border-neutral-700/50 shrink-0" style="background-color: ${colorHex}"></span>` : ''}
                                     <span>${displayCategory}</span>
@@ -5972,18 +6048,26 @@
             });
         }
 
-        function exportJSON() {
-            // Same fix as exportCSV: back up the enriched view (with projectedFinish and
-            // flagoff baked in per record) so the JSON backup is fully self-describing —
-            // useful for restoring into the PWA on a new device, or for an offline audit,
+        function exportJSON(scope) {
+            // No explicit scope means the user tapped the button — ask them what
+            // the backup should include (Current CP / this device / global) via
+            // the scope chooser modal, which calls back here with their pick.
+            // Programmatic safety backups (Start Fresh Event, stale-queue banner,
+            // event-epoch mismatch) always pass 'global' so nothing is lost and
+            // no modal interrupts an automated flow.
+            if (!scope) { openExportScopePrompt_('json'); return; }
+            // Back up the enriched view (with projectedFinish and flagoff baked in
+            // per record) so the JSON backup is fully self-describing — useful for
+            // restoring into the PWA on a new device, or for an offline audit,
             // without needing the live Setup-sheet config to reconstruct those numbers.
-            getEnrichedLogsFromDb_(function(logs) {
-                if (logs.length === 0) { alert("⚠️ No logs available!"); return; }
+            getEnrichedLogsFromDb_(function(allLogs) {
+                const logs = filterLogsByExportScope_(allLogs || [], scope);
+                if (logs.length === 0) { alert("⚠️ No logs available for this backup scope!"); return; }
                 const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
                 link.setAttribute("href", url);
-                link.setAttribute("download", `Race_Logs_Backup_${new Date().toISOString().split('T')[0]}.json`);
+                link.setAttribute("download", `Race_Logs_Backup_${exportScopeLabel_(scope)}_${new Date().toISOString().split('T')[0]}.json`);
                 document.body.appendChild(link); link.click(); document.body.removeChild(link);
                 setTimeout(() => URL.revokeObjectURL(url), 10000);
             });
@@ -6051,7 +6135,7 @@
             const unsyncedCount = await new Promise(resolve => countUnsyncedLocalLogs_(resolve));
             if (unsyncedCount > 0) {
                 alert(`⚠️ This device has ${unsyncedCount} entr${unsyncedCount === 1 ? 'y' : 'ies'} that haven't synced to the server yet. Exporting a JSON backup now — please save it somewhere safe, then press "Start Fresh Event" again to actually wipe everything.`);
-                exportJSON();
+                exportJSON('global'); // automated safety backup — always everything, no prompt
                 return;
             }
 
@@ -6111,7 +6195,7 @@
                 if (unsyncedCount > 0) {
                     epochWarningShownForEpoch_ = serverEpoch;
                     alert(`⚠️ A new event has been started on the server, but this device still has ${unsyncedCount} unsynced entr${unsyncedCount === 1 ? 'y' : 'ies'} that can no longer reach the (now-cleared) sheet. Exporting a JSON backup now — please save it somewhere safe.`);
-                    exportJSON();
+                    exportJSON('global'); // automated safety backup — always everything, no prompt
                     // No admin token needed here — the destructive server-side action
                     // already happened elsewhere; this device is just catching up.
                     // Give the download a moment to actually start before asking.
@@ -7243,12 +7327,13 @@
            computed columns (Category, Lap, Pace, Speed, analytics, etc.) come after,
            since the sheet itself doesn't have those columns.
 
-           Backup scope (current CP / current device / global) is read from
-           #exportScopeSelect, defaulting to "Current CP only" per the app's own
-           default -- exporting a single station's data should never silently include
-           every other checkpoint's logs too. */
-        function filterLogsByExportScope_(logs) {
-            const scope = document.getElementById('exportScopeSelect')?.value || 'currentCp';
+           Backup scope (current CP / current device / global) is no longer a
+           standing dropdown — tapping CSV or JSON opens the #exportScopeModal
+           chooser, which explains the three options and passes the pick back
+           into exportCSV(scope)/exportJSON(scope). Programmatic safety backups
+           call exportJSON('global') directly so they never show the modal. */
+        function filterLogsByExportScope_(logs, scope) {
+            scope = scope || 'currentCp';
             if (scope === 'currentDevice') return logs.filter(l => isOwnEntry(l));
             if (scope === 'global') return logs;
             // currentCp (default): match the checkpoint currently typed into Setup.
@@ -7257,18 +7342,53 @@
             return logs.filter(l => (l.checkpoint || '').toUpperCase() === cp);
         }
 
-        function exportScopeLabel_() {
-            const scope = document.getElementById('exportScopeSelect')?.value || 'currentCp';
+        function exportScopeLabel_(scope) {
+            scope = scope || 'currentCp';
             if (scope === 'currentDevice') return 'ThisDevice';
             if (scope === 'global') return 'Global';
             const cp = (document.getElementById('checkpoint')?.value || '').trim().toUpperCase();
             return cp ? cp.replace(/[^a-zA-Z0-9_-]/g, '') : 'CurrentCP';
         }
 
+        /* ── Export scope chooser modal ──────────────────────────────────────
+           Opened whenever an export button is tapped without an explicit scope.
+           Remembers which format was requested, personalizes the Current CP
+           option with the actual checkpoint name, and dispatches the pick. */
+        let pendingExportFormat_ = null;
+
+        function openExportScopePrompt_(format) {
+            pendingExportFormat_ = format;
+            const titleEl = document.getElementById('exportScopeModalTitle');
+            if (titleEl) titleEl.textContent = format === 'json'
+                ? '📦 What should this JSON backup include?'
+                : '📥 What should this CSV backup include?';
+            const cp = (document.getElementById('checkpoint')?.value || '').trim().toUpperCase();
+            const cpDescEl = document.getElementById('exportScopeCpDesc');
+            if (cpDescEl) {
+                cpDescEl.textContent = cp
+                    ? `Only entries logged at ${cp} (this device's current checkpoint) — from every device that scanned there. Best for an end-of-shift backup of this station's records.`
+                    : `Only entries logged at this device's current checkpoint — from every device that scanned there. (No checkpoint is set in Setup yet, so this would currently export everything.) Best for an end-of-shift station backup.`;
+            }
+            document.getElementById('exportScopeModal')?.classList.remove('hidden');
+        }
+
+        function closeExportScopePrompt_() {
+            pendingExportFormat_ = null;
+            document.getElementById('exportScopeModal')?.classList.add('hidden');
+        }
+
+        function chooseExportScope_(scope) {
+            const format = pendingExportFormat_;
+            closeExportScopePrompt_();
+            if (format === 'json') exportJSON(scope);
+            else exportCSV(scope);
+        }
+
         (function patchExportCSV_() {
-            window.exportCSV = function() {
+            window.exportCSV = function(scope) {
+                if (!scope) { openExportScopePrompt_('csv'); return; }
                 getEnrichedLogsFromDb_(function(allLogs) {
-                    const logs = filterLogsByExportScope_(allLogs || []);
+                    const logs = filterLogsByExportScope_(allLogs || [], scope);
                     if (!logs || logs.length === 0) { alert('⚠️ No logs available for this backup scope!'); return; }
 
                     // Time is kept as quoted text (not a bare unquoted value), which stops
@@ -7310,7 +7430,7 @@
                     const url  = URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.setAttribute('href', url);
-                    link.setAttribute('download', `Race_Logs_${exportScopeLabel_()}_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.setAttribute('download', `Race_Logs_${exportScopeLabel_(scope)}_${new Date().toISOString().split('T')[0]}.csv`);
                     document.body.appendChild(link); link.click(); document.body.removeChild(link);
                     setTimeout(() => URL.revokeObjectURL(url), 10000);
                 });
@@ -9500,8 +9620,8 @@
         function updateBibScannerTipText_() {
             if (bibScannerUsingFallback_) return; // fallback path sets its own tip text
             document.getElementById('bibScannerTip').textContent = detectionMode === 'bibOnly'
-                ? 'Fast mode: fill the guide box with just the bib number (e.g. V1001, 1001, V 1001) and hold steady.'
-                : 'Auto-scans continuously — just fill the guide box with the bib number and hold steady. Tap Capture to force an immediate read.';
+                ? 'Fast mode: fill the guide box with just the bib number (e.g. V1001, 1001, V 1001) and hold steady. Skips the runner-detection check — only use up close on an actual bib.'
+                : 'Auto-scans continuously — frame the runner wearing the bib. A person must be detected before the number is read (stops car plates/signage being logged). Tap Capture to force an immediate read.';
         }
 
         function isWebglAvailable_() {
@@ -9951,9 +10071,17 @@
         }
 
         async function openBibScanner() {
+          // Wrapped so the 📷 button can never silently "do nothing": if anything
+          // in the setup path throws, the modal still opens in photo-fallback
+          // mode and the person is told what happened instead of a dead tap.
+          try {
             ocrDeviceProfile_ = getOcrDeviceProfile_();
             applyOcrEngineAvailability_(ocrDeviceProfile_);
             updateDetectionModeButtons_();
+          } catch (setupErr) {
+            console.error('Bib scanner setup failed:', setupErr);
+          }
+          try {
             lastPersonBox_ = null;
             detectionTickCounter_ = 0;
 
@@ -9967,7 +10095,9 @@
             lastAutoScanReading_ = '';
             ocrAcceptedThisSession_ = false;
             setBibScannerStatus_('');
-            document.getElementById('bibScannerModal').classList.remove('hidden');
+            const modalEl = document.getElementById('bibScannerModal');
+            modalEl.classList.remove('hidden');
+            modalEl.style.display = 'flex'; // belt-and-braces if the stylesheet is stale/cached
 
             if (!isSecureContextForCamera_()) {
                 showBibScannerFallback_('⚠️ Camera access needs a secure (HTTPS) connection. Use the photo option below instead.');
@@ -9977,6 +10107,11 @@
                 showBibScannerFallback_('This browser/device doesn\'t support live camera capture. Use the photo option below instead.');
                 return;
             }
+          } catch (uiErr) {
+            console.error('Bib scanner UI failed to open:', uiErr);
+            alert('⚠️ Could not open the bib scanner: ' + uiErr.message + '\n\nTry a hard refresh (or clear the app cache in Settings) to load the latest app version.');
+            return;
+          }
 
             try {
                 await startCameraStream_();
@@ -10005,7 +10140,9 @@
                 bibScannerStream_.getTracks().forEach(track => track.stop());
                 bibScannerStream_ = null;
             }
-            document.getElementById('bibScannerModal').classList.add('hidden');
+            const modalEl = document.getElementById('bibScannerModal');
+            modalEl.classList.add('hidden');
+            modalEl.style.display = ''; // undo the inline display:flex set on open
         }
 
         function startAutoScan_() {
@@ -10246,12 +10383,35 @@
                     try {
                         await ensureObjectDetectionLoaded_();
                         const box = await detectPersonBox_(video);
-                        if (box) lastPersonBox_ = { box };
+                        // On a detection tick, a miss CLEARS the remembered box instead of
+                        // reusing a stale one — otherwise a runner walking out of frame
+                        // would leave the person-first gate below permanently satisfied
+                        // and OCR free to read whatever wandered into frame (car plates,
+                        // signage, etc.).
+                        lastPersonBox_ = box ? { box } : null;
                     } catch (e) { /* non-fatal -- fall back to the static guide box */ }
                 }
                 if (lastPersonBox_ && lastPersonBox_.box) {
                     cropRect = computeTorsoRectFromPersonBox_(lastPersonBox_.box, video.videoWidth, video.videoHeight);
+                    usedRefinedCrop = true;
                 }
+            }
+
+            // ── PERSON-FIRST GATE ────────────────────────────────────────────
+            // A bib number is always worn by a runner, so OCR is only allowed to
+            // run once a person has actually been detected in frame (via pose,
+            // face, or coco-ssd person box). This is what stops the scanner from
+            // happily reading car plates, signage, or any other random text that
+            // fills the guide box. The gate is skipped only when:
+            //   • "Bib Number Only (Fast)" mode is explicitly selected, or
+            //   • the device tier has every detection stage disabled (low tier /
+            //     models unavailable) — there OCR still runs, but the reading is
+            //     validated against the event's configured bib ranges instead
+            //     (see isValidConfiguredBib_), which rejects non-bib text.
+            const personGateActive = detectionMode !== 'bibOnly'
+                && (profile.enablePoseRefinement || profile.enableFaceDetection || profile.enableObjectDetection);
+            if (personGateActive && !usedRefinedCrop) {
+                return { error: 'noPerson' };
             }
 
             const workingCanvas = document.createElement('canvas');
@@ -10301,14 +10461,16 @@
             const quality = assessImageQuality_(fullCanvas);
 
             let cropRect = { x: 0, y: 0, w: fullCanvas.width, h: fullCanvas.height };
-            if ((profile.enableFaceDetection || profile.enableObjectDetection) && isWebglAvailable_()) {
+            let personDetectedInPhoto = false;
+            const photoDetectionAvailable = (profile.enableFaceDetection || profile.enableObjectDetection) && isWebglAvailable_();
+            if (photoDetectionAvailable) {
                 let usedRefinedCrop = false;
                 if (profile.enableFaceDetection) {
                     try {
                         await ensureFaceDetectionLoaded_();
                         const faceBox = await detectFaceBox_(imgEl);
                         const band = faceBox ? computeTorsoRectFromFaceBox_(faceBox, fullCanvas.width, fullCanvas.height) : null;
-                        if (band) { cropRect = band; usedRefinedCrop = true; }
+                        if (band) { cropRect = band; usedRefinedCrop = true; personDetectedInPhoto = true; }
                     } catch (e) { /* non-fatal -- fall back to coco-ssd below */ }
                 }
 
@@ -10316,8 +10478,15 @@
                     try {
                         await ensureObjectDetectionLoaded_();
                         const box = await detectPersonBox_(imgEl);
-                        if (box) cropRect = computeTorsoRectFromPersonBox_(box, fullCanvas.width, fullCanvas.height);
+                        if (box) { cropRect = computeTorsoRectFromPersonBox_(box, fullCanvas.width, fullCanvas.height); personDetectedInPhoto = true; }
                     } catch (e) { /* non-fatal -- use the whole photo */ }
+                }
+
+                // Same person-first rule as the live pipeline: no person in the
+                // photo means it's not a runner wearing a bib — refuse to OCR it
+                // rather than reading a car plate / poster / random text.
+                if (detectionMode !== 'bibOnly' && !personDetectedInPhoto) {
+                    return { error: 'noPerson', quality };
                 }
             }
 
@@ -10353,10 +10522,20 @@
                         acceptOcrReading_(result.barcodeDigits, '✅ Barcode/QR decoded — check the number below.');
                         return;
                     }
+                    if (result.error) {
+                        setBibScannerStatus_(result.error === 'noPerson'
+                            ? '🧍 No person detected in that photo — the bib must be worn by a runner. Take a photo of the runner wearing the bib.'
+                            : (QUALITY_ERROR_MESSAGES[result.error] || '❌ Could not process that photo — try another.'));
+                        return;
+                    }
                     const { text, confidence } = await runOcrOnCanvas_(result.canvas);
                     const digits = cleanOcrDigits_(text);
                     if (!digits) {
                         setBibScannerStatus_('❌ No number recognized in that photo — try another.');
+                        return;
+                    }
+                    if (!isValidConfiguredBib_(digits)) {
+                        setBibScannerStatus_(`🚫 "${digits}" doesn't match any registered bib range for this event — that's probably not a bib. Try another photo.`);
                         return;
                     }
                     if (confidence < OCR_MIN_CONFIDENCE) {
@@ -10375,7 +10554,13 @@
             if (!tesseractWorker_) {
                 tesseractWorker_ = await Tesseract.createWorker('eng');
                 await tesseractWorker_.setParameters({
-                    tessedit_char_whitelist: '0123456789',
+                    // Letters included because this event's bibs can carry a category
+                    // prefix (e.g. V1001 — see the sample bib designs); digits-only
+                    // would silently strip the V and log the wrong category. Junk
+                    // letter reads are filtered out by cleanOcrDigits_ (lookalike
+                    // correction + configured-prefix check) and the
+                    // isValidConfiguredBib_ range gate downstream.
+                    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
                     tessedit_pageseg_mode: '8' // treat the crop as a single word/token
                 });
             }
@@ -10442,8 +10627,25 @@
             blurry: '📵 Too blurry — hold steady',
             dark: '🔦 Too dark — more light needed',
             bright: '☀️ Glare/too bright — adjust angle',
+            noPerson: '🧍 No runner detected — point the camera at the person wearing the bib',
             not_ready: '👀 Scanning...'
         };
+
+        // ── Bib-format validation against the event's Setup config ──────────
+        // The final line of defense against reading car plates / signage / any
+        // random text: a reading is only accepted if it actually falls inside
+        // one of the bib ranges configured on the Setup sheet (e.g. 1001-1378,
+        // V8301-V8348). Reuses the exact same category matcher the rest of the
+        // app uses for laps/pace, so "valid" here always agrees with what the
+        // dashboard would categorize. If the config hasn't synced yet (fresh
+        // offline install), validation is skipped rather than blocking scans.
+        function isValidConfiguredBib_(digits) {
+            if (!digits) return false;
+            if (!categoryConfig || !categoryConfig.length) return true; // no config yet — can't validate
+            try {
+                return !!findCategoryConfigForBib_(digits, categoryConfig);
+            } catch (e) { return true; } // validator must never brick scanning
+        }
 
         async function autoScanTick_() {
             if (autoScanBusy_ || ocrAcceptedThisSession_) return;
@@ -10466,6 +10668,14 @@
                 if (!digits || digits.length < OCR_MIN_DIGITS || confidence < OCR_MIN_CONFIDENCE) {
                     lastAutoScanReading_ = '';
                     setBibScannerStatus_('👀 Scanning...');
+                    return;
+                }
+
+                // Not a registered bib format for this event (car plate, poster,
+                // random text) — reject and keep scanning.
+                if (!isValidConfiguredBib_(digits)) {
+                    lastAutoScanReading_ = '';
+                    setBibScannerStatus_(`🚫 "${digits}" isn't a registered bib format — ignoring`);
                     return;
                 }
 
@@ -10515,6 +10725,11 @@
                     captureBtn.disabled = false;
                     return;
                 }
+                if (!isValidConfiguredBib_(digits)) {
+                    setBibScannerStatus_(`🚫 "${digits}" doesn't match any registered bib range for this event — that's probably not a bib (e.g. a car plate). Reframe on the runner's bib.`);
+                    captureBtn.disabled = false;
+                    return;
+                }
                 if (confidence < OCR_MIN_CONFIDENCE) {
                     setBibScannerStatus_(`⚠️ Low confidence (${Math.round(confidence)}%) — got "${digits}", double-check it below.`);
                 } 
@@ -10545,6 +10760,7 @@
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isDirectorModeOpen) closeDirectorMode(); });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { const el = document.getElementById('safetyLogView'); if (el && !el.classList.contains('hidden')) closeSafetyLog(); } });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { const el = document.getElementById('bibScannerModal'); if (el && !el.classList.contains('hidden')) closeBibScanner(); } });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { const el = document.getElementById('exportScopeModal'); if (el && !el.classList.contains('hidden')) closeExportScopePrompt_(); } });
     </script>
 </body>
 </html>
