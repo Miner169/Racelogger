@@ -1,14 +1,17 @@
-// v6: bumped so every device drops the old cached app shell and picks up the
-// new index.html (deleted-status purging, camera scanner fixes, export scope
-// prompt). The fetch strategy below is also network-first for the app shell
+// v7: bumped so every device drops the old cached app shell and picks up the
+// new index.html (KM/category filters, status-only bulk deletes, keyboard-mode
+// bib entry, and edit isolation fixes). The fetch strategy below is also network-first for the app shell
 // now — the old cache-first strategy served a stale index.html forever, which
 // is why UI fixes (e.g. the camera button) never seemed to arrive on devices.
-const CACHE_NAME = 'race-logger-v6-cache';
+const CACHE_NAME = 'race-logger-v7-cache';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/tailwind.css',
-  '/manifest.json'
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/icon-512-maskable.png'
 ];
 
 // App-shell URLs that should always prefer the network (so deploys actually
@@ -110,8 +113,14 @@ async function syncPendingLogs() {
   }
 
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("RaceLoggerDB", 2);
+    const request = indexedDB.open("RaceLoggerDB", 3);
     request.onerror = () => reject(request.error);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("logs")) db.createObjectStore("logs", { keyPath: "id", autoIncrement: true });
+      if (!db.objectStoreNames.contains("meta")) db.createObjectStore("meta", { keyPath: "key" });
+      if (!db.objectStoreNames.contains("safetyNotes")) db.createObjectStore("safetyNotes", { keyPath: "bib" });
+    };
     request.onsuccess = async () => {
       const db = request.result;
       if (!db.objectStoreNames.contains("logs") || !db.objectStoreNames.contains("meta")) {
