@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Race Bib Logger</title>
+    <link rel="icon" href="icons/icon-192.png" type="image/png">
     <link class="theme-manifest" rel="manifest" href="manifest.json">
     <meta name="theme-color" id="themeColorMeta" content="#0a0a0c">
     <meta name="mobile-web-app-capable" content="yes">
@@ -858,6 +859,32 @@
         .safety-quick-chip[data-quick-filter="overdue"].active { background: #dc2626; border-color: #dc2626; }
         .safety-quick-chip[data-quick-filter="all"].active { background: #2563eb; border-color: #2563eb; }
 
+        .safety-matrix-shell {
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.625rem;
+            margin-top: 0.25rem;
+        }
+        .safety-matrix-table {
+            width: 100%;
+            min-width: 520px;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.625rem;
+        }
+        .safety-matrix-table th, .safety-matrix-table td {
+            border-right: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.35rem 0.45rem;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .safety-matrix-table th:first-child, .safety-matrix-table td:first-child { border-left: 1px solid var(--border-color); }
+        .safety-matrix-table thead th { border-top: 1px solid var(--border-color); background: var(--th-bg); }
+        .safety-matrix-table thead th:first-child { border-top-left-radius: 0.5rem; }
+        .safety-matrix-table thead th:last-child { border-top-right-radius: 0.5rem; }
+        .safety-matrix-unavailable { opacity: 0.35; }
+        .safety-matrix-check { width: 1rem; height: 1rem; accent-color: #2563eb; vertical-align: middle; }
+
         /* ── Performance panel collapse transition ── */
         #perfAnalyticsContent {
             transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1);
@@ -1695,9 +1722,9 @@
             <!-- Card 7: Admin Zone — Start Fresh Event -->
             <div class="theme-card border-red-400 dark:border-red-800 flex flex-col gap-2">
                 <h4 class="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">🔑 Admin Zone — New Event Setup</h4>
-                <p class="text-[9px] theme-text-muted leading-snug">Archives the entire Google Sheet (Racelog + Safety Notes) to a timestamped backup tab, then clears it for a brand-new event — the same result as opening the spreadsheet and doing it by hand, without leaving the app. Every connected device also gets its local log store cleared automatically the next time it syncs. Requires the admin token (set as <code>ADMIN_TOKEN</code> in the Apps Script's Script Properties) — volunteers without it cannot run this.</p>
+                <p class="text-[9px] theme-text-muted leading-snug">Archives the Google Sheet, marks every Racelog row as Deleted without erasing its values, and resets the live app for a brand-new event. Safety Notes are archived and reset. Every connected device clears its local event data automatically on the next sync. Requires the admin token (set as <code>ADMIN_TOKEN</code> in the Apps Script's Script Properties) — volunteers without it cannot run this.</p>
                 <input type="password" id="adminTokenInput" placeholder="Admin token" autocomplete="off" class="w-full theme-input border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none">
-                <button type="button" onclick="startFreshEventFlow_()" class="bg-red-600 hover:bg-red-500 dark:bg-red-800 dark:hover:bg-red-700 text-white font-black py-2 rounded-lg text-xs transition shadow-lg">🆕 Start Fresh Event (Archive &amp; Wipe Everything)</button>
+                <button type="button" onclick="startFreshEventFlow_()" class="bg-red-600 hover:bg-red-500 dark:bg-red-800 dark:hover:bg-red-700 text-white font-black py-2 rounded-lg text-xs transition shadow-lg">🆕 Start Fresh Event (Archive &amp; Mark Deleted)</button>
             </div>
 
             <div class="flex gap-2 justify-end border-t theme-border pt-3 mt-1">
@@ -1904,7 +1931,7 @@
                         <span class="widget-drag-handle icon-tap-target text-neutral-400 dark:text-neutral-500 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'chart')" title="Drag to rearrange">⠿</span>
                         <div class="min-w-0 flex-1">
                             <h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🥧 Category Breakdown</h2>
-                            <p class="text-[10px] theme-text-muted mt-0.5">A donut chart of scans by category, with a legend.</p>
+                            <p class="text-[10px] theme-text-muted mt-0.5">A donut chart of scans by KM and category, with a legend.</p>
                         </div>
                         <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="chart"></div>
                     </div>
@@ -1949,7 +1976,7 @@
                         <span class="widget-drag-handle icon-tap-target text-neutral-400 dark:text-neutral-500 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'progress')" title="Drag to rearrange">⠿</span>
                         <div class="min-w-0 flex-1">
                             <h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">📈 Category Progress</h2>
-                            <p class="text-[10px] theme-text-muted mt-0.5">Unique bibs seen at any checkpoint so far, against each category's registered runner count.</p>
+                            <p class="text-[10px] theme-text-muted mt-0.5">Unique bibs seen at any checkpoint so far, against each KM/category row's registered runner count.</p>
                         </div>
                         <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="progress"></div>
                     </div>
@@ -1994,7 +2021,7 @@
                         <span class="widget-drag-handle icon-tap-target text-neutral-400 dark:text-neutral-500 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'cot')" title="Drag to rearrange">⠿</span>
                         <div class="min-w-0 flex-1">
                             <h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">⏱️ Cutoff Countdown</h2>
-                            <p class="text-[10px] theme-text-muted mt-0.5">Time remaining until each category's cutoff (COT) — turns amber, then red, as it closes in.</p>
+                            <p class="text-[10px] theme-text-muted mt-0.5">Time remaining until each KM cutoff (COT), with its categories listed underneath — turns amber, then red, as it closes in.</p>
                         </div>
                         <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="cot"></div>
                     </div>
@@ -2036,7 +2063,7 @@
                     <button type="button" onclick="applySafetyQuickFilter_('overdue')" data-quick-filter="overdue" class="safety-quick-chip text-[11px] font-bold px-2.5 py-1 rounded-full border transition">⏰ Overdue (past cutoff) <span id="safetyChipCountOverdue">0</span></button>
                 </div>
                 <div class="flex flex-wrap gap-2 items-center">
-                    <input type="text" id="safetySearchBar" oninput="renderSafetyLog_()" placeholder="🔍 Search bib, category, checkpoint, remark..." class="flex-grow min-w-[180px] theme-input border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-red-600">
+                    <input type="text" id="safetySearchBar" oninput="renderSafetyLog_()" placeholder="🔍 Search bib, KM, category, checkpoint, remark..." class="flex-grow min-w-[180px] theme-input border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-red-600">
                     <div class="flex items-center gap-1">
                         <select id="safetySortSelect" onchange="renderSafetyLog_()" class="theme-input border rounded-md px-2 py-1.5 text-xs focus:outline-none">
                             <option value="bib">Sort: Bib / Name</option>
@@ -2059,9 +2086,24 @@
                         <option value="withdrawn">🚫 Withdrawn</option>
                         <option value="medical">🚑 Medical</option>
                         <option value="missing">❓ Missing / Unaccounted</option>
-                        <option value="">— (no status set)</option>
+                        <option value="__none__">— (no status set)</option>
                     </select>
                 </div>
+
+                <div class="safety-matrix-shell">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div>
+                            <div class="text-[10px] font-black theme-text uppercase tracking-wide">KM × Category matrix</div>
+                            <div class="text-[9px] theme-text-muted">Tick any distance/category combination. Row and column checkboxes select groups.</div>
+                        </div>
+                        <div class="flex gap-1">
+                            <button type="button" onclick="setSafetyMatrixSelection_('all')" class="theme-input border rounded px-2 py-1 text-[10px] font-bold">Select all</button>
+                            <button type="button" onclick="setSafetyMatrixSelection_('none')" class="theme-input border rounded px-2 py-1 text-[10px] font-bold">Clear</button>
+                        </div>
+                    </div>
+                    <div id="safetyMatrixFilter" class="overflow-x-auto mt-2"></div>
+                </div>
+
                 <p class="text-[10px] theme-text-muted leading-snug">Status + remark here are shared across every device (synced to the SafetyNotes sheet) — separate from each checkpoint's scan remark, so a status set at one station is visible everywhere else immediately after sync.</p>
             </div>
 
@@ -2071,6 +2113,7 @@
                         <thead>
                             <tr class="text-neutral-500 dark:text-neutral-400 uppercase text-[10px] font-bold border-b theme-border bg-neutral-200/40 dark:bg-neutral-900/40">
                                 <th class="p-2 pl-3">Bib</th>
+                                <th class="p-2">KM</th>
                                 <th class="p-2">Category</th>
                                 <th class="p-2">Last Checkpoint</th>
                                 <th class="p-2">Last Seen</th>
@@ -2137,14 +2180,13 @@
                     <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
                     <div class="flex gap-3 items-stretch">
                         <div class="flex-grow relative">
-                            <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" onkeydown="blockBibSpace_(event)" oninput="warmUpGPS(); stripBibSpaces_(this); autoScaleBibFontSize_();" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl pl-12 pr-2 focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
-                            <button type="button" onclick="toggleKeyboardMode(this)" class="icon-tap-target absolute left-2.5 top-1/2 -translate-y-1/2 text-lg p-1 bg-neutral-200/80 dark:bg-neutral-900/80 rounded-lg border theme-border select-none shadow" title="Switch Keyboard Mode">🔢</button>
+                            <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" onkeydown="blockBibSpace_(event)" oninput="warmUpGPS(); stripBibSpaces_(this); autoScaleBibFontSize_();" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl px-2 focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
                         </div>
                         <button id="logActionButton" onclick="checkDuplicateAndLog()" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-90 duration-75 text-white font-extrabold text-lg px-8 rounded-xl shadow-lg transition-all flex items-center justify-center">LOG</button>
-                        <button type="button" id="bibScanTriggerBtn" onclick="openBibScanner()" title="Scan bib number with camera (OCR)" class="icon-tap-target theme-input border theme-border rounded-xl px-3 flex items-center justify-center text-xl shrink-0 hover:opacity-80 transition">📷</button>
+                        <button type="button" id="bibEntryModeBtn" onclick="toggleKeyboardMode(this)" title="Switch bib keyboard between numbers and letters" aria-label="Switch bib keyboard between numbers and letters" class="icon-tap-target theme-input border theme-border rounded-xl px-3 flex flex-col items-center justify-center leading-none shrink-0 hover:opacity-80 transition"><span id="bibEntryModeIcon" class="text-xl">🔢</span><span id="bibEntryModeLabel" class="text-[9px] font-black mt-1">123</span></button>
                     </div>
                     <div class="mt-1 relative">
-                        <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark (Optional)</label>
+                        <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark for next bib (Optional)</label>
                         <input type="text" id="remarkInput" onfocus="warmUpGPS();" oninput="handleRemarkTyping()" placeholder="e.g. Missed helper, penalty, etc." class="w-full theme-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-900 transition-all duration-200">
                     </div>
                 </section>
@@ -2455,12 +2497,31 @@
         let db;
         let isSetupLocked = false;
         let successToastTimeout;
-        let remarkDebounceTimeout = null;
+        let remarkDebounceTimeout = null; // retained for backward compatibility; remark typing is now a next-entry draft only
         let lastCreatedUid = null; 
         let triggerScanHistorySlideFlag = false;
+
+        // Scanner state is declared before IndexedDB startup callbacks can fire. In the
+        // previous build these `let` bindings lived thousands of lines later, so a very
+        // fast DB-open/camera tap could enter the temporal dead zone and throw
+        // "Cannot access 'lastPersonBox_' before initialization". The OCR UI is no
+        // longer exposed, but keeping the dormant scanner code safe prevents any
+        // programmatic/legacy call from crashing the whole app.
+        let lastPersonBox_ = null;
+        let detectionTickCounter_ = 0;
+        let cocoSsdModel_ = null;
+        let cocoSsdLoadPromise_ = null;
         
         let lastGeoposition = { latitude: null, longitude: null, timestamp: 0 }; 
         let editingRowId = null; 
+
+        // Safety Log state also lives above the async IndexedDB startup callback.
+        // renderSummaryDashboard() can run as soon as the DB opens and now refreshes
+        // the KM/category matrix, so these bindings must exist before that callback.
+        let localSafetyNotes_ = {};
+        let safetyQuickFilter_ = 'all';
+        let safetySortAscending_ = true;
+        let safetyMatrixSelection_ = null;
         
         let syncIntervalMs = 15000; 
         let syncTimerId = null;
@@ -2659,17 +2720,30 @@
             }
         }
 
-        function toggleKeyboardMode(btn) {
+        function applyBibKeyboardMode_(mode, focusAfter = false) {
             const bI = document.getElementById('bibInput');
-            if (bI.getAttribute('inputmode') === 'numeric') {
-                bI.setAttribute('inputmode', 'text'); 
-                btn.textContent = '🔤';
-            } else {
-                bI.setAttribute('inputmode', 'numeric'); 
-                btn.textContent = '🔢';
+            const btn = document.getElementById('bibEntryModeBtn');
+            const icon = document.getElementById('bibEntryModeIcon');
+            const label = document.getElementById('bibEntryModeLabel');
+            if (!bI) return;
+            const normalized = mode === 'text' ? 'text' : 'numeric';
+            bI.setAttribute('inputmode', normalized);
+            localStorage.setItem('bibKeyboardMode', normalized);
+            if (icon) icon.textContent = normalized === 'numeric' ? '🔢' : '🔤';
+            if (label) label.textContent = normalized === 'numeric' ? '123' : 'ABC';
+            if (btn) btn.title = normalized === 'numeric'
+                ? 'Number keyboard active — tap for letters'
+                : 'Letter keyboard active — tap for numbers';
+            if (focusAfter) {
+                bI.blur();
+                setTimeout(() => bI.focus(), 50);
             }
-            bI.blur(); 
-            setTimeout(() => bI.focus(), 50);
+        }
+
+        function toggleKeyboardMode() {
+            const bI = document.getElementById('bibInput');
+            if (!bI) return;
+            applyBibKeyboardMode_(bI.getAttribute('inputmode') === 'numeric' ? 'text' : 'numeric', true);
         }
 
         function initBatteryMonitoring() {
@@ -2749,7 +2823,7 @@
             actualTimerLoop = getVolumeAdjustedIntervalMs_(actualTimerLoop) + getDeviceJitterMs_();
             syncTimerId = setInterval(function() {
                 loadHistory();
-                if (syncUrl && !remarkDebounceTimeout) {
+                if (syncUrl) {
                     attemptSync(); 
                     pullServerRecords(); 
                 }
@@ -2762,7 +2836,7 @@
             if (syncUrl) {
                 const reconciliationBaseMs = getVolumeAdjustedIntervalMs_(5 * 60 * 1000) + getDeviceJitterMs_();
                 reconciliationTimerId = setInterval(function() {
-                    if (syncUrl && !remarkDebounceTimeout) performFullReconciliation_();
+                    if (syncUrl) performFullReconciliation_();
                 }, reconciliationBaseMs);
             }
         }
@@ -2800,16 +2874,16 @@
             }
         }
 
-        /** Belt-and-suspenders: strips any whitespace that reaches the value another way
-         * (paste, autocomplete, predictive text bar) so the bib is always space-free even
-         * if a keydown handler couldn't catch it. */
+        /** Belt-and-suspenders bib sanitiser for paste, autocomplete and predictive
+         * text. This event uses numeric/letter bibs, so punctuation and whitespace are
+         * rejected before they can reach IndexedDB, inline controls, or the Sheet. */
         function stripBibSpaces_(el) {
-            if (/\s/.test(el.value)) {
+            if (/[^A-Za-z0-9]/.test(el.value)) {
                 const pos = el.selectionStart;
                 const before = el.value;
-                el.value = el.value.replace(/\s+/g, '');
+                el.value = el.value.replace(/[^A-Za-z0-9]/g, '');
                 // Keep the caret roughly where the user was typing instead of jumping to the end.
-                const removedBeforeCaret = before.slice(0, pos).length - before.slice(0, pos).replace(/\s+/g, '').length;
+                const removedBeforeCaret = before.slice(0, pos).length - before.slice(0, pos).replace(/[^A-Za-z0-9]/g, '').length;
                 const newPos = Math.max(0, (pos || el.value.length) - removedBeforeCaret);
                 try { el.setSelectionRange(newPos, newPos); } catch (e) { /* some input types don't support this */ }
                 flashBibSpaceRejected_();
@@ -3067,6 +3141,7 @@
 
             lastKnownSummaryRows = summaryRows || [];
             categoryConfig = lastKnownSummaryRows; // keep PWA metric calculator in sync
+            renderSafetyMatrix_();
             if (isDirectorModeOpen) renderDirectorSummaryTable_(lastKnownSummaryRows);
 
             if (!summaryRows || summaryRows.length === 0) {
@@ -3211,6 +3286,7 @@
             updateSyncStatusLabel();
             initSyncBadgeCollapseTimer_();
             loadSettingsState();
+            applyBibKeyboardMode_(localStorage.getItem('bibKeyboardMode') || 'numeric');
             updateSearchBoxPlaceholder();
             loadHistory();
             initBatteryMonitoring();
@@ -3305,7 +3381,7 @@
         }
         
         function forceNetworkSyncCheck() {
-            if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
+            if (!syncUrl || isSyncing) return;
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
                 const unsynced = e.target.result.filter(log => !log.synced);
                 if (unsynced.length > 0) attemptSync();
@@ -3611,7 +3687,7 @@
 
         function checkDuplicateAndLog() {
             const bI = document.getElementById('bibInput');
-            const bib = bI.value.trim().toUpperCase();
+            const bib = bI.value.replace(/[^A-Za-z0-9]/g, '').trim().toUpperCase();
             if (!bib) return;
             const cpV = (document.getElementById('checkpoint')?.value || '').trim();
             const volV = (document.getElementById('volunteer')?.value || '').trim();
@@ -3652,6 +3728,23 @@
             hours = hours % 12;
             hours = hours ? hours : 12; 
             return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(hours)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
+        }
+
+        function escapeHtml_(value) {
+            return String(value === null || value === undefined ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function escapeHtmlAttr_(value) {
+            return escapeHtml_(value).replace(/`/g, '&#96;');
+        }
+
+        function encodeInlineArg_(value) {
+            return encodeURIComponent(String(value === null || value === undefined ? '' : value)).replace(/'/g, '%27');
         }
 
         function logEntry(bib) {
@@ -3701,30 +3794,12 @@
         }
 
         function handleRemarkTyping() {
-            if (!lastCreatedUid) return; 
-            if (remarkDebounceTimeout) clearTimeout(remarkDebounceTimeout);
-            remarkDebounceTimeout = setTimeout(() => {
-                const remarkInput = document.getElementById('remarkInput');
-                if (remarkInput.disabled) { remarkDebounceTimeout = null; return; }
-                const currentRemark = remarkInput.value.trim();
-                const tx = db.transaction(["logs"], "readwrite");
-                const store = tx.objectStore("logs");
-                store.getAll().onsuccess = function(e) {
-                    const logToUpdate = e.target.result.find(l => l.uid === lastCreatedUid);
-                    if (logToUpdate) {
-                        logToUpdate.remark = currentRemark;
-                        logToUpdate.synced = false; 
-                        logToUpdate.remake = false;
-                        logToUpdate.syncAttempts = 0;
-                        store.put(logToUpdate);
-                        tx.oncomplete = function() {
-                            remarkDebounceTimeout = null;
-                            loadHistory();
-                            if (syncIntervalMs > 0) attemptSync(); 
-                        };
-                    } else { remarkDebounceTimeout = null; }
-                };
-            }, 2500); 
+            // The main Remark field belongs to the NEXT bib that will be logged.
+            // Older builds silently wrote this text into `lastCreatedUid` after a
+            // debounce. If another bib/edit happened in between, a remark could land
+            // on the previous runner. Existing rows are now changed only through their
+            // explicit Edit button, so a remark can never jump between bibs.
+            remarkDebounceTimeout = null;
         }
 
         const STALE_QUEUE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
@@ -3803,7 +3878,7 @@
         }
 
         function syncSingleRow(row) {
-            if (!syncUrl || remarkDebounceTimeout) return;
+            if (!syncUrl) return;
             const targetUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`;
             
             fetchWithTimeout(targetUrl, {
@@ -3851,7 +3926,7 @@
         }
 
         function attemptSync() {
-            if (!syncUrl || isSyncing || remarkDebounceTimeout) return;
+            if (!syncUrl || isSyncing) return;
             isSyncing = true;
             if (syncRetryTimeoutId) { clearTimeout(syncRetryTimeoutId); syncRetryTimeoutId = null; }
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
@@ -3900,6 +3975,9 @@
                         loadHistory();
                         if (data.summary) renderSummaryDashboard(data.summary);
                         if (data.eventEpoch) handleEventEpochFromServer_(data.eventEpoch);
+                        if (data.bulkDeleteEpoch && (!data.eventEpoch || localStorage.getItem(LOCAL_EVENT_EPOCH_KEY_) === String(data.eventEpoch))) {
+                            handleBulkDeleteEpochFromServer_(data.bulkDeleteEpoch);
+                        }
                     };
                 })
                 .catch(err => {
@@ -3934,6 +4012,9 @@
                     renderSummaryDashboard(result.summary);
                 }
                 if (result.eventEpoch) handleEventEpochFromServer_(result.eventEpoch);
+                if (result.bulkDeleteEpoch && (!result.eventEpoch || localStorage.getItem(LOCAL_EVENT_EPOCH_KEY_) === String(result.eventEpoch))) {
+                    if (handleBulkDeleteEpochFromServer_(result.bulkDeleteEpoch)) return;
+                }
 
                 const serverRecords = result.data || [];
                 const serverDeletedUids = result.deletedUids || [];
@@ -4153,20 +4234,46 @@
         function cancelEditing() { editingRowId = null; loadHistory(); }
 
         function saveEdit(id) {
-            const newBib = document.getElementById(`edit-bib-${id}`).value.trim().toUpperCase();
-            const newRemark = document.getElementById(`edit-remark-${id}`).value.trim();
-            if (!newBib) return;
+            const bibEl = document.getElementById(`edit-bib-${id}`);
+            const remarkEl = document.getElementById(`edit-remark-${id}`);
+            if (!bibEl || !remarkEl || !db) return;
+
+            const newBib = bibEl.value.replace(/[^A-Za-z0-9]/g, '').trim().toUpperCase();
+            const newRemark = remarkEl.value.trim();
+            if (!newBib) { bibEl.focus(); return; }
+
+            // Cancel any legacy timer before touching a row. The transaction reads by
+            // IndexedDB primary key and preserves the UID, so only this exact scan can
+            // be updated locally or on the server.
+            if (remarkDebounceTimeout) { clearTimeout(remarkDebounceTimeout); remarkDebounceTimeout = null; }
             const tx = db.transaction(["logs"], "readwrite");
             const store = tx.objectStore("logs");
-            store.get(id).onsuccess = function(e) {
+            tx.oncomplete = function() {
+                editingRowId = null;
+                loadHistory();
+                if (syncIntervalMs > 0) attemptSync();
+                document.getElementById('bibInput')?.focus();
+            };
+            tx.onerror = function() {
+                alert('⚠️ Edit could not be saved locally. Please try again.');
+            };
+
+            const getReq = store.get(id);
+            getReq.onsuccess = function(e) {
                 const log = e.target.result;
-                log.bib = newBib; log.remark = newRemark; log.synced = false; log.remake = false; log.syncAttempts = 0;
-                store.put(log);
-                tx.oncomplete = function() { 
-                    editingRowId = null; loadHistory(); 
-                    if (syncIntervalMs > 0) attemptSync(); 
-                    document.getElementById('bibInput').focus();
-                };
+                if (!log || !isOwnEntry(log)) {
+                    tx.abort();
+                    alert('⚠️ This entry is no longer available for editing on this device.');
+                    return;
+                }
+                const updated = Object.assign({}, log, {
+                    bib: newBib,
+                    remark: newRemark,
+                    synced: false,
+                    remake: false,
+                    syncAttempts: 0
+                });
+                store.put(updated);
             };
         }
 
@@ -4277,6 +4384,8 @@
 
             return {
                 category:      cfg.category || 'Unknown',
+                km:            cfg.km || '',
+                bibRule:       cfg.bibRule || '',
                 lap:           lapDisplay,
                 timePerLap:    formatDurationHMS_(timePerLapSeconds),
                 totalTime:     formatDurationHMS_(totalSeconds),
@@ -4851,9 +4960,136 @@
            per-scan remark used at individual checkpoints.
            ════════════════════════════════════════════════════════════════════ */
         const SAFETY_STATUS_LABELS_ = { ok: '✅ OK', withdrawn: '🚫 Withdrawn', medical: '🚑 Medical', missing: '❓ Missing' };
-        let localSafetyNotes_ = {}; // bib -> {bib,status,remark,updatedBy,updatedAt}
-        let safetyQuickFilter_ = 'all'; // 'all' | 'missing' | 'overdue'
-        let safetySortAscending_ = true; // toggled by toggleSafetySortDirection_()
+        // State bindings are declared with the other startup globals above so a fast
+        // IndexedDB callback cannot hit a temporal dead zone before this section parses.
+
+        function canonicalKmKey_(km) {
+            const raw = String(km || '').trim().toUpperCase();
+            const match = raw.match(/\d+(?:\.\d+)?/);
+            return match ? String(parseFloat(match[0])) : (raw || 'UNSPECIFIED');
+        }
+
+        function formatKmLabel_(km) {
+            const key = canonicalKmKey_(km);
+            return key === 'UNSPECIFIED' ? 'Unspecified' : (/^\d/.test(key) ? `${key} KM` : key);
+        }
+
+        function distanceCategoryKey_(km, category) {
+            return `${canonicalKmKey_(km)}||${String(category || '').trim().toUpperCase()}`;
+        }
+
+        function formatDistanceCategoryLabel_(km, category) {
+            const cat = String(category || '').trim() || 'Uncategorized';
+            const kmKey = canonicalKmKey_(km);
+            return kmKey === 'UNSPECIFIED' ? cat : `${formatKmLabel_(km)} · ${cat}`;
+        }
+
+        function safetyComboKey_(km, category) {
+            return distanceCategoryKey_(km, category);
+        }
+
+        function getSafetyMatrixCombos_() {
+            const seen = new Set();
+            return (categoryConfig || []).filter(cfg => cfg && cfg.category).map(cfg => ({
+                km: cfg.km || '',
+                kmKey: canonicalKmKey_(cfg.km),
+                kmLabel: formatKmLabel_(cfg.km),
+                category: String(cfg.category || '').trim(),
+                key: safetyComboKey_(cfg.km, cfg.category)
+            })).filter(combo => {
+                if (seen.has(combo.key)) return false;
+                seen.add(combo.key);
+                return true;
+            });
+        }
+
+        function selectedSafetyComboKeys_() {
+            const all = getSafetyMatrixCombos_().map(c => c.key);
+            if (safetyMatrixSelection_ === null) return new Set(all);
+            const valid = new Set(all);
+            safetyMatrixSelection_ = new Set(Array.from(safetyMatrixSelection_).filter(k => valid.has(k)));
+            return new Set(safetyMatrixSelection_);
+        }
+
+        function setSafetyMatrixSelection_(mode) {
+            safetyMatrixSelection_ = mode === 'all' ? null : new Set();
+            renderSafetyMatrix_();
+            renderSafetyLog_();
+        }
+
+        function toggleSafetyMatrixCell_(encodedKey, checked) {
+            const key = decodeURIComponent(encodedKey);
+            const selected = selectedSafetyComboKeys_();
+            if (checked) selected.add(key); else selected.delete(key);
+            safetyMatrixSelection_ = selected;
+            renderSafetyMatrix_();
+            renderSafetyLog_();
+        }
+
+        function toggleSafetyMatrixKm_(encodedKmKey, checked) {
+            const kmKey = decodeURIComponent(encodedKmKey);
+            const selected = selectedSafetyComboKeys_();
+            getSafetyMatrixCombos_().filter(c => c.kmKey === kmKey).forEach(c => checked ? selected.add(c.key) : selected.delete(c.key));
+            safetyMatrixSelection_ = selected;
+            renderSafetyMatrix_();
+            renderSafetyLog_();
+        }
+
+        function toggleSafetyMatrixCategory_(encodedCategory, checked) {
+            const category = decodeURIComponent(encodedCategory);
+            const selected = selectedSafetyComboKeys_();
+            getSafetyMatrixCombos_().filter(c => c.category === category).forEach(c => checked ? selected.add(c.key) : selected.delete(c.key));
+            safetyMatrixSelection_ = selected;
+            renderSafetyMatrix_();
+            renderSafetyLog_();
+        }
+
+        function renderSafetyMatrix_() {
+            const container = document.getElementById('safetyMatrixFilter');
+            if (!container) return;
+            const combos = getSafetyMatrixCombos_();
+            if (!combos.length) {
+                container.innerHTML = '<div class="text-[10px] theme-text-muted p-2">No KM/category configuration received from the Setup sheet yet.</div>';
+                return;
+            }
+
+            const selected = selectedSafetyComboKeys_();
+            const kms = Array.from(new Map(combos.map(c => [c.kmKey, c])).values())
+                .sort((a, b) => (parseFloat(b.kmKey) || 0) - (parseFloat(a.kmKey) || 0));
+            const categories = Array.from(new Set(combos.map(c => c.category))).sort((a, b) => a.localeCompare(b));
+            const available = new Set(combos.map(c => c.key));
+
+            const header = categories.map((category, colIndex) => {
+                const colCombos = combos.filter(c => c.category === category);
+                const checkedCount = colCombos.filter(c => selected.has(c.key)).length;
+                return `<th><label class="flex items-center justify-center gap-1 cursor-pointer"><input id="safety-matrix-col-${colIndex}" type="checkbox" class="safety-matrix-check" ${checkedCount === colCombos.length ? 'checked' : ''} onchange="toggleSafetyMatrixCategory_('${encodeInlineArg_(category)}', this.checked)"><span>${escapeHtml_(category)}</span></label></th>`;
+            }).join('');
+
+            const rows = kms.map((km, rowIndex) => {
+                const rowCombos = combos.filter(c => c.kmKey === km.kmKey);
+                const checkedCount = rowCombos.filter(c => selected.has(c.key)).length;
+                const cells = categories.map(category => {
+                    const key = safetyComboKey_(km.km, category);
+                    if (!available.has(key)) return '<td class="safety-matrix-unavailable">—</td>';
+                    return `<td><input type="checkbox" class="safety-matrix-check" ${selected.has(key) ? 'checked' : ''} aria-label="${escapeHtmlAttr_(`${km.kmLabel} ${category}`)}" onchange="toggleSafetyMatrixCell_('${encodeInlineArg_(key)}', this.checked)"></td>`;
+                }).join('');
+                return `<tr><th><label class="flex items-center gap-1 cursor-pointer"><input id="safety-matrix-row-${rowIndex}" type="checkbox" class="safety-matrix-check" ${checkedCount === rowCombos.length ? 'checked' : ''} onchange="toggleSafetyMatrixKm_('${encodeInlineArg_(km.kmKey)}', this.checked)"><span>${escapeHtml_(km.kmLabel)}</span></label></th>${cells}</tr>`;
+            }).join('');
+
+            container.innerHTML = `<table class="safety-matrix-table"><thead><tr><th>Distance</th>${header}</tr></thead><tbody>${rows}</tbody></table>`;
+            categories.forEach((category, i) => {
+                const group = combos.filter(c => c.category === category);
+                const count = group.filter(c => selected.has(c.key)).length;
+                const el = document.getElementById(`safety-matrix-col-${i}`);
+                if (el) el.indeterminate = count > 0 && count < group.length;
+            });
+            kms.forEach((km, i) => {
+                const group = combos.filter(c => c.kmKey === km.kmKey);
+                const count = group.filter(c => selected.has(c.key)).length;
+                const el = document.getElementById(`safety-matrix-row-${i}`);
+                if (el) el.indeterminate = count > 0 && count < group.length;
+            });
+        }
 
         /** Flips the sort direction (largest-to-smallest vs smallest-to-largest for
          * bib, or reverses whatever the current sort field is) and re-renders. */
@@ -4874,7 +5110,7 @@
          */
         function isBibOverdue_(entry) {
             if (!entry || !entry.category) return false;
-            const cfg = (categoryConfig || []).find(c => c.category === entry.category);
+            const cfg = findCategoryConfigForBib_(entry.bib, categoryConfig) || (categoryConfig || []).find(c => c.category === entry.category && canonicalKmKey_(c.km) === canonicalKmKey_(entry.km));
             if (!cfg || !cfg.cotTime) return false;
             const cotDate = parseCustomOrIsoDate(cfg.cotTime);
             if (isNaN(cotDate.getTime())) return false;
@@ -4913,6 +5149,7 @@
             document.querySelectorAll('.safety-quick-chip').forEach(btn => {
                 btn.classList.toggle('active', btn.getAttribute('data-quick-filter') === safetyQuickFilter_);
             });
+            renderSafetyMatrix_();
             loadLocalSafetyNotes_(() => renderSafetyLog_());
             if (syncUrl) pullSafetyNotesFromServer_();
         }
@@ -4971,7 +5208,13 @@
 
                 roster = roster.map(r => {
                     const note = localSafetyNotes_[r.bib] || null;
+                    const cfg = findCategoryConfigForBib_(r.bib, categoryConfig);
+                    const km = (cfg && cfg.km) || r.km || '';
+                    const category = (cfg && cfg.category) || r.category || '';
                     return Object.assign({}, r, {
+                        km,
+                        category,
+                        _comboKey: safetyComboKey_(km, category),
                         _safetyStatus: note ? note.status : '',
                         _safetyRemark: note ? note.remark : '',
                         _safetyUpdatedBy: note ? note.updatedBy : '',
@@ -4982,12 +5225,18 @@
                 if (query) {
                     roster = roster.filter(r =>
                         (r.bib||'').toLowerCase().includes(query) ||
+                        formatKmLabel_(r.km).toLowerCase().includes(query) ||
                         (r.category||'').toLowerCase().includes(query) ||
                         (r.checkpoint||'').toLowerCase().includes(query) ||
                         (r._safetyRemark||'').toLowerCase().includes(query)
                     );
                 }
-                if (statusFilter) roster = roster.filter(r => r._safetyStatus === statusFilter);
+                if (statusFilter === '__none__') roster = roster.filter(r => !r._safetyStatus);
+                else if (statusFilter) roster = roster.filter(r => r._safetyStatus === statusFilter);
+                if (safetyMatrixSelection_ !== null) {
+                    const selectedCombos = selectedSafetyComboKeys_();
+                    roster = roster.filter(r => selectedCombos.has(r._comboKey));
+                }
                 if (checkpointFilter) roster = roster.filter(r => (r.checkpoint || '') === checkpointFilter);
                 if (volunteerFilter) roster = roster.filter(r => (r.volunteer || '') === volunteerFilter);
 
@@ -5037,6 +5286,7 @@
                     return `
                         <tr class="${rowFlagClass}">
                             <td class="p-2 pl-3 font-black bib-text-highlight whitespace-nowrap">${r.bib}</td>
+                            <td class="p-2 whitespace-nowrap font-black">${formatKmLabel_(r.km)}</td>
                             <td class="p-2 whitespace-nowrap">${r.category || '-'}</td>
                             <td class="p-2 whitespace-nowrap">${r.checkpoint || '-'}</td>
                             <td class="p-2 whitespace-nowrap text-[11px] theme-text-muted">${formatLogTime(r.time)}</td>
@@ -5151,7 +5401,9 @@
             if (!container) return;
 
             const uniqueRunners = new Set(allLogs.map(l => l.bib)).size;
-            const categories = new Set(allLogs.map(l => l.category).filter(c => c && c !== '-')).size;
+            const categories = new Set(allLogs
+                .filter(l => l.category && l.category !== '-')
+                .map(l => distanceCategoryKey_(l.km, l.category))).size;
             const checkpoints = new Set(allLogs.map(l => l.checkpoint).filter(Boolean)).size;
             const pending = allLogs.filter(l => !l.synced).length;
             const lastSyncLabel = lastSyncSuccessAt
@@ -5289,8 +5541,9 @@
             const byCategory = new Map();
             latestByBib.forEach(entry => {
                 const cat = (entry.category && entry.category !== '-') ? entry.category : 'Uncategorized';
-                if (!byCategory.has(cat)) byCategory.set(cat, []);
-                byCategory.get(cat).push(entry);
+                const groupLabel = formatDistanceCategoryLabel_(entry.km, cat);
+                if (!byCategory.has(groupLabel)) byCategory.set(groupLabel, []);
+                byCategory.get(groupLabel).push(entry);
             });
 
             byCategory.forEach(list => {
@@ -5313,7 +5566,10 @@
                 return;
             }
 
-            const categories = Array.from(byCategory.keys()).sort();
+            const categories = Array.from(byCategory.keys()).sort((a, b) => {
+                const kmDiff = (parseFloat(b) || 0) - (parseFloat(a) || 0);
+                return kmDiff || a.localeCompare(b, undefined, { numeric: true });
+            });
             let html = `<div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3 sm:gap-4">`;
             categories.forEach(cat => {
                 const fullList = byCategory.get(cat);
@@ -5441,23 +5697,17 @@
                 return;
             }
 
-            const bibsByCategory = new Map();
-            allLogs.forEach(l => {
-                if (!l.bib || l.remake) return;
-                const cat = (l.category && l.category !== '-') ? l.category : null;
-                if (!cat) return;
-                if (!bibsByCategory.has(cat)) bibsByCategory.set(cat, new Set());
-                bibsByCategory.get(cat).add(l.bib);
-            });
+            const scannedByRow = countScannedBibsByRow_(rows, allLogs);
 
             container.innerHTML = rows.map(row => {
                 const registered = parseInt(row.runners, 10) || 0;
-                const seen = bibsByCategory.has(row.category) ? bibsByCategory.get(row.category).size : 0;
+                const seen = row.bibRule && scannedByRow.has(row.bibRule) ? scannedByRow.get(row.bibRule).size : 0;
                 const pct = registered > 0 ? Math.min(100, Math.round((seen / registered) * 100)) : 0;
+                const label = formatDistanceCategoryLabel_(row.km, row.category);
                 return `
                     <div class="flex flex-col gap-1">
                         <div class="flex items-center justify-between text-[11px]">
-                            <span class="font-bold theme-text">${row.category}</span>
+                            <span class="font-bold theme-text">${label}</span>
                             <span class="font-mono font-black theme-text-muted">${seen}${registered ? ' / ' + registered : ''}</span>
                         </div>
                         <div class="w-full h-2.5 rounded-full bg-neutral-200 dark:bg-neutral-900 overflow-hidden">
@@ -5536,7 +5786,7 @@
             }).join('');
         }
 
-        /** ⏱️ Cutoff Countdown — time remaining until each category's COT. */
+        /** ⏱️ Cutoff Countdown — grouped by KM, with the categories that share each cutoff. */
         function renderDirectorCotCountdown_(summaryRows) {
             const container = document.getElementById('directorCotBody');
             if (!container) return;
@@ -5546,28 +5796,48 @@
                 return;
             }
 
-            const now = Date.now();
-            container.innerHTML = rows.map(row => {
-                const cotDate = parseCustomOrIsoDate(row.cotTime);
-                if (isNaN(cotDate.getTime())) {
-                    return `<div class="flex items-center justify-between text-xs px-2.5 py-2"><span class="font-bold theme-text">${row.category}</span><span class="theme-text-muted">-</span></div>`;
-                }
-                const diffMs = cotDate.getTime() - now;
-                const passed = diffMs <= 0;
-                const diffMins = Math.abs(Math.floor(diffMs / 60000));
-                const label = passed
-                    ? `CUTOFF PASSED (${Math.floor(diffMins / 60)}h ${diffMins % 60}m ago)`
-                    : `${Math.floor(diffMins / 60)}h ${diffMins % 60}m left`;
-                let colorClass = 'text-emerald-700 dark:text-emerald-500';
-                if (passed) colorClass = 'text-red-600 dark:text-red-500 font-black animate-pulse';
-                else if (diffMins <= 10) colorClass = 'text-red-600 dark:text-red-500 font-black';
-                else if (diffMins <= 30) colorClass = 'text-amber-600 dark:text-amber-500 font-bold';
+            // Distance is the primary key because names such as "Men Open" can
+            // legitimately appear at 100 KM, 80 KM, 21 KM, etc. Within a distance,
+            // split again only when its Setup rows contain genuinely different COT times.
+            const groups = new Map();
+            rows.forEach(row => {
+                const kmKey = canonicalKmKey_(row.km);
+                if (!groups.has(kmKey)) groups.set(kmKey, { km: row.km, kmKey, cutoffs: new Map() });
+                const timeKey = String(row.cotTime || '').trim();
+                const group = groups.get(kmKey);
+                if (!group.cutoffs.has(timeKey)) group.cutoffs.set(timeKey, { cotTime: row.cotTime, categories: [] });
+                const categoryList = group.cutoffs.get(timeKey).categories;
+                if (!categoryList.includes(row.category)) categoryList.push(row.category);
+            });
 
-                return `
-                    <div class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border theme-border text-xs">
-                        <span class="font-bold theme-text">${row.category}</span>
-                        <span class="font-mono whitespace-nowrap ${colorClass}">${label}</span>
+            const now = Date.now();
+            const sortedGroups = Array.from(groups.values()).sort((a, b) => (parseFloat(b.kmKey) || 0) - (parseFloat(a.kmKey) || 0));
+            container.innerHTML = sortedGroups.map(group => {
+                const cutoffRows = Array.from(group.cutoffs.values()).map(cutoff => {
+                    const cotDate = parseCustomOrIsoDate(cutoff.cotTime);
+                    let label = '-';
+                    let colorClass = 'theme-text-muted';
+                    if (!isNaN(cotDate.getTime())) {
+                        const diffMs = cotDate.getTime() - now;
+                        const passed = diffMs <= 0;
+                        const diffMins = Math.abs(Math.floor(diffMs / 60000));
+                        label = passed
+                            ? `CUTOFF PASSED (${Math.floor(diffMins / 60)}h ${diffMins % 60}m ago)`
+                            : `${Math.floor(diffMins / 60)}h ${diffMins % 60}m left`;
+                        colorClass = passed ? 'text-red-600 dark:text-red-500 font-black animate-pulse'
+                            : diffMins <= 10 ? 'text-red-600 dark:text-red-500 font-black'
+                            : diffMins <= 30 ? 'text-amber-600 dark:text-amber-500 font-bold'
+                            : 'text-emerald-700 dark:text-emerald-500';
+                    }
+                    return `<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 py-1.5">
+                        <div class="flex flex-wrap gap-1">${cutoff.categories.sort().map(cat => `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded border theme-border">${cat}</span>`).join('')}</div>
+                        <span class="font-mono whitespace-nowrap text-xs ${colorClass}">${label}</span>
                     </div>`;
+                }).join('');
+                return `<div class="px-2.5 py-2 rounded-lg border theme-border">
+                    <div class="font-black theme-text text-sm border-b theme-border pb-1 mb-1">${formatKmLabel_(group.km)}</div>
+                    ${cutoffRows}
+                </div>`;
             }).join('');
         }
 
@@ -5591,7 +5861,10 @@
             const topCp = Object.entries(cpCounts).sort((a, b) => b[1] - a[1])[0];
 
             const catCounts = {};
-            validLogs.forEach(l => { const c = (l.category && l.category !== '-') ? l.category : null; if (c) catCounts[c] = (catCounts[c] || 0) + 1; });
+            validLogs.forEach(l => {
+                const c = (l.category && l.category !== '-') ? formatDistanceCategoryLabel_(l.km, l.category) : null;
+                if (c) catCounts[c] = (catCounts[c] || 0) + 1;
+            });
             const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
 
             const flaggedCount = (allLogs || []).filter(l => l.bib && (l.remake || (l.remark && l.remark.trim()))).length;
@@ -5613,7 +5886,7 @@
                 const cotDate = parseCustomOrIsoDate(row.cotTime);
                 if (isNaN(cotDate.getTime())) return;
                 const diff = cotDate.getTime() - now;
-                if (diff > 0 && diff < nearestDiffMs) { nearestDiffMs = diff; nearestLabel = row.category; }
+                if (diff > 0 && diff < nearestDiffMs) { nearestDiffMs = diff; nearestLabel = formatKmLabel_(row.km); }
             });
             const nearestMins = isFinite(nearestDiffMs) ? Math.floor(nearestDiffMs / 60000) : null;
             const nearestDisplay = nearestMins !== null ? `${nearestLabel} · ${Math.floor(nearestMins / 60)}h ${nearestMins % 60}m` : '—';
@@ -5679,7 +5952,9 @@
             const counts = {};
             (allLogs || []).forEach(l => {
                 if (!l.bib || l.remake) return;
-                const cat = (l.category && l.category !== '-') ? l.category : 'Uncategorized';
+                const cat = (l.category && l.category !== '-')
+                    ? formatDistanceCategoryLabel_(l.km, l.category)
+                    : 'Uncategorized';
                 counts[cat] = (counts[cat] || 0) + 1;
             });
             const entries = Object.entries(counts)
@@ -5716,7 +5991,7 @@
                 // The server sends raw scan data only; every derived field (category,
                 // lap, pace, speed, projected finish) is computed here using the
                 // current categoryConfig sourced from the Setup sheet.
-                const rawLogs = e.target.result;
+                const rawLogs = (e.target.result || []).filter(l => !l.pendingDelete);
                 const _bibMap = buildBibHistoryMap_(rawLogs);
                 const logs = rawLogs.map(l => withLivePreview_(l, _bibMap, categoryConfig));
                 // ────────────────────────────────────────────────────────────────────
@@ -5730,7 +6005,9 @@
                 document.getElementById('totalCount').textContent = scopedLogs.length;
                 document.getElementById('uniqueCount').textContent = new Set(scopedLogs.map(l => l.bib)).size;
                 const categoriesTile = document.getElementById('categoriesCount');
-                if (categoriesTile) categoriesTile.textContent = new Set(scopedLogs.map(l => l.category).filter(c => c && c !== '-')).size;
+                if (categoriesTile) categoriesTile.textContent = new Set(scopedLogs
+                    .filter(l => l.category && l.category !== '-')
+                    .map(l => distanceCategoryKey_(l.km, l.category))).size;
                 const pendingTile = document.getElementById('pendingSyncCount');
                 if (pendingTile) pendingTile.textContent = scopedLogs.filter(l => !l.synced).length;
                 calculateLiveSplits(scopedLogs); 
@@ -5807,10 +6084,10 @@
                         row.innerHTML = `
                             <div class="p-4 flex flex-col gap-2">
                                 <div class="flex items-center gap-2">
-                                    <input type="text" id="edit-bib-${log.id}" value="${log.remake ? '' : log.bib}" class="w-24 theme-input border rounded px-2 py-0.5 text-sm font-black uppercase">
+                                    <input type="text" id="edit-bib-${log.id}" value="${escapeHtmlAttr_(log.remake ? '' : log.bib)}" class="w-24 theme-input border rounded px-2 py-0.5 text-sm font-black uppercase">
                                     <span class="text-[10px] bg-neutral-200 dark:bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-600 dark:text-neutral-400 font-bold">${log.checkpoint}</span>
                                 </div>
-                                <div class="flex items-center gap-2"><input type="text" id="edit-remark-${log.id}" value="${log.remark || ''}" class="flex-grow theme-input border rounded px-2 py-0.5 text-xs"></div>
+                                <div class="flex items-center gap-2"><input type="text" id="edit-remark-${log.id}" value="${escapeHtmlAttr_(log.remark || '')}" class="flex-grow theme-input border rounded px-2 py-0.5 text-xs"></div>
                                 <div class="flex justify-end gap-2 mt-1">
                                     <button onclick="cancelEditing()" class="text-xs bg-neutral-300 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-300 px-2.5 py-1 rounded font-bold">Cancel</button>
                                     <button onclick="saveEdit(${log.id})" class="text-xs bg-blue-600 dark:bg-blue-800 text-white px-3 py-1 rounded font-bold">Save</button>
@@ -5822,7 +6099,7 @@
                         
                         const ownEntry = isOwnEntry(log);
                         const editButtonHTML = (ownEntry && (isEditable(log.time) || log.remake)) ? `<button onclick="startEditing(${log.id}); event.stopPropagation();" class="text-xs text-blue-700 dark:text-blue-500 font-bold border border-blue-400/30 dark:border-blue-600/30 px-1.5 py-0.5 rounded bg-neutral-200/50 dark:bg-neutral-900/50">✏️ Edit</button>` : '';
-                        const deleteButtonHTML = (ownEntry && isDeletable(log.time)) ? `<button onclick="deleteRow(${log.id}, '${log.bib}', '${log.time}'); event.stopPropagation();" class="icon-tap-target text-red-600 p-1 text-base hover:scale-115 transition">🗑️</button>` : '';
+                        const deleteButtonHTML = (ownEntry && isDeletable(log.time)) ? `<button onclick="deleteRow(${log.id}); event.stopPropagation();" class="icon-tap-target text-red-600 p-1 text-base hover:scale-115 transition">🗑️</button>` : '';
                         let statusText = log.synced ? 'Synced' : 'Queued';
                         let statusClass = log.synced ? 'text-emerald-700 dark:text-emerald-500 font-extrabold' : 'text-yellow-700 dark:text-yellow-600 font-extrabold';
                         if (log.remake) { statusText = 'REMAKE REQ'; statusClass = 'text-red-600 dark:text-red-500 font-black animate-pulse'; }
@@ -5892,10 +6169,12 @@
             };
         }
 
-        function deleteRow(id, bib, time) {
+        function deleteRow(id) {
             db.transaction(["logs"], "readonly").objectStore("logs").get(id).onsuccess = function(e) {
                 const log = e.target.result;
                 if (!log || !isOwnEntry(log) || log.pendingDelete) return;
+                const bib = log.bib;
+                const time = log.time;
                 if (!confirm(`Delete entry for Bib ${bib}?`)) return;
 
                 if (!syncUrl) {
@@ -6015,7 +6294,7 @@
            One button, admin-token gated, that does everything a race director
            would otherwise have to do by hand in the Google Sheet before a new
            event: archive the current Racelog + SafetyNotes data to timestamped
-           backup tabs, clear the live sheets, and make sure every connected
+           backup tabs, mark the old Racelog rows Deleted (values retained), reset Safety Notes, and make sure every connected
            device — not just the one that pressed the button — ends up with a
            clean local log store too.
 
@@ -6025,6 +6304,56 @@
            has nothing left to lose.
            ════════════════════════════════════════════════════════════════════ */
         const LOCAL_EVENT_EPOCH_KEY_ = 'localEventEpoch';
+        const LOCAL_BULK_DELETE_EPOCH_KEY_ = 'localBulkDeleteEpoch';
+        let bulkDeleteWarningShownForEpoch_ = null;
+
+        function clearLocalLogsForBulkDelete_(newEpoch) {
+            if (!db) return;
+            const tx = db.transaction(['logs'], 'readwrite');
+            tx.objectStore('logs').clear();
+            tx.oncomplete = function() {
+                localStorage.setItem(LOCAL_BULK_DELETE_EPOCH_KEY_, String(newEpoch));
+                currentLastSyncedRowMarker = 1;
+                localStorage.setItem('lastDataRowMarker', '1');
+                lastCreatedUid = null;
+                editingRowId = null;
+                loadHistory();
+            };
+        }
+
+        /**
+         * Google Sheets bulk-delete keeps every Racelog value for audit and changes
+         * only Status -> Deleted. A separate epoch tells each device to clear its
+         * local log store immediately even though those in-place sheet edits sit below
+         * the device's incremental sinceRow bookmark. SafetyNotes are deliberately not
+         * touched by this action.
+         */
+        function handleBulkDeleteEpochFromServer_(serverEpoch) {
+            if (!serverEpoch) return false;
+            const epoch = String(serverEpoch);
+            const localEpoch = localStorage.getItem(LOCAL_BULK_DELETE_EPOCH_KEY_);
+            if (!localEpoch && epoch === '0') { localStorage.setItem(LOCAL_BULK_DELETE_EPOCH_KEY_, epoch); return false; }
+            if (localEpoch === epoch) return false;
+            if (bulkDeleteWarningShownForEpoch_ === epoch) return true;
+
+            countUnsyncedLocalLogs_((unsyncedCount) => {
+                if (unsyncedCount > 0) {
+                    bulkDeleteWarningShownForEpoch_ = epoch;
+                    alert(`⚠️ The Race Log Admin marked all sheet rows Deleted, but this device still has ${unsyncedCount} unsynced entr${unsyncedCount === 1 ? 'y' : 'ies'}. A CSV backup will download before local logs are cleared.`);
+                    exportCSV('global');
+                    setTimeout(() => {
+                        if (confirm('Backup saved? Tap OK to remove this device\'s local race logs and match the Google Sheet. Safety Log notes will be kept.')) {
+                            clearLocalLogsForBulkDelete_(epoch);
+                        } else {
+                            bulkDeleteWarningShownForEpoch_ = null;
+                        }
+                    }, 800);
+                } else {
+                    clearLocalLogsForBulkDelete_(epoch);
+                }
+            });
+            return true;
+        }
 
         function countUnsyncedLocalLogs_(callback) {
             if (!db) { callback(0); return; }
@@ -6063,12 +6392,12 @@
 
             const unsyncedCount = await new Promise(resolve => countUnsyncedLocalLogs_(resolve));
             if (unsyncedCount > 0) {
-                alert(`⚠️ This device has ${unsyncedCount} entr${unsyncedCount === 1 ? 'y' : 'ies'} that haven't synced to the server yet. Exporting a CSV backup now — please save it somewhere safe, then press "Start Fresh Event" again to actually wipe everything.`);
+                alert(`⚠️ This device has ${unsyncedCount} entr${unsyncedCount === 1 ? 'y' : 'ies'} that haven't synced to the server yet. Exporting a CSV backup now — please save it somewhere safe, then press "Start Fresh Event" again to reset the live event.`);
                 exportCSV('global'); // automated safety backup — always everything, no prompt
                 return;
             }
 
-            const confirmText = prompt('This will ARCHIVE the entire Google Sheet (Racelog + Safety Notes) and WIPE all logs — for every device, not just this one — to start a brand-new event.\n\nType START FRESH to confirm:');
+            const confirmText = prompt('This will ARCHIVE the Google Sheet, mark every Racelog row Deleted without erasing its values, reset Safety Notes, and clear the live event from every device.\n\nType START FRESH to confirm:');
             if (confirmText !== 'START FRESH') return;
 
             await runStartFreshEventRequest_(adminToken, null, null);
@@ -6097,7 +6426,7 @@
                 // status === 'success'
                 wipeLocalDataForNewEvent_(data.eventEpoch);
                 document.getElementById('adminTokenInput').value = '';
-                alert(`✅ Archived as "${data.archivedAs}". All logs cleared — ready for a new event. Other devices will clear automatically the next time they sync.`);
+                alert(`✅ Archived as "${data.archivedAs}". Live event reset — old Racelog rows remain in the sheet with Status = Deleted. Other devices will reset automatically on their next sync.`);
                 toggleSettings();
             } catch (err) {
                 alert('❌ Connection error while starting fresh event. Nothing has been changed — try again once back online.');
@@ -6123,7 +6452,7 @@
             countUnsyncedLocalLogs_((unsyncedCount) => {
                 if (unsyncedCount > 0) {
                     epochWarningShownForEpoch_ = serverEpoch;
-                    alert(`⚠️ A new event has been started on the server, but this device still has ${unsyncedCount} unsynced entr${unsyncedCount === 1 ? 'y' : 'ies'} that can no longer reach the (now-cleared) sheet. Exporting a CSV backup now — please save it somewhere safe.`);
+                    alert(`⚠️ A new event has been started on the server, but this device still has ${unsyncedCount} unsynced entr${unsyncedCount === 1 ? 'y' : 'ies'} that were created before the event reset. Exporting a CSV backup now — please save it somewhere safe.`);
                     exportCSV('global'); // automated safety backup — always everything, no prompt
                     // No admin token needed here — the destructive server-side action
                     // already happened elsewhere; this device is just catching up.
@@ -6618,13 +6947,12 @@
                 return;
             }
 
-            // Build a quick lookup: category → COT duration string (e.g. "12:00")
-            const cotByCategory = {};
-            summaryRows.forEach(row => {
-                if (row.category && row.cot) cotByCategory[row.category.toUpperCase()] = row.cot;
-            });
-
-            if (Object.keys(cotByCategory).length === 0) {
+            // Resolve COT by the bib rule, not category name. Category labels such as
+            // "MEN OPEN" legitimately repeat across different distances (for example
+            // 100 KM and 80 KM), so a category-only map can silently apply the wrong
+            // cutoff. Setup bib ranges are the authoritative dynamic KM/category key.
+            const cotConfigRows = summaryRows.filter(row => row && row.bibRule && row.cot);
+            if (cotConfigRows.length === 0) {
                 section.classList.add('hidden');
                 section.style.display = '';
                 return;
@@ -6632,8 +6960,9 @@
 
             const riskyRunners = [];
             logs.forEach(log => {
-                if (log.remake || !log.projectedFinish || !log.category) return;
-                const cotStr = cotByCategory[(log.category || '').toUpperCase()];
+                if (log.remake || !log.projectedFinish || !log.bib) return;
+                const cfg = findCategoryConfigForBib_(log.bib, cotConfigRows);
+                const cotStr = cfg && cfg.cot;
                 if (!cotStr) return;
 
                 // Parse "HH:MM" or "H:MM" COT duration
@@ -6651,7 +6980,7 @@
 
                 const overBy = projMins - cotMins; // positive = at risk
                 if (overBy > -20) { // flag if within 20 mins of cutoff or already over
-                    riskyRunners.push({ log, cotMins, projMins, overBy });
+                    riskyRunners.push({ log, cfg, cotMins, projMins, overBy });
                 }
             });
 
@@ -6667,7 +6996,7 @@
             section.classList.remove('hidden');
             section.style.display = 'flex';
 
-            list.innerHTML = riskyRunners.slice(0, 8).map(({ log, projMins, cotMins, overBy }) => {
+            list.innerHTML = riskyRunners.slice(0, 8).map(({ log, cfg, projMins, cotMins, overBy }) => {
                 const isCritical = overBy >= 0;
                 const cls        = isCritical ? 'critical' : 'warning';
                 const badge      = isCritical
@@ -6678,7 +7007,7 @@
                 return `
                     <div class="cot-risk-row ${cls}">
                         <span class="cot-risk-bib">${log.bib || '?'}</span>
-                        <span class="cot-risk-label">Proj ${projStr} · COT ${cotStr2} · ${(log.category || '').toUpperCase()}</span>
+                        <span class="cot-risk-label">Proj ${projStr} · COT ${cotStr2} · ${formatKmLabel_(cfg.km)} · ${(cfg.category || log.category || '').toUpperCase()}</span>
                         ${badge}
                     </div>`;
             }).join('');
@@ -6744,21 +7073,11 @@
                 }, 120);
             };
 
-            // Intercept every call to loadHistory
-            const originalLoadHistory = loadHistory;
-            window.loadHistory = function() {
-                originalLoadHistory.apply(this, arguments);
-                scheduleAnalytics_();
-            };
-            // Also schedule on first DB open
-            const originalInitDb = window.initDB || null;
-            // Patch any future-defined loadHistory too (in case of redefinitions)
-            Object.defineProperty(window, 'loadHistory', {
-                set(fn) { originalLoadHistory._wrapped = fn; },
-                get()   { return originalLoadHistory; },
-                configurable: true,
-            });
-            // Restore the wrapped version
+            // Intercept every call once. A top-level function declaration creates a
+            // non-configurable property on Window in Chromium, so trying to redefine it
+            // with Object.defineProperty throws and stops the rest of the app script.
+            // A normal assignment is sufficient and keeps the original arguments/`this`.
+            const originalLoadHistory = window.loadHistory;
             window.loadHistory = function() {
                 originalLoadHistory.apply(this, arguments);
                 scheduleAnalytics_();
@@ -6993,7 +7312,7 @@
             const byCat = {};
             logs.forEach(l => {
                 if (l.remake || !l.category) return;
-                const cat = l.category.toUpperCase();
+                const cat = formatDistanceCategoryLabel_(l.km, l.category).toUpperCase();
                 if (!byCat[cat]) byCat[cat] = { paces: [], speeds: [], count: 0 };
                 byCat[cat].count++;
                 const ps = parsePaceToSeconds_(l.pace);
@@ -7724,7 +8043,9 @@
                 if (rate > peakThroughput) peakThroughput = rate;
             }
 
-            const categories = new Set(logs.filter(l => l.category).map(l => l.category.toUpperCase()));
+            const categories = new Set(logs
+                .filter(l => l.category)
+                .map(l => distanceCategoryKey_(l.km, l.category)));
             const avgPace    = calcAvgPaceSeconds_(logs);
 
             return {
@@ -8171,7 +8492,7 @@
 
             const firstLog = runs[0];
             const lastLog  = runs[runs.length - 1];
-            const catLabel = (firstLog.category || '').toUpperCase() || 'N/A';
+            const catLabel = formatDistanceCategoryLabel_(firstLog.km, firstLog.category).toUpperCase() || 'N/A';
 
             const splitRows = runs.map((log, i) => {
                 const pace  = log.pace  ? formatSecondsAsPace_(parsePaceToSeconds_(log.pace)) : '–';
@@ -8919,7 +9240,9 @@
             const stdDev    = calcStdDevPace_(logs);
             const tp60      = calcThroughput_(logs, 60);
             const top1      = topNByPace_(logs, 1)[0];
-            const catCount  = new Set(logs.filter(l=>l.category).map(l=>l.category.toUpperCase())).size;
+            const catCount  = new Set(logs
+                .filter(l => l.category)
+                .map(l => distanceCategoryKey_(l.km, l.category))).size;
 
             const tiles = [
                 avgPace   ? { label: 'Avg Pace',    value: formatSecondsAsPace_(avgPace) + '/km', color: '#6366f1' } : null,
@@ -9481,16 +9804,6 @@
         let availableCameraDevices_ = [];
         let currentCameraDeviceId_ = null;
         let bibScannerUsingFallback_ = false;
-        // Declared here (rather than down near detectPersonBox_/coco-ssd, where
-        // they used to live) alongside every other piece of scanner state so
-        // there's a single, obvious place that owns "is the camera modal open
-        // and what has it seen" — and so nothing referencing them can ever run
-        // before they exist, regardless of how this file gets bundled/minified.
-        let lastPersonBox_ = null;
-        let detectionTickCounter_ = 0;
-        let cocoSsdModel_ = null;
-        let cocoSsdLoadPromise_ = null;
-
         const OCR_MIN_CONFIDENCE = 55;      // 0-100, Tesseract's own confidence score
         const OCR_MIN_DIGITS = 1;           // shortest plausible bib number
 
