@@ -746,6 +746,53 @@
             box-shadow: 0 0 0 3px rgba(59,130,246,0.2), 0 0 16px rgba(59,130,246,0.1);
         }
 
+        /* Bib entry tools live inside the bib box again, matching the original
+           fast-entry layout while keeping both controls easy to reach. */
+        .bib-input-with-controls {
+            padding-left: 0.75rem !important;
+            padding-right: 7.25rem !important;
+        }
+        .bib-input-controls {
+            position: absolute;
+            top: 50%;
+            right: 0.45rem;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: stretch;
+            gap: 0.3rem;
+            z-index: 4;
+        }
+        .bib-input-control {
+            min-width: 3rem;
+            height: 2.75rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.55rem;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            background: color-mix(in srgb, var(--input-bg) 88%, var(--header-bg));
+            border: 1px solid var(--border-color);
+            color: var(--input-text);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+        }
+        .bib-input-control:hover { opacity: 0.85; }
+        .bib-input-control-icon { font-size: 0.95rem; }
+        .bib-input-control-label {
+            font-size: 0.5rem;
+            font-weight: 900;
+            margin-top: 0.2rem;
+            letter-spacing: 0.04em;
+        }
+        #forceAllPwaRefreshBtn {
+            background: #d97706;
+            color: #ffffff;
+        }
+        #forceAllPwaRefreshBtn:hover { background: #f59e0b; }
+        .dark #forceAllPwaRefreshBtn { background: #92400e; }
+        .dark #forceAllPwaRefreshBtn:hover { background: #b45309; }
+
         /* ── Animated LOG button ── */
         #logActionButton {
             background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
@@ -884,6 +931,37 @@
         .safety-matrix-table thead th:last-child { border-top-right-radius: 0.5rem; }
         .safety-matrix-unavailable { opacity: 0.35; }
         .safety-matrix-check { width: 1rem; height: 1rem; accent-color: #2563eb; vertical-align: middle; }
+        .safety-matrix-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.25rem;
+            height: 1.1rem;
+            padding: 0 0.3rem;
+            margin-left: 0.2rem;
+            border-radius: 9999px;
+            background: rgba(59,130,246,0.12);
+            color: #3b82f6;
+            border: 1px solid rgba(59,130,246,0.25);
+            font-size: 0.5rem;
+            font-weight: 900;
+            font-family: ui-monospace, monospace;
+        }
+        .safety-total-pill {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0.25rem;
+            border: 1px solid var(--border-color);
+            border-radius: 9999px;
+            padding: 0.25rem 0.55rem;
+            background: var(--card-tint);
+            white-space: nowrap;
+        }
+        .safety-total-pill strong {
+            font-family: ui-monospace, monospace;
+            color: var(--header-text);
+            font-size: 0.75rem;
+        }
 
         /* ── Performance panel collapse transition ── */
         #perfAnalyticsContent {
@@ -1714,9 +1792,10 @@
             <div class="theme-card border-red-300 dark:border-red-900/40 flex flex-col gap-2">
                 <h4 class="text-xs font-bold text-red-600 dark:text-red-500 uppercase tracking-wider">⚠️ Destructive Action Frameworks</h4>
                 <div class="grid grid-cols-2 gap-2">
-                    <button type="button" onclick="forceClearAppCache()" class="bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-950 dark:hover:bg-neutral-900 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-900 font-bold py-2 rounded-lg text-[10px] transition shadow-lg">Reset App Shell Caches</button>
+                    <button type="button" onclick="forceClearAppCache()" class="bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-950 dark:hover:bg-neutral-900 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-900 font-bold py-2 rounded-lg text-[10px] transition shadow-lg">Hard Refresh This Device</button>
                     <button type="button" id="wipeEntireDatabaseActionBtn" onclick="clearDatabaseFromSettings()" class="bg-red-100 hover:bg-red-200 dark:bg-red-950 dark:hover:bg-red-955/70 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-900/40 font-bold py-2 rounded-lg text-[10px] transition truncate">Wipe Database (0)</button>
                 </div>
+                <p class="text-[9px] theme-text-muted leading-snug">Hard refresh clears only the app-shell caches and reloads the newest files. It keeps IndexedDB race logs, queued entries, settings, and safety notes.</p>
             </div>
 
             <!-- Card 7: Admin Zone — Start Fresh Event -->
@@ -1724,6 +1803,8 @@
                 <h4 class="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">🔑 Admin Zone — New Event Setup</h4>
                 <p class="text-[9px] theme-text-muted leading-snug">Archives the Google Sheet, marks every Racelog row as Deleted without erasing its values, and resets the live app for a brand-new event. Safety Notes are archived and reset. Every connected device clears its local event data automatically on the next sync. Requires the admin token (set as <code>ADMIN_TOKEN</code> in the Apps Script's Script Properties) — volunteers without it cannot run this.</p>
                 <input type="password" id="adminTokenInput" placeholder="Admin token" autocomplete="off" class="w-full theme-input border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none">
+                <button type="button" id="forceAllPwaRefreshBtn" onclick="forceHardRefreshAllDevices_()" class="bg-amber-600 hover:bg-amber-500 dark:bg-amber-800 dark:hover:bg-amber-700 text-white font-black py-2 rounded-lg text-xs transition shadow-lg">♻️ Force Hard Refresh on All PWA Devices</button>
+                <p class="text-[9px] theme-text-muted leading-snug">Publishes a refresh epoch. Each connected PWA clears only its app-shell cache and reloads automatically on its next sync; local race data is preserved.</p>
                 <button type="button" onclick="startFreshEventFlow_()" class="bg-red-600 hover:bg-red-500 dark:bg-red-800 dark:hover:bg-red-700 text-white font-black py-2 rounded-lg text-xs transition shadow-lg">🆕 Start Fresh Event (Archive &amp; Mark Deleted)</button>
             </div>
 
@@ -2062,6 +2143,12 @@
                     <button type="button" onclick="applySafetyQuickFilter_('missing')" data-quick-filter="missing" class="safety-quick-chip text-[11px] font-bold px-2.5 py-1 rounded-full border transition">🚩 Flagged Missing <span id="safetyChipCountMissing">0</span></button>
                     <button type="button" onclick="applySafetyQuickFilter_('overdue')" data-quick-filter="overdue" class="safety-quick-chip text-[11px] font-bold px-2.5 py-1 rounded-full border transition">⏰ Overdue (past cutoff) <span id="safetyChipCountOverdue">0</span></button>
                 </div>
+                <div id="safetyTotalsBar" class="flex flex-wrap gap-1.5 items-center" aria-live="polite">
+                    <span class="safety-total-pill"><span class="text-[9px] theme-text-muted font-bold uppercase">Visible</span><strong id="safetyVisibleTotal">0</strong></span>
+                    <span class="safety-total-pill"><span class="text-[9px] theme-text-muted font-bold uppercase">All runners</span><strong id="safetyRosterTotal">0</strong></span>
+                    <span class="safety-total-pill"><span class="text-[9px] theme-text-muted font-bold uppercase">KM/category selected</span><strong id="safetySelectedComboTotal">0</strong></span>
+                    <span class="safety-total-pill"><span class="text-[9px] theme-text-muted font-bold uppercase">Checkpoint scope</span><strong id="safetyCheckpointScopeTotal">0</strong></span>
+                </div>
                 <div class="flex flex-wrap gap-2 items-center">
                     <input type="text" id="safetySearchBar" oninput="renderSafetyLog_()" placeholder="🔍 Search bib, KM, category, checkpoint, remark..." class="flex-grow min-w-[180px] theme-input border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-red-600">
                     <div class="flex items-center gap-1">
@@ -2094,7 +2181,7 @@
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <div>
                             <div class="text-[10px] font-black theme-text uppercase tracking-wide">KM × Category matrix</div>
-                            <div class="text-[9px] theme-text-muted">Tick any distance/category combination. Row and column checkboxes select groups.</div>
+                            <div class="text-[9px] theme-text-muted">Tick any distance/category combination, then combine it with checkpoint, volunteer, status, or search filters. Counts update automatically.</div>
                         </div>
                         <div class="flex gap-1">
                             <button type="button" onclick="setSafetyMatrixSelection_('all')" class="theme-input border rounded px-2 py-1 text-[10px] font-bold">Select all</button>
@@ -2180,10 +2267,19 @@
                     <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
                     <div class="flex gap-3 items-stretch">
                         <div class="flex-grow relative">
-                            <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" onkeydown="blockBibSpace_(event)" oninput="warmUpGPS(); stripBibSpaces_(this); autoScaleBibFontSize_();" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl px-2 focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
+                            <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" onkeydown="blockBibSpace_(event)" oninput="warmUpGPS(); stripBibSpaces_(this); autoScaleBibFontSize_();" placeholder="0" class="bib-input-with-controls w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
+                            <div class="bib-input-controls" aria-label="Bib entry tools">
+                                <button type="button" id="bibEntryModeBtn" onclick="toggleKeyboardMode(); event.stopPropagation();" title="Switch bib keyboard between numbers and letters" aria-label="Switch bib keyboard between numbers and letters" class="bib-input-control">
+                                    <span id="bibEntryModeIcon" class="bib-input-control-icon">🔢</span>
+                                    <span id="bibEntryModeLabel" class="bib-input-control-label">123</span>
+                                </button>
+                                <button type="button" id="bibOcrBtn" onclick="openBibScanner(); event.stopPropagation();" title="Open OCR bib scanner" aria-label="Open OCR bib scanner" class="bib-input-control">
+                                    <span class="bib-input-control-icon">📷</span>
+                                    <span class="bib-input-control-label">OCR</span>
+                                </button>
+                            </div>
                         </div>
                         <button id="logActionButton" onclick="checkDuplicateAndLog()" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-90 duration-75 text-white font-extrabold text-lg px-8 rounded-xl shadow-lg transition-all flex items-center justify-center">LOG</button>
-                        <button type="button" id="bibEntryModeBtn" onclick="toggleKeyboardMode(this)" title="Switch bib keyboard between numbers and letters" aria-label="Switch bib keyboard between numbers and letters" class="icon-tap-target theme-input border theme-border rounded-xl px-3 flex flex-col items-center justify-center leading-none shrink-0 hover:opacity-80 transition"><span id="bibEntryModeIcon" class="text-xl">🔢</span><span id="bibEntryModeLabel" class="text-[9px] font-black mt-1">123</span></button>
                     </div>
                     <div class="mt-1 relative">
                         <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark for next bib (Optional)</label>
@@ -2522,6 +2618,10 @@
         let safetyQuickFilter_ = 'all';
         let safetySortAscending_ = true;
         let safetyMatrixSelection_ = null;
+        let lastSafetyRosterForCounts_ = [];
+
+        const LOCAL_APP_REFRESH_EPOCH_KEY_ = 'appRefreshEpoch_v1';
+        let hardRefreshInProgress_ = false;
         
         let syncIntervalMs = 15000; 
         let syncTimerId = null;
@@ -2664,36 +2764,91 @@
         document.getElementById('remarkInput').addEventListener('focus', handleViewportResize);
         document.getElementById('remarkInput').addEventListener('blur', () => setTimeout(handleViewportResize, 100));
 
-        async function forceClearAppCache() {
-            const explicitWarningPrompt = 
-                "⚠️ CRITICAL ACTION: PURGE APP STORAGE & SHELL CACHES\n\n" +
-                "This will unregister active service workers, wipe asset caches, and fix sync drops.\n\n" +
-                "👉 Type the number 2 below and hit OK to reset:";
-            const userVerification = prompt(explicitWarningPrompt);
-            if (userVerification === "2") {
-                try {
-                    if ('serviceWorker' in navigator) {
-                        const registrations = await navigator.serviceWorker.getRegistrations();
-                        for (let registration of registrations) {
-                            await registration.unregister();
-                        }
-                    }
-                    if ('caches' in window) {
-                        const keys = await caches.keys();
-                        for (let key of keys) {
-                            await caches.delete(key);
-                        }
-                    }
-                    const storedUrl = localStorage.getItem("syncUrl");
-                    localStorage.clear();
-                    if (storedUrl) localStorage.setItem("syncUrl", storedUrl);
+        function restoreHardRefreshDrafts_() {
+            const bibDraft = localStorage.getItem('hardRefreshBibDraft_v1');
+            const remarkDraft = localStorage.getItem('hardRefreshRemarkDraft_v1');
+            const bibInput = document.getElementById('bibInput');
+            const remarkInput = document.getElementById('remarkInput');
+            if (bibDraft !== null && bibInput && !bibInput.value) bibInput.value = bibDraft;
+            if (remarkDraft !== null && remarkInput && !remarkInput.value) remarkInput.value = remarkDraft;
+            localStorage.removeItem('hardRefreshBibDraft_v1');
+            localStorage.removeItem('hardRefreshRemarkDraft_v1');
+            if (bibInput) autoScaleBibFontSize_();
+        }
 
-                    alert("✅ App context successfully reset! Hard-reloading page shell...");
-                    window.location.reload(true);
-                } catch (err) {
-                    console.error("Cache purge failed: ", err);
-                    window.location.reload(true);
+        async function performHardRefreshThisDevice_(reason) {
+            if (hardRefreshInProgress_) return;
+            hardRefreshInProgress_ = true;
+            const bibDraft = document.getElementById('bibInput')?.value || '';
+            const remarkDraft = document.getElementById('remarkInput')?.value || '';
+            localStorage.setItem('hardRefreshBibDraft_v1', bibDraft);
+            localStorage.setItem('hardRefreshRemarkDraft_v1', remarkDraft);
+            try {
+                if ('caches' in window) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.filter(key => key.startsWith('race-logger-')).map(key => caches.delete(key)));
                 }
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                        try {
+                            await registration.update();
+                            if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        } catch (_) {}
+                    }
+                }
+            } catch (err) {
+                console.warn('Hard refresh preparation failed; reloading anyway.', err);
+            }
+            const url = new URL(window.location.href);
+            url.searchParams.set('_pwa_refresh', String(Date.now()));
+            url.hash = '';
+            window.location.replace(url.toString());
+        }
+
+        async function forceClearAppCache() {
+            const ok = confirm(
+                "Hard refresh this device now?\n\n" +
+                "The latest app shell will be loaded. Local race logs, queued entries, settings, and safety notes will be kept."
+            );
+            if (!ok) return;
+            await performHardRefreshThisDevice_('manual');
+        }
+
+        function handleAppRefreshEpochFromServer_(serverEpoch, forceNow = false) {
+            if (!serverEpoch) return false;
+            const epoch = String(serverEpoch);
+            const localEpoch = localStorage.getItem(LOCAL_APP_REFRESH_EPOCH_KEY_);
+            if (!localEpoch && !forceNow) {
+                localStorage.setItem(LOCAL_APP_REFRESH_EPOCH_KEY_, epoch);
+                return false;
+            }
+            if (localEpoch === epoch && !forceNow) return false;
+            localStorage.setItem(LOCAL_APP_REFRESH_EPOCH_KEY_, epoch);
+            setTimeout(() => performHardRefreshThisDevice_('server-epoch'), 120);
+            return true;
+        }
+
+        async function forceHardRefreshAllDevices_() {
+            const adminToken = (document.getElementById('adminTokenInput')?.value || '').trim();
+            if (!adminToken) { alert('⚠️ Enter the admin token first.'); return; }
+            if (!syncUrl) { alert('⚠️ No sync URL configured.'); return; }
+            if (!confirm('Force every connected PWA device to clear its app-shell cache and reload on its next sync? Local race data will be preserved.')) return;
+
+            const btn = document.getElementById('forceAllPwaRefreshBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Publishing refresh…'; }
+            try {
+                const res = await fetch(`${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'force_pwa_refresh', adminToken })
+                });
+                const data = JSON.parse(await res.text());
+                if (data.status !== 'success' || !data.appRefreshEpoch) throw new Error(data.message || 'Server did not publish a refresh epoch.');
+                handleAppRefreshEpochFromServer_(data.appRefreshEpoch, true);
+            } catch (err) {
+                alert('❌ Could not publish the PWA refresh: ' + (err.message || String(err)));
+                if (btn) { btn.disabled = false; btn.textContent = '♻️ Force Hard Refresh on All PWA Devices'; }
             }
         }
 
@@ -3287,6 +3442,7 @@
             initSyncBadgeCollapseTimer_();
             loadSettingsState();
             applyBibKeyboardMode_(localStorage.getItem('bibKeyboardMode') || 'numeric');
+            restoreHardRefreshDrafts_();
             updateSearchBoxPlaceholder();
             loadHistory();
             initBatteryMonitoring();
@@ -3367,6 +3523,7 @@
             navigator.serviceWorker.register('sw.js').catch(() => { /* non-fatal */ });
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data && event.data.type === 'race-log-sync-complete') {
+                    if (event.data.appRefreshEpoch && handleAppRefreshEpochFromServer_(event.data.appRefreshEpoch)) return;
                     loadHistory();
                     if (event.data.summary) renderSummaryDashboard(event.data.summary);
                 }
@@ -3915,6 +4072,7 @@
                     recordSyncSuccess(); 
                     loadHistory(); 
                     if (data.summary) renderSummaryDashboard(data.summary);
+                    if (data.appRefreshEpoch) handleAppRefreshEpochFromServer_(data.appRefreshEpoch);
                 };
             }).catch(err => {
                 recordSyncFailure(err.message || String(err));
@@ -3974,6 +4132,7 @@
                         recordSyncSuccess();
                         loadHistory();
                         if (data.summary) renderSummaryDashboard(data.summary);
+                        if (data.appRefreshEpoch && handleAppRefreshEpochFromServer_(data.appRefreshEpoch)) return;
                         if (data.eventEpoch) handleEventEpochFromServer_(data.eventEpoch);
                         if (data.bulkDeleteEpoch && (!data.eventEpoch || localStorage.getItem(LOCAL_EVENT_EPOCH_KEY_) === String(data.eventEpoch))) {
                             handleBulkDeleteEpochFromServer_(data.bulkDeleteEpoch);
@@ -4011,6 +4170,7 @@
                 if (result.summary) {
                     renderSummaryDashboard(result.summary);
                 }
+                if (result.appRefreshEpoch && handleAppRefreshEpochFromServer_(result.appRefreshEpoch)) return;
                 if (result.eventEpoch) handleEventEpochFromServer_(result.eventEpoch);
                 if (result.bulkDeleteEpoch && (!result.eventEpoch || localStorage.getItem(LOCAL_EVENT_EPOCH_KEY_) === String(result.eventEpoch))) {
                     if (handleBulkDeleteEpochFromServer_(result.bulkDeleteEpoch)) return;
@@ -4448,6 +4608,20 @@
                 const logs = rawLogs.map(l => withLivePreview_(l, _bibMap, categoryConfig));
                 callback(logs);
             };
+        }
+
+        function compareLogsNewestFirst_(a, b) {
+            const aTime = parseCustomOrIsoDate(a && a.time).getTime();
+            const bTime = parseCustomOrIsoDate(b && b.time).getTime();
+            const safeATime = Number.isFinite(aTime) ? aTime : 0;
+            const safeBTime = Number.isFinite(bTime) ? bTime : 0;
+            if (safeBTime !== safeATime) return safeBTime - safeATime;
+            const aReceived = parseCustomOrIsoDate(a && a.serverReceivedAt).getTime();
+            const bReceived = parseCustomOrIsoDate(b && b.serverReceivedAt).getTime();
+            const safeAReceived = Number.isFinite(aReceived) ? aReceived : 0;
+            const safeBReceived = Number.isFinite(bReceived) ? bReceived : 0;
+            if (safeBReceived !== safeAReceived) return safeBReceived - safeAReceived;
+            return (Number(b && b.id) || 0) - (Number(a && a.id) || 0);
         }
 
         function formatLogTime(timeStr) {
@@ -5044,7 +5218,7 @@
             renderSafetyLog_();
         }
 
-        function renderSafetyMatrix_() {
+        function renderSafetyMatrix_(countRoster) {
             const container = document.getElementById('safetyMatrixFilter');
             if (!container) return;
             const combos = getSafetyMatrixCombos_();
@@ -5052,17 +5226,21 @@
                 container.innerHTML = '<div class="text-[10px] theme-text-muted p-2">No KM/category configuration received from the Setup sheet yet.</div>';
                 return;
             }
-
+            if (Array.isArray(countRoster)) lastSafetyRosterForCounts_ = countRoster;
+            const rosterForCounts = Array.isArray(lastSafetyRosterForCounts_) ? lastSafetyRosterForCounts_ : [];
+            const comboCounts = new Map();
+            rosterForCounts.forEach(r => comboCounts.set(r._comboKey, (comboCounts.get(r._comboKey) || 0) + 1));
             const selected = selectedSafetyComboKeys_();
-            const kms = Array.from(new Map(combos.map(c => [c.kmKey, c])).values())
-                .sort((a, b) => (parseFloat(b.kmKey) || 0) - (parseFloat(a.kmKey) || 0));
+            const kms = Array.from(new Map(combos.map(c => [c.kmKey, c])).values()).sort((a, b) => (parseFloat(b.kmKey) || 0) - (parseFloat(a.kmKey) || 0));
             const categories = Array.from(new Set(combos.map(c => c.category))).sort((a, b) => a.localeCompare(b));
             const available = new Set(combos.map(c => c.key));
+            const categoryTotal = (category) => combos.filter(c => c.category === category).reduce((sum, c) => sum + (comboCounts.get(c.key) || 0), 0);
+            const kmTotal = (kmKey) => combos.filter(c => c.kmKey === kmKey).reduce((sum, c) => sum + (comboCounts.get(c.key) || 0), 0);
 
             const header = categories.map((category, colIndex) => {
                 const colCombos = combos.filter(c => c.category === category);
                 const checkedCount = colCombos.filter(c => selected.has(c.key)).length;
-                return `<th><label class="flex items-center justify-center gap-1 cursor-pointer"><input id="safety-matrix-col-${colIndex}" type="checkbox" class="safety-matrix-check" ${checkedCount === colCombos.length ? 'checked' : ''} onchange="toggleSafetyMatrixCategory_('${encodeInlineArg_(category)}', this.checked)"><span>${escapeHtml_(category)}</span></label></th>`;
+                return `<th><label class="flex items-center justify-center gap-1 cursor-pointer"><input id="safety-matrix-col-${colIndex}" type="checkbox" class="safety-matrix-check" ${checkedCount === colCombos.length ? 'checked' : ''} onchange="toggleSafetyMatrixCategory_('${encodeInlineArg_(category)}', this.checked)"><span>${escapeHtml_(category)}</span><span class="safety-matrix-count">${categoryTotal(category)}</span></label></th>`;
             }).join('');
 
             const rows = kms.map((km, rowIndex) => {
@@ -5071,12 +5249,14 @@
                 const cells = categories.map(category => {
                     const key = safetyComboKey_(km.km, category);
                     if (!available.has(key)) return '<td class="safety-matrix-unavailable">—</td>';
-                    return `<td><input type="checkbox" class="safety-matrix-check" ${selected.has(key) ? 'checked' : ''} aria-label="${escapeHtmlAttr_(`${km.kmLabel} ${category}`)}" onchange="toggleSafetyMatrixCell_('${encodeInlineArg_(key)}', this.checked)"></td>`;
+                    const count = comboCounts.get(key) || 0;
+                    return `<td><label class="inline-flex items-center justify-center gap-1 cursor-pointer"><input type="checkbox" class="safety-matrix-check" ${selected.has(key) ? 'checked' : ''} aria-label="${escapeHtmlAttr_(`${km.kmLabel} ${category}`)}" onchange="toggleSafetyMatrixCell_('${encodeInlineArg_(key)}', this.checked)"><span class="safety-matrix-count">${count}</span></label></td>`;
                 }).join('');
-                return `<tr><th><label class="flex items-center gap-1 cursor-pointer"><input id="safety-matrix-row-${rowIndex}" type="checkbox" class="safety-matrix-check" ${checkedCount === rowCombos.length ? 'checked' : ''} onchange="toggleSafetyMatrixKm_('${encodeInlineArg_(km.kmKey)}', this.checked)"><span>${escapeHtml_(km.kmLabel)}</span></label></th>${cells}</tr>`;
+                return `<tr><th><label class="flex items-center gap-1 cursor-pointer"><input id="safety-matrix-row-${rowIndex}" type="checkbox" class="safety-matrix-check" ${checkedCount === rowCombos.length ? 'checked' : ''} onchange="toggleSafetyMatrixKm_('${encodeInlineArg_(km.kmKey)}', this.checked)"><span>${escapeHtml_(km.kmLabel)}</span></label></th>${cells}<th><span class="safety-matrix-count">${kmTotal(km.kmKey)}</span></th></tr>`;
             }).join('');
 
-            container.innerHTML = `<table class="safety-matrix-table"><thead><tr><th>Distance</th>${header}</tr></thead><tbody>${rows}</tbody></table>`;
+            const grandTotal = rosterForCounts.length;
+            container.innerHTML = `<table class="safety-matrix-table"><thead><tr><th>Distance</th>${header}<th>Total</th></tr></thead><tbody>${rows}<tr><th>Total</th>${categories.map(category => `<th><span class="safety-matrix-count">${categoryTotal(category)}</span></th>`).join('')}<th><span class="safety-matrix-count">${grandTotal}</span></th></tr></tbody></table>`;
             categories.forEach((category, i) => {
                 const group = combos.filter(c => c.category === category);
                 const count = group.filter(c => selected.has(c.key)).length;
@@ -5194,6 +5374,7 @@
 
             getEnrichedLogsFromDb_(function(logs) {
                 let roster = buildSafetyRosterFromLogs_(logs);
+                const totalRosterCount = roster.length;
 
                 // Keep the checkpoint/volunteer dropdown options in sync with the data
                 // BEFORE reading their .value, so a just-added option isn't missed.
@@ -5233,12 +5414,16 @@
                 }
                 if (statusFilter === '__none__') roster = roster.filter(r => !r._safetyStatus);
                 else if (statusFilter) roster = roster.filter(r => r._safetyStatus === statusFilter);
+                if (checkpointFilter) roster = roster.filter(r => (r.checkpoint || '') === checkpointFilter);
+                if (volunteerFilter) roster = roster.filter(r => (r.volunteer || '') === volunteerFilter);
+
+                const matrixCountRoster = roster.slice();
+                renderSafetyMatrix_(matrixCountRoster);
+
                 if (safetyMatrixSelection_ !== null) {
                     const selectedCombos = selectedSafetyComboKeys_();
                     roster = roster.filter(r => selectedCombos.has(r._comboKey));
                 }
-                if (checkpointFilter) roster = roster.filter(r => (r.checkpoint || '') === checkpointFilter);
-                if (volunteerFilter) roster = roster.filter(r => (r.volunteer || '') === volunteerFilter);
 
                 // Counts reflect the search box (so the badges match what "All" would show)
                 // but not the quick-filter itself, so switching between chips is meaningful.
@@ -5271,6 +5456,16 @@
                 });
                 if (!safetySortAscending_) roster.reverse();
 
+                const selectedComboCount = selectedSafetyComboKeys_().size;
+                const visibleEl = document.getElementById('safetyVisibleTotal');
+                const rosterEl = document.getElementById('safetyRosterTotal');
+                const comboEl = document.getElementById('safetySelectedComboTotal');
+                const checkpointEl = document.getElementById('safetyCheckpointScopeTotal');
+                if (visibleEl) visibleEl.textContent = roster.length;
+                if (rosterEl) rosterEl.textContent = totalRosterCount;
+                if (comboEl) comboEl.textContent = selectedComboCount;
+                if (checkpointEl) checkpointEl.textContent = matrixCountRoster.length;
+
                 if (emptyState) emptyState.classList.toggle('hidden', roster.length > 0);
 
                 body.innerHTML = roster.map(r => {
@@ -5296,7 +5491,7 @@
                                 </select>
                             </td>
                             <td class="p-2">
-                                <input type="text" id="remark-${r.bib}" value="${(r._safetyRemark||'').replace(/"/g,'&quot;')}" placeholder="e.g. Confirmed OK by phone" onblur="setSafetyNote_('${r.bib}', undefined, this.value)" onkeydown="if(event.key==='Enter') this.blur();" class="w-full theme-input border rounded px-2 py-1 text-[11px] focus:outline-none">
+                                <input type="text" id="remark-${r.bib}" value="${escapeHtmlAttr_(r._safetyRemark || '')}" placeholder="e.g. Confirmed OK by phone" onblur="setSafetyNote_('${r.bib}', undefined, this.value)" onkeydown="if(event.key==='Enter') this.blur();" class="w-full theme-input border rounded px-2 py-1 text-[11px] focus:outline-none">
                             </td>
                             <td class="p-2 text-[10px] theme-text-muted whitespace-nowrap">${updatedLabel || '-'}</td>
                         </tr>`;
@@ -6018,7 +6213,10 @@
                 scopedLogs.forEach(l => frequencies[l.bib] = (frequencies[l.bib] || 0) + 1);
                 const logList = document.getElementById('logList'); logList.innerHTML = '';
 
-                let filteredLogs = scopedLogs.reverse().filter(log => {
+                // IndexedDB getAll() is primary-key ordered, not event-time ordered.
+                // A server pull can insert an older scan today, so explicitly sort by
+                // scan timestamp to guarantee newest-to-oldest history after every sync.
+                let filteredLogs = [...scopedLogs].sort(compareLogsNewestFirst_).filter(log => {
                     return log.bib.toLowerCase().includes(query) || 
                            log.checkpoint.toLowerCase().includes(query) || 
                            (log.remark && log.remark.toLowerCase().includes(query)) ||
