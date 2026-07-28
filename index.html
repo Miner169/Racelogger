@@ -196,6 +196,7 @@
            misplaced, wrong stacking). Defined here so the modal always renders
            correctly even against the older cached stylesheet. */
         .aspect-\[4\/3\] { aspect-ratio: 4 / 3; }
+        .col-span-2 { grid-column: span 2 / span 2; }
         .bg-black { background-color: #000; }
         .bg-black\/60 { background-color: rgba(0,0,0,.6); }
         .bg-black\/95 { background-color: rgba(0,0,0,.95); }
@@ -746,45 +747,101 @@
             box-shadow: 0 0 0 3px rgba(59,130,246,0.2), 0 0 16px rgba(59,130,246,0.1);
         }
 
-        /* Bib entry tools live inside the bib box again, matching the original
-           fast-entry layout while keeping both controls easy to reach. */
-        .bib-input-with-controls {
-            padding-left: 0.75rem !important;
-            padding-right: 7.25rem !important;
-        }
-        .bib-input-controls {
-            position: absolute;
-            top: 50%;
-            right: 0.45rem;
-            transform: translateY(-50%);
+        /* Manual-entry tools sit directly after the “2. Enter Bib” heading.
+           The mode button describes the keyboard the next tap will open (ABC while
+           numeric typing is active, 123 while alphabet typing is active). */
+        .bib-entry-heading-row {
             display: flex;
-            align-items: stretch;
-            gap: 0.3rem;
-            z-index: 4;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
-        .bib-input-control {
-            min-width: 3rem;
-            height: 2.75rem;
-            padding: 0.2rem 0.4rem;
+        .bib-entry-tools {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .bib-entry-tool {
+            min-height: 2rem;
+            min-width: 3.4rem;
+            padding: 0.3rem 0.6rem;
             border-radius: 0.55rem;
             display: inline-flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 0.3rem;
             line-height: 1;
             background: color-mix(in srgb, var(--input-bg) 88%, var(--header-bg));
             border: 1px solid var(--border-color);
             color: var(--input-text);
             box-shadow: 0 1px 4px rgba(0,0,0,0.18);
-        }
-        .bib-input-control:hover { opacity: 0.85; }
-        .bib-input-control-icon { font-size: 0.95rem; }
-        .bib-input-control-label {
-            font-size: 0.5rem;
+            font-size: 0.625rem;
             font-weight: 900;
-            margin-top: 0.2rem;
             letter-spacing: 0.04em;
         }
+        .bib-entry-tool:hover { opacity: 0.85; }
+        .bib-entry-tool:disabled { cursor: not-allowed; opacity: 0.4; }
+        .bib-entry-tool-icon { font-size: 0.9rem; }
+        #bibEntrySection.setup-required {
+            opacity: 0.62;
+            border-style: dashed;
+        }
+        #bibEntryGateMessage {
+            display: none;
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border-radius: 0.55rem;
+            padding: 0.45rem 0.6rem;
+            font-size: 0.625rem;
+            font-weight: 800;
+            line-height: 1.35;
+        }
+        #bibEntrySection.setup-required #bibEntryGateMessage { display: block; }
+
+        /* Duplicate scans detected by the backend remain visible for audit when two
+           devices submit the same bib at the same checkpoint. They are deliberately
+           greyed and excluded from lap/count/safety calculations. If a third distinct
+           device joins the same near-simultaneous cluster, all non-oldest copies are
+           auto-removed from PWA devices while their sheet rows stay grey for audit. */
+        .duplicate-log-row {
+            background: color-mix(in srgb, var(--card-tint) 70%, #9ca3af 30%) !important;
+            border-left: 3px solid #9ca3af;
+        }
+        .duplicate-log-row:hover {
+            background: color-mix(in srgb, var(--card-tint) 60%, #9ca3af 40%) !important;
+        }
+        .duplicate-log-row .bib-text-highlight,
+        .duplicate-log-row .duplicate-bib-text {
+            color: #9ca3af !important;
+            text-shadow: none !important;
+        }
+        .duplicate-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.15rem 0.45rem;
+            border-radius: 9999px;
+            border: 1px solid #9ca3af;
+            background: rgba(156, 163, 175, 0.16);
+            color: #9ca3af;
+            font-size: 0.5625rem;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .director-km-group-row { cursor: pointer; }
+        .director-km-group-row:hover td { background: rgba(59,130,246,0.06); }
+        .director-km-detail-row td:first-child { padding-left: 2.25rem !important; }
+        .director-km-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-weight: 900;
+            text-align: left;
+        }
+        .director-km-arrow { width: 0.8rem; color: var(--header-text); }
         #forceAllPwaRefreshBtn {
             background: #d97706;
             color: #ffffff;
@@ -1842,14 +1899,14 @@
         </div>
     </div>
 
-    <!-- Bib Scanner: point the camera at a runner's bib, OCR reads the number, volunteer
-         confirms/edits before it lands in the Bib field. Engine is switchable between
-         Tesseract.js (default, fully client-side, works offline once its language data is
-         cached) and a TensorFlow.js slot (see readMe note in the JS below re: ML Kit). -->
+    <!-- Hands-free Bib Scanner: point the camera at a runner's bib. Two stable,
+         high-confidence readings of a registered bib are written directly to the local
+         race log; no Capture, Use, or LOG tap is required. Engine selection remains
+         available for device-specific testing. -->
     <div id="bibScannerModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-[80]">
         <div class="theme-panel p-4 rounded-2xl border w-full max-w-md shadow-2xl flex flex-col gap-3">
             <div class="flex justify-between items-center">
-                <h3 class="text-base font-bold theme-text flex items-center gap-1.5">📷 Scan Bib Number</h3>
+                <h3 class="text-base font-bold theme-text flex items-center gap-1.5">📹 Live OCR — Auto Log</h3>
                 <div class="flex items-center gap-1">
                     <button type="button" id="bibScannerSwitchCamBtn" onclick="switchBibScannerCamera_()" title="Switch camera" class="hidden icon-tap-target text-lg p-1 hover:opacity-70 transition">🔄</button>
                     <button type="button" onclick="closeBibScanner()" class="text-neutral-500 hover:theme-text text-xl leading-none px-1">✕</button>
@@ -1891,16 +1948,11 @@
                     <option value="paddleocr">PaddleOCR.js (experimental)</option>
                 </select>
             </div>
-            <p id="bibScannerTip" class="text-[10px] theme-text-muted -mt-1 leading-snug">Auto-scans continuously — just fill the guide box with the bib number and hold steady. Tap Capture to force an immediate read.</p>
+            <p id="bibScannerTip" class="text-[10px] theme-text-muted -mt-1 leading-snug">Video OCR scans continuously. Hold a registered bib steady in the guide; after a stable match it is logged automatically.</p>
 
-            <div id="bibScannerResultRow" class="hidden flex-col gap-2">
-                <label class="block text-[10px] theme-text-muted font-bold">Recognized number — check &amp; edit before using</label>
-                <input type="text" id="bibScannerResultInput" inputmode="numeric" class="w-full h-12 theme-input text-center text-2xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900">
-            </div>
 
-            <div class="flex gap-2">
-                <button type="button" id="bibScannerCaptureBtn" onclick="captureAndScanBib()" class="flex-1 bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition">📸 Capture &amp; Scan</button>
-                <button type="button" id="bibScannerUseBtn" onclick="useScannedBib()" class="hidden flex-1 bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition">✅ Use This Bib</button>
+            <div class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 rounded-lg px-3 py-2 text-center">
+                ✅ Hands-free mode: a stable recognized bib is recorded automatically. Move to the next runner after the logged message appears.
             </div>
         </div>
     </div>
@@ -1962,7 +2014,7 @@
                         <table class="w-full text-left border-collapse text-[11px] sm:text-sm">
                             <thead>
                                 <tr style="background-color: var(--th-bg);" class="text-neutral-900 dark:text-white font-black border-b theme-border uppercase tracking-wider text-outlined-contrast">
-                                    <th class="p-2 sm:p-3 pl-3">Category</th>
+                                    <th class="p-2 sm:p-3 pl-3">KM / Categories</th>
                                     <th class="p-2 sm:p-3 text-center">KM</th>
                                     <th class="p-2 sm:p-3 text-center">BIB Rule</th>
                                     <th class="p-2 sm:p-3 text-center">COT</th>
@@ -2183,7 +2235,8 @@
                             <div class="text-[10px] font-black theme-text uppercase tracking-wide">KM × Category matrix</div>
                             <div class="text-[9px] theme-text-muted">Tick any distance/category combination, then combine it with checkpoint, volunteer, status, or search filters. Counts update automatically.</div>
                         </div>
-                        <div class="flex gap-1">
+                        <div class="flex gap-1 flex-wrap justify-end">
+                            <button type="button" id="downloadSelectedSafetyBibsBtn" onclick="downloadSelectedSafetyBibs_()" title="Download the currently filtered bib numbers, one per line, for copy/paste" class="bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 text-white border border-emerald-600 rounded px-2 py-1 text-[10px] font-bold">⬇️ Download BIBs (0)</button>
                             <button type="button" onclick="setSafetyMatrixSelection_('all')" class="theme-input border rounded px-2 py-1 text-[10px] font-bold">Select all</button>
                             <button type="button" onclick="setSafetyMatrixSelection_('none')" class="theme-input border rounded px-2 py-1 text-[10px] font-bold">Clear</button>
                         </div>
@@ -2247,11 +2300,19 @@
                     <div id="setupFields" class="grid grid-cols-2 gap-2 transition-all duration-300">
                         <div>
                             <label class="block text-[10px] theme-text-muted mb-0.5 font-bold">Checkpoint Name</label>
-                            <input type="text" id="checkpoint" placeholder="e.g. CP1" oninput="onCheckpointInput_();" class="w-full theme-input border rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-900 uppercase font-semibold transition-colors duration-150">
+                            <input type="text" id="checkpoint" placeholder="e.g. CP1" oninput="onCheckpointInput_(); updateSetupGate_();" class="w-full theme-input border rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-900 uppercase font-semibold transition-colors duration-150">
                         </div>
                         <div>
                             <label class="block text-[10px] theme-text-muted mb-0.5 font-bold">Volunteer Initials</label>
-                            <input type="text" id="volunteer" placeholder="e.g. John" class="w-full theme-input border rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-900 uppercase font-semibold">
+                            <input type="text" id="volunteer" placeholder="e.g. John" oninput="onVolunteerInput_();" class="w-full theme-input border rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-900 uppercase font-semibold">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[10px] theme-text-muted mb-0.5 font-bold">Lap/CP Recording</label>
+                            <select id="lapModeSelect" onchange="onLapModeChange_();" class="w-full theme-input border rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-900 font-semibold">
+                                <option value="single">1 only — one accepted record per bib at this checkpoint</option>
+                                <option value="multiple">Multiple — allow Lap/CP 1, 2, 3… after separate passages</option>
+                            </select>
+                            <p id="lapModeHelp" class="text-[9px] theme-text-muted mt-1 leading-snug">Near-simultaneous scans from different devices are still treated as one passage. Two copies are shown grey; at three distinct devices, only the record with the earliest scan time remains in the live runner log.</p>
                         </div>
                     </div>
                 </section>
@@ -2263,21 +2324,22 @@
                 </section>
 
                 <!-- Fast Entry Log Form -->
-                <section class="theme-panel p-4 rounded-xl border shadow flex flex-col gap-3">
-                    <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
+                <section id="bibEntrySection" class="theme-panel p-4 rounded-xl border shadow flex flex-col gap-3 setup-required" onclick="focusIncompleteSetup_(event)">
+                    <div class="bib-entry-heading-row">
+                        <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
+                        <div class="bib-entry-tools" aria-label="Bib entry tools">
+                            <button type="button" id="bibOcrBtn" onclick="openBibScanner(); event.stopPropagation();" title="Start live OCR auto logging" aria-label="Start live OCR auto logging" class="bib-entry-tool">
+                                <span class="bib-entry-tool-icon">📹</span><span>OCR</span>
+                            </button>
+                            <button type="button" id="bibEntryModeBtn" onclick="toggleKeyboardMode(); event.stopPropagation();" title="Switch bib keyboard between numbers and letters" aria-label="Switch bib keyboard between numbers and letters" class="bib-entry-tool">
+                                <span id="bibEntryModeIcon" class="bib-entry-tool-icon">🔤</span><span id="bibEntryModeLabel">ABC</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="bibEntryGateMessage">Complete both fields in <strong>1. Setup</strong> before typing or scanning a bib.</div>
                     <div class="flex gap-3 items-stretch">
                         <div class="flex-grow relative">
-                            <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" onkeydown="blockBibSpace_(event)" oninput="warmUpGPS(); stripBibSpaces_(this); autoScaleBibFontSize_();" placeholder="0" class="bib-input-with-controls w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
-                            <div class="bib-input-controls" aria-label="Bib entry tools">
-                                <button type="button" id="bibEntryModeBtn" onclick="toggleKeyboardMode(); event.stopPropagation();" title="Switch bib keyboard between numbers and letters" aria-label="Switch bib keyboard between numbers and letters" class="bib-input-control">
-                                    <span id="bibEntryModeIcon" class="bib-input-control-icon">🔢</span>
-                                    <span id="bibEntryModeLabel" class="bib-input-control-label">123</span>
-                                </button>
-                                <button type="button" id="bibOcrBtn" onclick="openBibScanner(); event.stopPropagation();" title="Open OCR bib scanner" aria-label="Open OCR bib scanner" class="bib-input-control">
-                                    <span class="bib-input-control-icon">📷</span>
-                                    <span class="bib-input-control-label">OCR</span>
-                                </button>
-                            </div>
+                            <input type="text" id="bibInput" inputmode="numeric" onfocus="warmUpGPS()" onkeydown="blockBibSpace_(event)" oninput="warmUpGPS(); stripBibSpaces_(this); autoScaleBibFontSize_();" placeholder="0" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl px-2 focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
                         </div>
                         <button id="logActionButton" onclick="checkDuplicateAndLog()" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-90 duration-75 text-white font-extrabold text-lg px-8 rounded-xl shadow-lg transition-all flex items-center justify-center">LOG</button>
                     </div>
@@ -2544,6 +2606,7 @@
                                 <button onclick="setScopeFilter('current')" id="scopeBtn-current" class="px-2 py-0.5 rounded bg-blue-600 dark:bg-blue-900 text-white transition-colors duration-150">Current CP</button>
                                 <button onclick="setScopeFilter('global')" id="scopeBtn-global" class="px-2 py-0.5 rounded text-neutral-600 dark:text-neutral-400 transition-colors duration-150">Global</button>
                             </div>
+                            <span id="historyLapModeBadge" class="text-[9px] theme-input border theme-border rounded-md px-2 py-1 font-black whitespace-nowrap" title="Configured in 1. Setup">Lap/CP: 1 only</span>
                             
                             <button id="expandCollapseAllBtn" onclick="toggleAllLogAccordionPanels()" class="text-[11px] bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 theme-text border theme-border px-2 py-0.5 rounded font-bold transition shrink-0">↔️</button>
                             
@@ -2600,9 +2663,9 @@
         // Scanner state is declared before IndexedDB startup callbacks can fire. In the
         // previous build these `let` bindings lived thousands of lines later, so a very
         // fast DB-open/camera tap could enter the temporal dead zone and throw
-        // "Cannot access 'lastPersonBox_' before initialization". The OCR UI is no
-        // longer exposed, but keeping the dormant scanner code safe prevents any
-        // programmatic/legacy call from crashing the whole app.
+        // "Cannot access 'lastPersonBox_' before initialization". The live OCR
+        // button is available as soon as Setup is complete, so this state must be
+        // initialized before any fast camera tap can reach the scanner pipeline.
         let lastPersonBox_ = null;
         let detectionTickCounter_ = 0;
         let cocoSsdModel_ = null;
@@ -2619,6 +2682,7 @@
         let safetySortAscending_ = true;
         let safetyMatrixSelection_ = null;
         let lastSafetyRosterForCounts_ = [];
+        let lastVisibleSafetyRoster_ = [];
 
         const LOCAL_APP_REFRESH_EPOCH_KEY_ = 'appRefreshEpoch_v1';
         let hardRefreshInProgress_ = false;
@@ -2646,6 +2710,7 @@
         let soundEnabled = true;
         let gpsQuality = 'low';
         let dupWindow = 10; 
+        let lapMode = 'single';
         let batterySaverManual = false;
         let globalHistoryLimit = '100';
         let currentCpHistoryLimit = '20';
@@ -2668,6 +2733,10 @@
 
         let isDirectorModeOpen = false;
         let lastKnownSummaryRows = [];
+        let directorKmExpanded_ = (() => {
+            try { return new Set(JSON.parse(localStorage.getItem('directorKmExpanded_v1') || '[]')); }
+            catch (e) { return new Set(); }
+        })();
         // PWA-side metric config — fed from every sync response (Setup sheet data).
         // Seeded from localStorage so metrics work immediately after a page reload.
         let categoryConfig = (() => { try { return JSON.parse(localStorage.getItem('lastCachedSummaryRows') || '[]'); } catch(e) { return []; } })();
@@ -2884,11 +2953,13 @@
             const normalized = mode === 'text' ? 'text' : 'numeric';
             bI.setAttribute('inputmode', normalized);
             localStorage.setItem('bibKeyboardMode', normalized);
-            if (icon) icon.textContent = normalized === 'numeric' ? '🔢' : '🔤';
-            if (label) label.textContent = normalized === 'numeric' ? '123' : 'ABC';
+            // Show the keyboard the NEXT tap will open. In normal numeric typing
+            // mode the heading therefore reads “OCR  ABC”, as requested.
+            if (icon) icon.textContent = normalized === 'numeric' ? '🔤' : '🔢';
+            if (label) label.textContent = normalized === 'numeric' ? 'ABC' : '123';
             if (btn) btn.title = normalized === 'numeric'
-                ? 'Number keyboard active — tap for letters'
-                : 'Letter keyboard active — tap for numbers';
+                ? 'Tap to switch to the alphabet keyboard'
+                : 'Tap to switch to the number keyboard';
             if (focusAfter) {
                 bI.blur();
                 setTimeout(() => bI.focus(), 50);
@@ -3250,6 +3321,7 @@
 
         function onCheckpointInput_() {
             updateSearchBoxPlaceholder();
+            updateSetupGate_();
             debouncedLoadHistory_();
         }
 
@@ -3283,7 +3355,7 @@
             const scannedSets = new Map(); // bibRule -> Set of unique bibs seen
             summaryRows.forEach(row => { if (row.bibRule) scannedSets.set(row.bibRule, new Set()); });
             (allLogs || []).forEach(l => {
-                if (!l.bib || l.remake) return;
+                if (!isCountableLog_(l)) return;
                 const cfg = findCategoryConfigForBib_(l.bib, summaryRows);
                 if (cfg && cfg.bibRule && scannedSets.has(cfg.bibRule)) scannedSets.get(cfg.bibRule).add(l.bib);
             });
@@ -3661,6 +3733,9 @@
             isSetupLocked = localStorage.getItem("settingsLocked") === "true"; 
             document.getElementById("checkpoint").value = localStorage.getItem("checkpointVal") || ""; 
             document.getElementById("volunteer").value = localStorage.getItem("volunteerVal") || ""; 
+            lapMode = localStorage.getItem("lapMode") || "single";
+            const lapModeSelect = document.getElementById("lapModeSelect");
+            if (lapModeSelect) lapModeSelect.value = lapMode;
             
             vibrateEnabled = localStorage.getItem("vibrateEnabled") !== "false";
             soundEnabled = localStorage.getItem("soundEnabled") !== "false";
@@ -3787,20 +3862,84 @@
             alert(`⚠️ Sync trouble\n\nError: ${lastSyncError || "Unknown"}\nStreak: ${syncFailureStreak}\nLast Success: ${lastOk}`);
         }
         
-        function toggleLock() { isSetupLocked = !isSetupLocked; localStorage.setItem("settingsLocked", isSetupLocked); applyLockState(); }
+        function isSetupComplete_() {
+            const cp = (document.getElementById('checkpoint')?.value || '').trim();
+            const vol = (document.getElementById('volunteer')?.value || '').trim();
+            return !!cp && !!vol && cp.toUpperCase() !== 'N/A' && vol.toUpperCase() !== 'N/A';
+        }
+
+        function focusIncompleteSetup_(event) {
+            if (isSetupComplete_()) return;
+            if (event) event.preventDefault();
+            const cp = document.getElementById('checkpoint');
+            const vol = document.getElementById('volunteer');
+            const target = !(cp?.value || '').trim() ? cp : vol;
+            if (target && !target.disabled) target.focus();
+        }
+
+        function updateSetupGate_() {
+            const ready = isSetupComplete_();
+            const section = document.getElementById('bibEntrySection');
+            const controls = ['bibInput', 'remarkInput', 'logActionButton', 'bibEntryModeBtn', 'bibOcrBtn'];
+            controls.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = !ready;
+            });
+            if (section) {
+                section.classList.toggle('setup-required', !ready);
+                section.setAttribute('aria-disabled', ready ? 'false' : 'true');
+            }
+            return ready;
+        }
+
+        function onVolunteerInput_() {
+            updateSetupGate_();
+        }
+
+        function updateLapModeBadges_() {
+            const badge = document.getElementById('historyLapModeBadge');
+            if (badge) badge.textContent = `Lap/CP: ${lapMode === 'multiple' ? 'Multiple' : '1 only'}`;
+        }
+
+        function onLapModeChange_() {
+            const select = document.getElementById('lapModeSelect');
+            lapMode = (select && select.value === 'multiple') ? 'multiple' : 'single';
+            localStorage.setItem('lapMode', lapMode);
+            updateLapModeBadges_();
+            applyLockState();
+        }
+
+        function getLapModeLabel_(mode) {
+            return mode === 'multiple' ? 'MULTIPLE' : '1 ONLY';
+        }
+
+        function toggleLock() {
+            if (!isSetupLocked && !isSetupComplete_()) {
+                alert('⚠️ Complete Checkpoint Name and Volunteer Initials before locking Setup.');
+                focusIncompleteSetup_();
+                return;
+            }
+            isSetupLocked = !isSetupLocked;
+            localStorage.setItem("settingsLocked", isSetupLocked);
+            applyLockState();
+        }
 
         function applyLockState() {
-            const cp = document.getElementById("checkpoint"), vol = document.getElementById("volunteer"), lockBtn = document.getElementById("lockBtn"), fields = document.getElementById("setupFields"), summary = document.getElementById("setupSummary"), row = document.getElementById("setupHeaderRow");
-            cp.disabled = isSetupLocked; vol.disabled = isSetupLocked;
+            const cp = document.getElementById("checkpoint"), vol = document.getElementById("volunteer"), lapSelect = document.getElementById("lapModeSelect"), lockBtn = document.getElementById("lockBtn"), fields = document.getElementById("setupFields"), summary = document.getElementById("setupSummary"), row = document.getElementById("setupHeaderRow");
+            cp.disabled = isSetupLocked; vol.disabled = isSetupLocked; if (lapSelect) lapSelect.disabled = isSetupLocked;
+            lapMode = (lapSelect && lapSelect.value === 'multiple') ? 'multiple' : 'single';
+            localStorage.setItem('lapMode', lapMode);
             const cpV = cp.value.toUpperCase().trim() || 'N/A', volV = vol.value.toUpperCase().trim() || 'N/A';
             if (isSetupLocked) {
                 lockBtn.textContent = "🔒 Locked"; lockBtn.className = "text-[9px] bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-1.5 py-0.5 rounded font-bold transition flex items-center gap-0.5";
-                localStorage.setItem("checkpointVal", cpV); localStorage.setItem("volunteerVal", volV);
-                fields.classList.add("hidden"); row.classList.replace("mb-1", "mb-0"); summary.textContent = `${cpV} • ${volV}`; summary.classList.remove("hidden");
+                localStorage.setItem("checkpointVal", cpV); localStorage.setItem("volunteerVal", volV); localStorage.setItem('lapMode', lapMode);
+                fields.classList.add("hidden"); row.classList.replace("mb-1", "mb-0"); summary.textContent = `${cpV} • ${volV} • ${getLapModeLabel_(lapMode)}`; summary.classList.remove("hidden");
             } else {
                 lockBtn.textContent = "🔓 Unlocked"; lockBtn.className = "text-[9px] theme-btn-lock border px-1.5 py-0.5 rounded font-bold transition flex items-center gap-0.5";
                 fields.classList.remove("hidden"); row.classList.replace("mb-0", "mb-1"); summary.classList.add("hidden");
             }
+            updateLapModeBadges_();
+            updateSetupGate_();
         }
 
         function setScopeFilter(scope) {
@@ -3848,17 +3987,18 @@
             if (!bib) return;
             const cpV = (document.getElementById('checkpoint')?.value || '').trim();
             const volV = (document.getElementById('volunteer')?.value || '').trim();
-            if (!cpV || !volV) { 
-                alert("⚠️ Setup incomplete!"); 
-                bI.focus();
-                return; 
+            if (!cpV || !volV) {
+                alert("⚠️ Complete 1. Setup before entering a bib.");
+                focusIncompleteSetup_();
+                return;
             }
             db.transaction(["logs"], "readonly").objectStore("logs").getAll().onsuccess = function(e) {
-                const duplicate = e.target.result.find(log => 
-                    log.bib === bib && 
-                    log.checkpoint.toUpperCase() === cpV.toUpperCase() && 
-                    (new Date() - parseCustomOrIsoDate(log.time)) < (dupWindow * 60 * 1000)
-                );
+                const duplicate = e.target.result.find(log => {
+                    if (!isCountableLog_(log)) return false;
+                    if (log.bib !== bib || log.checkpoint.toUpperCase() !== cpV.toUpperCase()) return false;
+                    if (lapMode === 'single') return true;
+                    return (new Date() - parseCustomOrIsoDate(log.time)) < (dupWindow * 60 * 1000);
+                });
                 if (duplicate) {
                     if (!confirm(`⚠️ Bib ${bib} logged recently. Log again?`)) {
                         bI.value = ''; 
@@ -3904,7 +4044,8 @@
             return encodeURIComponent(String(value === null || value === undefined ? '' : value)).replace(/'/g, '%27');
         }
 
-        function logEntry(bib) {
+        function logEntry(bib, options) {
+            const logOptions = options || {};
             if (remarkDebounceTimeout) { clearTimeout(remarkDebounceTimeout); remarkDebounceTimeout = null; }
             const checkpoint = document.getElementById('checkpoint').value.trim();
             const volunteer = document.getElementById('volunteer').value.trim();
@@ -3919,6 +4060,10 @@
                 remark: remarkInput.value.trim(),
                 device: buildDeviceString(),
                 creatorId: getOrCreateDeviceId(),
+                lapMode: lapMode === 'multiple' ? 'multiple' : 'single',
+                status: 'Active',
+                duplicateOfUid: '',
+                duplicateDeviceCount: 1,
                 latitude: lastGeoposition.latitude,
                 longitude: lastGeoposition.longitude,
                 uid: generateUID(),
@@ -3933,20 +4078,25 @@
             lastCreatedUid = entry.uid;
             triggerScanHistorySlideFlag = true;
             const tx = db.transaction(["logs"], "readwrite");
-            tx.objectStore("logs").add(entry).onsuccess = function() {
+            const addRequest = tx.objectStore("logs").add(entry);
+            addRequest.onsuccess = function() {
                 document.getElementById('searchBar').value = '';
                 loadHistory();
                 if (vibrateEnabled && navigator.vibrate) navigator.vibrate(50);
                 playSuccessSound();
-                triggerSuccessToast(); 
+                triggerSuccessToast();
                 if (syncIntervalMs > 0) attemptSync();
                 requestBackgroundSync_();
+                if (typeof logOptions.onLogged === 'function') logOptions.onLogged(entry);
+            };
+            addRequest.onerror = function() {
+                if (typeof logOptions.onError === 'function') logOptions.onError(addRequest.error);
             };
             bibInput.value = '';
             autoScaleBibFontSize_();
             remarkInput.value = ''; 
             shutOffGPSHardware();
-            bibInput.focus();
+            if (!logOptions.keepScannerActive) bibInput.focus();
             setTimeout(() => handleViewportResize(), 80);
         }
 
@@ -4049,6 +4199,7 @@
                 const confirmedIds = new Set(data.confirmedIds || []);
                 const remakeIds   = new Set(data.remakeIds    || []);
                 const deletedIds  = new Set(data.deletedUids  || []);
+                const duplicateUpdate = (data.duplicateUpdates || []).find(update => update && update.uid === row.uid);
                 const tx = db.transaction(["logs"], "readwrite");
                 if (deletedIds.has(row.uid)) {
                     // Server rejected this bib (previously deleted by admin) — remove locally
@@ -4065,6 +4216,11 @@
                         row.synced = false; row.remake = true; row.syncAttempts = 0;
                     } else if (confirmedIds.has(row.uid)) {
                         row.synced = true; row.remake = false; row.syncAttempts = 0;
+                    }
+                    if (duplicateUpdate) {
+                        row.status = duplicateUpdate.status || 'Duplicate';
+                        row.duplicateOfUid = duplicateUpdate.duplicateOfUid || '';
+                        row.duplicateDeviceCount = Number(duplicateUpdate.duplicateDeviceCount) || 2;
                     }
                     tx.objectStore("logs").put(row);
                 }
@@ -4105,6 +4261,7 @@
                     const confirmedIds = new Set(data.confirmedIds || []);
                     const remakeIds   = new Set(data.remakeIds    || []);
                     const deletedIds  = new Set(data.deletedUids  || []);
+                    const duplicateUpdatesByUid = new Map((data.duplicateUpdates || []).filter(Boolean).map(update => [update.uid, update]));
                     const tx = db.transaction(["logs"], "readwrite");
                     const store = tx.objectStore("logs");
                     unsynced.forEach(log => {
@@ -4123,7 +4280,14 @@
                         } else if (remakeIds.has(log.uid)) {
                             log.synced = false; log.remake = true; log.syncAttempts = 0; store.put(log);
                         } else if (confirmedIds.has(log.uid)) {
-                            log.synced = true; log.remake = false; log.syncAttempts = 0; store.put(log); 
+                            log.synced = true; log.remake = false; log.syncAttempts = 0;
+                            const duplicateUpdate = duplicateUpdatesByUid.get(log.uid);
+                            if (duplicateUpdate) {
+                                log.status = duplicateUpdate.status || 'Duplicate';
+                                log.duplicateOfUid = duplicateUpdate.duplicateOfUid || '';
+                                log.duplicateDeviceCount = Number(duplicateUpdate.duplicateDeviceCount) || 2;
+                            }
+                            store.put(log); 
                         } else {
                             log.syncAttempts = (log.syncAttempts || 0) + 1; store.put(log);
                         }
@@ -4178,6 +4342,7 @@
 
                 const serverRecords = result.data || [];
                 const serverDeletedUids = result.deletedUids || [];
+                const serverDuplicateUpdates = result.duplicateUpdates || [];
                 if (result.lastRow && result.lastRow > currentLastSyncedRowMarker) {
                     currentLastSyncedRowMarker = result.lastRow;
                     localStorage.setItem("lastDataRowMarker", String(currentLastSyncedRowMarker));
@@ -4186,7 +4351,7 @@
                 // deletes happen in place on already-synced rows, so the only way this
                 // device hears about them between full reconciliations is the
                 // deletedUids list, which arrives even when data[] is empty.
-                if (serverRecords.length === 0 && serverDeletedUids.length === 0) return; 
+                if (serverRecords.length === 0 && serverDeletedUids.length === 0 && serverDuplicateUpdates.length === 0) return; 
 
                 // NOTE: this is an INCREMENTAL delta (only rows added since the last
                 // marker) -- it deliberately does NOT check already-synced local entries
@@ -4203,6 +4368,7 @@
                     const localLogs = e.target.result;
                     const localUids = new Set(localLogs.map(l => l.uid));
                     const localIdByUid = new Map(localLogs.map(l => [l.uid, l.id]));
+                    const localByUid = new Map(localLogs.map(l => [l.uid, l]));
                     let changed = false;
 
                     // ── Server-side deletions (deletedUids) ─────────────────────────
@@ -4218,6 +4384,8 @@
                         });
                     }
 
+                    if (applyDuplicateUpdatesToStore_(store, localLogs, serverDuplicateUpdates)) changed = true;
+
                     serverRecords.forEach(serverRecord => {
                         if (!serverRecord.uid) return;
 
@@ -4230,7 +4398,26 @@
                             return;
                         }
 
-                        if (localUids.has(serverRecord.uid)) return;
+                        if (localUids.has(serverRecord.uid)) {
+                            const localLog = localByUid.get(serverRecord.uid);
+                            if (localLog) {
+                                const incomingStatus = serverRecord.status || localLog.status || 'Active';
+                                const nextDuplicateOf = serverRecord.duplicateOfUid || '';
+                                const nextDuplicateCount = Number(serverRecord.duplicateDeviceCount) || (isDuplicateLog_({status: incomingStatus}) ? 2 : 1);
+                                if (localLog.status !== incomingStatus || localLog.duplicateOfUid !== nextDuplicateOf || Number(localLog.duplicateDeviceCount || 0) !== nextDuplicateCount || localLog.lapMode !== (serverRecord.lapMode || localLog.lapMode)) {
+                                    localLog.status = incomingStatus;
+                                    localLog.duplicateOfUid = nextDuplicateOf;
+                                    localLog.duplicateDeviceCount = nextDuplicateCount;
+                                    localLog.lapMode = serverRecord.lapMode || localLog.lapMode || 'multiple';
+                                    localLog.creatorId = serverRecord.creatorId || localLog.creatorId || parseCreatorId(serverRecord.device);
+                                    localLog.synced = true;
+                                    localLog.remake = false;
+                                    store.put(localLog);
+                                    changed = true;
+                                }
+                            }
+                            return;
+                        }
 
                         // Store raw scan data only — metrics are computed locally by
                         // withLivePreview_() at render time using the Setup sheet config.
@@ -4241,7 +4428,11 @@
                             volunteer:    serverRecord.volunteer,
                             remark:       serverRecord.remark || "",
                             device:       serverRecord.device || "",
-                            creatorId:    parseCreatorId(serverRecord.device),
+                            creatorId:    serverRecord.creatorId || parseCreatorId(serverRecord.device),
+                            lapMode:      serverRecord.lapMode || 'multiple',
+                            status:       serverRecord.status || 'Active',
+                            duplicateOfUid: serverRecord.duplicateOfUid || '',
+                            duplicateDeviceCount: Number(serverRecord.duplicateDeviceCount) || (String(serverRecord.status || '').toLowerCase() === 'duplicate' ? 2 : 1),
                             latitude:     serverRecord.latitude,
                             longitude:    serverRecord.longitude,
                             uid:          serverRecord.uid,
@@ -4272,6 +4463,8 @@
             if (!syncUrl || !db) return;
             try {
                 let allServerRecords = [];
+                let allDeletedUids = new Set();
+                let allDuplicateUpdates = new Map();
                 let sinceRow = 0;
                 let useReset = true;
                 let guardIterations = 0; // hard cap so a misbehaving server response can't loop forever
@@ -4287,6 +4480,8 @@
                     }
                     const batch = result.data || [];
                     allServerRecords = allServerRecords.concat(batch);
+                    (result.deletedUids || []).forEach(uid => allDeletedUids.add(uid));
+                    (result.duplicateUpdates || []).forEach(update => { if (update && update.uid) allDuplicateUpdates.set(update.uid, update); });
                     useReset = false;
                     if (!result.lastRow || batch.length === 0 || result.lastRow <= sinceRow) break;
                     sinceRow = result.lastRow;
@@ -4300,6 +4495,13 @@
                     const localLogs = e.target.result;
                     let changed = false;
                     localLogs.forEach(localLog => {
+                        if (allDeletedUids.has(localLog.uid)) {
+                            store.delete(localLog.id); changed = true; return;
+                        }
+                        const duplicateUpdate = allDuplicateUpdates.get(localLog.uid);
+                        if (duplicateUpdate && String(duplicateUpdate.status || '').toLowerCase() === 'auto duplicate removed') {
+                            store.delete(localLog.id); changed = true; return;
+                        }
                         // Queued deletes (see deleteRow()) are intentionally being removed —
                         // let the regular sync loop's own retry handle them, don't second-
                         // guess with a REMAKE flag or a purge match here.
@@ -4312,8 +4514,27 @@
                         // it locally rather than flagging REMAKE REQUIRED — that flag is
                         // for "this looks lost, please re-verify", not for "this was
                         // deleted on purpose".
-                        if (match && match.purge) {
+                        if (match && (match.purge || String(match.status || '').toLowerCase() === 'auto duplicate removed')) {
                             store.delete(localLog.id); changed = true; return;
+                        }
+
+                        if (match) {
+                            const incoming = duplicateUpdate || match;
+                            const incomingStatus = incoming.status || match.status || localLog.status || 'Active';
+                            const incomingDuplicateOf = incoming.duplicateOfUid || match.duplicateOfUid || '';
+                            const incomingDuplicateCount = Number(incoming.duplicateDeviceCount || match.duplicateDeviceCount) || (String(incomingStatus).toLowerCase() === 'duplicate' ? 2 : 1);
+                            if (localLog.status !== incomingStatus || localLog.duplicateOfUid !== incomingDuplicateOf || Number(localLog.duplicateDeviceCount || 0) !== incomingDuplicateCount || localLog.lapMode !== (match.lapMode || localLog.lapMode)) {
+                                localLog.status = incomingStatus;
+                                localLog.duplicateOfUid = incomingDuplicateOf;
+                                localLog.duplicateDeviceCount = incomingDuplicateCount;
+                                localLog.lapMode = match.lapMode || localLog.lapMode || 'multiple';
+                                localLog.creatorId = match.creatorId || localLog.creatorId || parseCreatorId(match.device);
+                                localLog.synced = true;
+                                localLog.remake = false;
+                                localLog.syncAttempts = 0;
+                                store.put(localLog);
+                                changed = true;
+                            }
                         }
 
                         if (localLog.synced && (!match || match.bib === "")) {
@@ -4556,6 +4777,53 @@
             };
         }
 
+        function normalizedLogStatus_(log) {
+            return String((log && log.status) || 'Active').trim().toLowerCase();
+        }
+
+        function isDuplicateLog_(log) {
+            const status = normalizedLogStatus_(log);
+            return status === 'duplicate' || status === 'auto duplicate removed';
+        }
+
+        function isAutoRemovedDuplicate_(log) {
+            return normalizedLogStatus_(log) === 'auto duplicate removed';
+        }
+
+        /** A duplicate audit row may remain visible in Scan History, but it must never
+         * inflate lap numbers, runner totals, standings, safety rosters, or analytics. */
+        function isCountableLog_(log) {
+            if (!log || !log.bib || log.remake || log.pendingDelete) return false;
+            const status = normalizedLogStatus_(log);
+            return status !== 'deleted' && status !== 'duplicate' && status !== 'auto duplicate removed';
+        }
+
+        function applyDuplicateUpdatesToStore_(store, localLogs, updates) {
+            if (!Array.isArray(updates) || updates.length === 0) return false;
+            const byUid = new Map((localLogs || []).map(log => [log.uid, log]));
+            let changed = false;
+            updates.forEach(update => {
+                if (!update || !update.uid) return;
+                const log = byUid.get(update.uid);
+                if (!log) return;
+                const nextStatus = update.status || 'Duplicate';
+                if (String(nextStatus).toLowerCase() === 'auto duplicate removed') {
+                    store.delete(log.id);
+                    changed = true;
+                    return;
+                }
+                log.status = nextStatus;
+                log.duplicateOfUid = update.duplicateOfUid || '';
+                log.duplicateDeviceCount = Number(update.duplicateDeviceCount) || 2;
+                log.synced = true;
+                log.remake = false;
+                log.syncAttempts = 0;
+                store.put(log);
+                changed = true;
+            });
+            return changed;
+        }
+
         /**
          * Builds a bib -> time-sorted-history lookup once per render pass, from the full
          * (unfiltered) log set, mirroring how the backend's lap-count formula counts
@@ -4564,7 +4832,7 @@
         function buildBibHistoryMap_(allLogs) {
             const map = new Map();
             allLogs.forEach(l => {
-                if (!l.bib || l.remake) return;
+                if (!isCountableLog_(l)) return;
                 if (!map.has(l.bib)) map.set(l.bib, []);
                 map.get(l.bib).push(l);
             });
@@ -4580,6 +4848,19 @@
          */
         function withLivePreview_(log, bibHistoryMap, catCfg) {
             if (!log.bib || log.remake) return log; // nothing useful to compute
+            if (isDuplicateLog_(log)) {
+                const cfg = findCategoryConfigForBib_(log.bib, catCfg);
+                return Object.assign({}, log, {
+                    category: (cfg && cfg.category) || log.category || '-',
+                    km: (cfg && cfg.km) || log.km || '',
+                    lap: 'Duplicate',
+                    timePerLap: '-',
+                    totalTime: '-',
+                    pace: '',
+                    speed: '',
+                    projectedFinish: '-'
+                });
+            }
             const history = bibHistoryMap.get(log.bib) || [log];
             const preview = computeLivePreviewMetrics_(log, history, catCfg);
             return preview ? Object.assign({}, log, preview) : log;
@@ -4603,7 +4884,7 @@
                 // UI behaves as if they're already gone, while the record itself sticks
                 // around in IndexedDB so the sync loop keeps retrying until the server
                 // actually confirms the delete.
-                const rawLogs = (e.target.result || []).filter(l => !l.pendingDelete);
+                const rawLogs = (e.target.result || []).filter(l => !l.pendingDelete && !isAutoRemovedDuplicate_(l));
                 const _bibMap = buildBibHistoryMap_(rawLogs);
                 const logs = rawLogs.map(l => withLivePreview_(l, _bibMap, categoryConfig));
                 callback(logs);
@@ -5345,7 +5626,7 @@
         function buildSafetyRosterFromLogs_(logs) {
             const byBib = new Map();
             logs.forEach(l => {
-                if (!l.bib || l.remake) return;
+                if (!isCountableLog_(l)) return;
                 const ts = parseCustomOrIsoDate(l.time).getTime();
                 const existing = byBib.get(l.bib);
                 if (!existing || ts > existing._ts) byBib.set(l.bib, Object.assign({}, l, { _ts: ts }));
@@ -5456,6 +5737,13 @@
                 });
                 if (!safetySortAscending_) roster.reverse();
 
+                lastVisibleSafetyRoster_ = roster.slice();
+                const downloadBtn = document.getElementById('downloadSelectedSafetyBibsBtn');
+                if (downloadBtn) {
+                    downloadBtn.textContent = `⬇️ Download BIBs (${lastVisibleSafetyRoster_.length})`;
+                    downloadBtn.disabled = lastVisibleSafetyRoster_.length === 0;
+                }
+
                 const selectedComboCount = selectedSafetyComboKeys_().size;
                 const visibleEl = document.getElementById('safetyVisibleTotal');
                 const rosterEl = document.getElementById('safetyRosterTotal');
@@ -5497,6 +5785,27 @@
                         </tr>`;
                 }).join('');
             });
+        }
+
+        function downloadSelectedSafetyBibs_() {
+            const bibs = Array.from(new Set((lastVisibleSafetyRoster_ || [])
+                .map(r => String(r.bib || '').trim().toUpperCase())
+                .filter(Boolean)))
+                .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+            if (!bibs.length) {
+                alert('No bib numbers match the current KM/category and safety selectors.');
+                return;
+            }
+            const blob = new Blob([bibs.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+            a.href = url;
+            a.download = `selected-bibs-${stamp}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
 
         /**
@@ -5579,15 +5888,16 @@
         }
 
         function renderDirectorModeContent_(allLogs) {
-            renderDirectorStats_(allLogs);
-            renderDirectorLeaderboard_(allLogs);
-            renderDirectorAtAGlance_(allLogs, lastKnownSummaryRows);
-            renderDirectorCategoryChart_(allLogs);
-            renderDirectorTicker_(allLogs);
-            renderDirectorThroughput_(allLogs);
-            renderDirectorCategoryProgress_(allLogs, lastKnownSummaryRows);
-            renderDirectorFlagged_(allLogs);
-            renderDirectorDeviceActivity_(allLogs);
+            const activeLogs = (allLogs || []).filter(isCountableLog_);
+            renderDirectorStats_(activeLogs);
+            renderDirectorLeaderboard_(activeLogs);
+            renderDirectorAtAGlance_(activeLogs, lastKnownSummaryRows);
+            renderDirectorCategoryChart_(activeLogs);
+            renderDirectorTicker_(activeLogs);
+            renderDirectorThroughput_(activeLogs);
+            renderDirectorCategoryProgress_(activeLogs, lastKnownSummaryRows);
+            renderDirectorFlagged_(activeLogs);
+            renderDirectorDeviceActivity_(activeLogs);
             renderDirectorCotCountdown_(lastKnownSummaryRows);
         }
 
@@ -5622,6 +5932,14 @@
             `).join('');
         }
 
+        function toggleDirectorKmGroup_(encodedKmKey) {
+            const kmKey = decodeURIComponent(encodedKmKey);
+            if (directorKmExpanded_.has(kmKey)) directorKmExpanded_.delete(kmKey);
+            else directorKmExpanded_.add(kmKey);
+            localStorage.setItem('directorKmExpanded_v1', JSON.stringify(Array.from(directorKmExpanded_)));
+            renderDirectorSummaryTable_(lastKnownSummaryRows);
+        }
+
         function renderDirectorSummaryTable_(summaryRows) {
             const tbody = document.getElementById('directorSummaryTableBody');
             if (!tbody) return;
@@ -5632,53 +5950,81 @@
 
             getEnrichedLogsFromDb_(function(allLogs) {
                 const scannedByRow = countScannedBibsByRow_(summaryRows, allLogs);
-                let totalScanned = 0, totalRegistered = 0;
+                const groups = new Map();
+                let lastKm = '', lastCot = '', lastCotTime = '', lastColor = null;
 
-                let html = '';
-                // Code.gs now forward-fills km/cot/cotTime/color across every row of
-                // a merged-cell Setup group server-side (see getCategorySummaryData_).
-                // The carry-forward below is kept only as a defensive fallback for a
-                // stale cached summary saved by an older version of this backend.
-                let lastGroupColor = null;
-                let lastGroupKm = '', lastGroupCot = '', lastGroupCotTime = '';
                 summaryRows.forEach(row => {
                     if (!row.category && !row.runners && !row.bibRule) return;
                     const displayCategory = row.category || row.bibRule || '';
-                    const isTotalRow = displayCategory.toLowerCase().includes('total');
-                    if (isTotalRow) return; // superseded by the always-computed totals row appended below
+                    if (displayCategory.toLowerCase().includes('total')) return;
 
-                    const rowBg = 'hover:bg-neutral-200/50 dark:hover:bg-neutral-500/10 transition-colors duration-100';
-                    let colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : null;
-                    let km = row.km || '';
-                    let cot = row.cot || '';
-                    let cotTime = row.cotTime || '';
-                    if (km || cot) {
-                        lastGroupKm = km; lastGroupCot = cot; lastGroupCotTime = cotTime;
-                        if (colorHex) lastGroupColor = colorHex;
-                    } else {
-                        km = lastGroupKm; cot = lastGroupCot; cotTime = cotTime || lastGroupCotTime;
-                        if (!colorHex) colorHex = lastGroupColor;
-                    }
+                    let km = row.km || lastKm;
+                    let cot = row.cot || lastCot;
+                    let cotTime = row.cotTime || lastCotTime;
+                    let colorHex = (row.color && row.color.toLowerCase() !== 'sample') ? row.color.toLowerCase() : lastColor;
+                    if (row.km) lastKm = row.km;
+                    if (row.cot) lastCot = row.cot;
+                    if (row.cotTime) lastCotTime = row.cotTime;
+                    if (row.color && row.color.toLowerCase() !== 'sample') lastColor = row.color.toLowerCase();
 
+                    const kmKey = canonicalKmKey_(km) || String(km || 'unknown').trim().toLowerCase() || 'unknown';
+                    if (!groups.has(kmKey)) groups.set(kmKey, { key: kmKey, km, rows: [], scanned: 0, registered: 0, cots: new Set(), cotTimes: new Set(), colorHex });
+                    const group = groups.get(kmKey);
                     const registered = parseInt(row.runners, 10) || 0;
                     const scanned = row.bibRule && scannedByRow.has(row.bibRule) ? scannedByRow.get(row.bibRule).size : 0;
-                    totalScanned += scanned;
-                    totalRegistered += registered;
+                    group.rows.push({ row, displayCategory, km, cot, cotTime, colorHex, registered, scanned });
+                    group.scanned += scanned;
+                    group.registered += registered;
+                    if (cot) group.cots.add(String(cot));
+                    if (cotTime) group.cotTimes.add(String(cotTime));
+                    if (!group.colorHex && colorHex) group.colorHex = colorHex;
+                });
 
+                const groupList = Array.from(groups.values()).sort((a, b) => {
+                    const an = parseFloat(a.key), bn = parseFloat(b.key);
+                    if (Number.isFinite(an) && Number.isFinite(bn)) return bn - an;
+                    return formatKmLabel_(a.km).localeCompare(formatKmLabel_(b.km));
+                });
+
+                let totalScanned = 0, totalRegistered = 0;
+                let html = '';
+                groupList.forEach(group => {
+                    totalScanned += group.scanned;
+                    totalRegistered += group.registered;
+                    const expanded = directorKmExpanded_.has(group.key);
+                    const cotValues = Array.from(group.cots);
+                    const cotTimes = Array.from(group.cotTimes);
+                    const cotLabel = cotValues.length === 0 ? '-' : (cotValues.length === 1 ? cotValues[0] : 'Mixed');
+                    const cotTimeLabel = cotTimes.length === 0 ? '-' : (cotTimes.length === 1 ? formatDashboardDateStr(cotTimes[0]) : 'Mixed');
+                    const categoryCount = group.rows.length;
+                    const kmLabel = formatKmLabel_(group.km || group.key);
                     html += `
-                        <tr class="${rowBg} border-b theme-border text-neutral-900 dark:text-white">
-                            <td class="p-2 sm:p-3 pl-3 font-bold" ${colorHex ? `style="box-shadow: inset 5px 0 0 0 ${colorHex};"` : ''}>
-                                <div class="flex items-center gap-2">
-                                    ${colorHex ? `<span class="inline-block w-2.5 h-2.5 rounded-sm border border-neutral-400/50 dark:border-neutral-700/50 shrink-0" style="background-color: ${colorHex}"></span>` : ''}
-                                    <span>${displayCategory}</span>
-                                </div>
+                        <tr class="director-km-group-row border-b theme-border text-neutral-900 dark:text-white bg-neutral-200/30 dark:bg-neutral-900/30" onclick="toggleDirectorKmGroup_('${encodeInlineArg_(group.key)}')" aria-expanded="${expanded}">
+                            <td class="p-2 sm:p-3 pl-3" ${group.colorHex ? `style="box-shadow: inset 5px 0 0 0 ${group.colorHex};"` : ''}>
+                                <button type="button" class="director-km-toggle" aria-label="${expanded ? 'Collapse' : 'Expand'} ${escapeHtmlAttr_(kmLabel)} categories">
+                                    <span class="director-km-arrow">${expanded ? '▼' : '▶'}</span>
+                                    <span>${escapeHtml_(kmLabel)}</span>
+                                    <span class="text-[9px] theme-text-muted font-bold">${categoryCount} ${categoryCount === 1 ? 'category' : 'categories'}</span>
+                                </button>
                             </td>
-                            <td class="p-2 sm:p-3 text-center font-bold">${km || '-'}</td>
-                            <td class="p-2 sm:p-3 text-center font-mono font-bold text-indigo-700 dark:text-indigo-400">${row.bibRule || '-'}</td>
-                            <td class="p-2 sm:p-3 text-center font-mono font-bold text-amber-700 dark:text-amber-400">${cot || '-'}</td>
-                            <td class="p-2 sm:p-3 text-center font-mono text-[10px] sm:text-xs">${formatDashboardDateStr(cotTime)}</td>
-                            <td class="p-2 sm:p-3 text-center font-black font-mono pr-3 text-blue-700 dark:text-cyan-400">${scanned}/${registered}</td>
+                            <td class="p-2 sm:p-3 text-center font-black">${escapeHtml_(group.km || '-')}</td>
+                            <td class="p-2 sm:p-3 text-center font-mono font-bold text-indigo-700 dark:text-indigo-400">${categoryCount} range${categoryCount === 1 ? '' : 's'}</td>
+                            <td class="p-2 sm:p-3 text-center font-mono font-bold text-amber-700 dark:text-amber-400">${escapeHtml_(cotLabel)}</td>
+                            <td class="p-2 sm:p-3 text-center font-mono text-[10px] sm:text-xs">${escapeHtml_(cotTimeLabel)}</td>
+                            <td class="p-2 sm:p-3 text-center font-black font-mono pr-3 text-blue-700 dark:text-cyan-400">${group.scanned}/${group.registered}</td>
                         </tr>`;
+
+                    group.rows.forEach(item => {
+                        html += `
+                            <tr class="director-km-detail-row ${expanded ? '' : 'hidden'} border-b theme-border text-neutral-900 dark:text-white hover:bg-neutral-200/50 dark:hover:bg-neutral-500/10">
+                                <td class="p-2 sm:p-3 pl-3 font-bold" ${item.colorHex ? `style="box-shadow: inset 3px 0 0 0 ${item.colorHex};"` : ''}>${escapeHtml_(item.displayCategory)}</td>
+                                <td class="p-2 sm:p-3 text-center font-bold">${escapeHtml_(item.km || '-')}</td>
+                                <td class="p-2 sm:p-3 text-center font-mono font-bold text-indigo-700 dark:text-indigo-400">${escapeHtml_(item.row.bibRule || '-')}</td>
+                                <td class="p-2 sm:p-3 text-center font-mono font-bold text-amber-700 dark:text-amber-400">${escapeHtml_(item.cot || '-')}</td>
+                                <td class="p-2 sm:p-3 text-center font-mono text-[10px] sm:text-xs">${escapeHtml_(formatDashboardDateStr(item.cotTime))}</td>
+                                <td class="p-2 sm:p-3 text-center font-black font-mono pr-3 text-blue-700 dark:text-cyan-400">${item.scanned}/${item.registered}</td>
+                            </tr>`;
+                    });
                 });
 
                 html += `
@@ -5687,7 +6033,6 @@
                         <td class="p-2 sm:p-3 text-center">-</td>
                         <td class="p-2 sm:p-3 text-center font-black font-mono pr-3 text-blue-800 dark:text-cyan-400">${totalScanned}/${totalRegistered}</td>
                     </tr>`;
-
                 tbody.innerHTML = html;
             });
         }
@@ -6186,7 +6531,7 @@
                 // The server sends raw scan data only; every derived field (category,
                 // lap, pace, speed, projected finish) is computed here using the
                 // current categoryConfig sourced from the Setup sheet.
-                const rawLogs = (e.target.result || []).filter(l => !l.pendingDelete);
+                const rawLogs = (e.target.result || []).filter(l => !l.pendingDelete && !isAutoRemovedDuplicate_(l));
                 const _bibMap = buildBibHistoryMap_(rawLogs);
                 const logs = rawLogs.map(l => withLivePreview_(l, _bibMap, categoryConfig));
                 // ────────────────────────────────────────────────────────────────────
@@ -6197,20 +6542,21 @@
                 let scopedLogs = [...logs];
                 if (activeScopeFilter === 'current') scopedLogs = logs.filter(l => l.checkpoint.toUpperCase() === currentCP);
 
-                document.getElementById('totalCount').textContent = scopedLogs.length;
-                document.getElementById('uniqueCount').textContent = new Set(scopedLogs.map(l => l.bib)).size;
+                const activeScopedLogs = scopedLogs.filter(isCountableLog_);
+                document.getElementById('totalCount').textContent = activeScopedLogs.length;
+                document.getElementById('uniqueCount').textContent = new Set(activeScopedLogs.map(l => l.bib)).size;
                 const categoriesTile = document.getElementById('categoriesCount');
-                if (categoriesTile) categoriesTile.textContent = new Set(scopedLogs
+                if (categoriesTile) categoriesTile.textContent = new Set(activeScopedLogs
                     .filter(l => l.category && l.category !== '-')
                     .map(l => distanceCategoryKey_(l.km, l.category))).size;
                 const pendingTile = document.getElementById('pendingSyncCount');
-                if (pendingTile) pendingTile.textContent = scopedLogs.filter(l => !l.synced).length;
-                calculateLiveSplits(scopedLogs); 
+                if (pendingTile) pendingTile.textContent = activeScopedLogs.filter(l => !l.synced).length;
+                calculateLiveSplits(activeScopedLogs); 
                 updateQueueStatus();
                 if (isDirectorModeOpen) renderDirectorModeContent_(logs);
 
                 const frequencies = {}; 
-                scopedLogs.forEach(l => frequencies[l.bib] = (frequencies[l.bib] || 0) + 1);
+                activeScopedLogs.forEach(l => frequencies[l.bib] = (frequencies[l.bib] || 0) + 1);
                 const logList = document.getElementById('logList'); logList.innerHTML = '';
 
                 // IndexedDB getAll() is primary-key ordered, not event-time ordered.
@@ -6221,7 +6567,9 @@
                            log.checkpoint.toLowerCase().includes(query) || 
                            (log.remark && log.remark.toLowerCase().includes(query)) ||
                            (log.category && log.category.toLowerCase().includes(query)) ||
-                           (log.volunteer && log.volunteer.toLowerCase().includes(query));
+                           (log.volunteer && log.volunteer.toLowerCase().includes(query)) ||
+                           normalizedLogStatus_(log).includes(query) ||
+                           (log.duplicateOfUid && log.duplicateOfUid.toLowerCase().includes(query));
                 });
 
                 const totalFilteredCount = filteredLogs.length;
@@ -6272,7 +6620,9 @@
                     // `log` is already enriched — withLivePreview_() ran at the top of
                     // loadHistory() over the full log set before any filtering.
                     const row = document.createElement('div');
+                    const duplicateLog = isDuplicateLog_(log);
                     row.className = 'flex flex-col border-b theme-border bg-neutral-100/0 dark:bg-neutral-500/0 hover:bg-neutral-200/50 dark:hover:bg-neutral-500/5 transition-colors duration-700';
+                    if (duplicateLog) row.classList.add('duplicate-log-row');
                     if (triggerScanHistorySlideFlag && log.uid === lastCreatedUid) {
                         row.classList.add('animate-scan-slide-in');
                         triggerScanHistorySlideFlag = false; // fires once, not on every future re-render
@@ -6292,15 +6642,17 @@
                                 </div>
                             </div>`;
                     } else {
-                        const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-700 dark:text-yellow-500 italic mt-0.5">💬 ${log.remark}</div>` : '';
+                        const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-700 dark:text-yellow-500 italic mt-0.5">💬 ${escapeHtml_(log.remark)}</div>` : '';
                         const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
+                        const duplicateBadge = duplicateLog ? `<span class="duplicate-status-badge" title="Backend-detected same-bib/same-checkpoint scan from another device. Excluded from lap and runner totals.">◻ Duplicate${log.duplicateDeviceCount ? ` • ${log.duplicateDeviceCount} devices` : ''}</span>` : '';
                         
                         const ownEntry = isOwnEntry(log);
-                        const editButtonHTML = (ownEntry && (isEditable(log.time) || log.remake)) ? `<button onclick="startEditing(${log.id}); event.stopPropagation();" class="text-xs text-blue-700 dark:text-blue-500 font-bold border border-blue-400/30 dark:border-blue-600/30 px-1.5 py-0.5 rounded bg-neutral-200/50 dark:bg-neutral-900/50">✏️ Edit</button>` : '';
+                        const editButtonHTML = (!duplicateLog && ownEntry && (isEditable(log.time) || log.remake)) ? `<button onclick="startEditing(${log.id}); event.stopPropagation();" class="text-xs text-blue-700 dark:text-blue-500 font-bold border border-blue-400/30 dark:border-blue-600/30 px-1.5 py-0.5 rounded bg-neutral-200/50 dark:bg-neutral-900/50">✏️ Edit</button>` : '';
                         const deleteButtonHTML = (ownEntry && isDeletable(log.time)) ? `<button onclick="deleteRow(${log.id}); event.stopPropagation();" class="icon-tap-target text-red-600 p-1 text-base hover:scale-115 transition">🗑️</button>` : '';
                         let statusText = log.synced ? 'Synced' : 'Queued';
                         let statusClass = log.synced ? 'text-emerald-700 dark:text-emerald-500 font-extrabold' : 'text-yellow-700 dark:text-yellow-600 font-extrabold';
                         if (log.remake) { statusText = 'REMAKE REQ'; statusClass = 'text-red-600 dark:text-red-500 font-black animate-pulse'; }
+                        if (duplicateLog) { statusText = 'DUPLICATE'; statusClass = 'text-neutral-500 dark:text-neutral-400 font-black'; }
 
                         const isCurrentlyExpanded = activeExpandedUids.has(log.uid);
                         const panelExpandedClass = isCurrentlyExpanded ? 'expanded' : '';
@@ -6322,11 +6674,13 @@
                                 <div class="flex-grow">
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span id="chevron-indicator-${log.uid}" class="text-neutral-600 dark:text-neutral-500 text-xs chevron-rotate ${chevronExpandedClass}">▼</span>
-                                        <span class="text-xl ${log.remake ? 'text-red-600 line-through opacity-60' : 'bib-text-highlight'}">${log.bib || '??'}</span>
+                                        <span class="text-xl ${log.remake ? 'text-red-600 line-through opacity-60' : (duplicateLog ? 'duplicate-bib-text font-black' : 'bib-text-highlight')}">${escapeHtml_(log.bib || '??')}</span>
                                         ${freqBadge}
-                                        <span class="text-[10px] bg-neutral-200 dark:bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-700 dark:text-neutral-400 font-bold tracking-wide">${log.checkpoint}</span>
+                                        ${duplicateBadge}
+                                        <span class="text-[10px] bg-neutral-200 dark:bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-700 dark:text-neutral-400 font-bold tracking-wide">${escapeHtml_(log.checkpoint)}</span>
                                     </div>
-                                    <div class="text-[10px] theme-text-muted mt-0.5 font-semibold">${formatLogTime(log.time)} • By: ${log.volunteer}</div>
+                                    <div class="text-[10px] theme-text-muted mt-0.5 font-semibold">${formatLogTime(log.time)} • By: ${escapeHtml_(log.volunteer)}</div>
+                                    ${duplicateLog && log.duplicateOfUid ? `<div class="text-[9px] theme-text-muted mt-0.5 font-mono">Canonical oldest UID: ${escapeHtml_(log.duplicateOfUid)}</div>` : ''}
                                     ${basicMetricsHTML}
                                     ${remarkHTML}
                                 </div>
@@ -6342,6 +6696,7 @@
                                         <thead>
                                             <tr class="border-b theme-border text-neutral-600 dark:text-neutral-400 font-bold uppercase tracking-wider text-[9px]">
                                                 <th class="pb-1 pr-2">Categories</th>
+                                                <th class="pb-1 px-2 text-center">Lap/CP Mode</th>
                                                 <th class="pb-1 px-2 text-center">Lap/CP & Time</th>
                                                 <th class="pb-1 px-2 text-center">Time per lap/CP</th>
                                                 <th class="pb-1 px-2 text-center">Total time</th>
@@ -6350,11 +6705,12 @@
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td class="py-1.5 pr-2 font-bold text-neutral-900 dark:text-white">${log.category || '-'}</td>
-                                                <td class="py-1.5 px-2 text-center font-bold text-blue-700 dark:text-cyan-400">${log.lap || '-'}</td>
-                                                <td class="py-1.5 px-2 text-center text-orange-700 dark:text-orange-400 font-bold">${log.timePerLap || '-'}</td>
-                                                <td class="py-1.5 px-2 text-center font-bold">${log.totalTime || '-'}</td>
-                                                <td class="py-1.5 pl-2 text-right text-amber-700 dark:text-amber-400 font-bold">${log.projectedFinish || '-'}</td>
+                                                <td class="py-1.5 pr-2 font-bold text-neutral-900 dark:text-white">${escapeHtml_(log.category || '-')}</td>
+                                                <td class="py-1.5 px-2 text-center font-bold">${getLapModeLabel_(log.lapMode || 'multiple')}</td>
+                                                <td class="py-1.5 px-2 text-center font-bold ${duplicateLog ? 'text-neutral-500' : 'text-blue-700 dark:text-cyan-400'}">${escapeHtml_(log.lap || '-')}</td>
+                                                <td class="py-1.5 px-2 text-center text-orange-700 dark:text-orange-400 font-bold">${escapeHtml_(log.timePerLap || '-')}</td>
+                                                <td class="py-1.5 px-2 text-center font-bold">${escapeHtml_(log.totalTime || '-')}</td>
+                                                <td class="py-1.5 pl-2 text-right text-amber-700 dark:text-amber-400 font-bold">${escapeHtml_(log.projectedFinish || '-')}</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -7217,6 +7573,7 @@
            `currentCP` is the currently-active checkpoint name (uppercased).
            ───────────────────────────────────────────────────────────────── */
         function buildPerformanceAnalytics_(allLogs, currentCP) {
+            allLogs = (allLogs || []).filter(isCountableLog_);
             // Skip if panel doesn't exist (graceful degradation)
             if (!document.getElementById('perfAnalyticsPanel')) return;
 
@@ -7836,7 +8193,7 @@
                     // display to ##### for a too-narrow column. A UTF-8 BOM is prepended below
                     // so Excel opens the file as UTF-8 instead of guessing a legacy codepage,
                     // which is the other common cause of a CSV looking corrupted on open.
-                    let csvContent = 'BIB,Time,Checkpoint,Volunteer,Remark,Device,Latitude,Longitude,ID,UID,Category,Lap,TimePerLap,TotalTime,Pace,Speed,ProjectedFinish,Flagoff,PaceZone,PaceSecs,SpeedFloat,TrendLabel\r\n';
+                    let csvContent = 'BIB,Time,Checkpoint,Volunteer,Remark,Device,Latitude,Longitude,ID,UID,Category,LapCPMode,Lap,Status,DuplicateOfUID,DuplicateDeviceCount,TimePerLap,TotalTime,Pace,Speed,ProjectedFinish,Flagoff,PaceZone,PaceSecs,SpeedFloat,TrendLabel\r\n';
                     logs.forEach(l => {
                         const enriched = enrichLogForExport_(l, logs);
                         csvContent += [
@@ -7851,7 +8208,11 @@
                             l.id,
                             `"${(l.uid||'').replace(/"/g,'""')}"`,
                             `"${(l.category||'').replace(/"/g,'""')}"`,
+                            `"${(l.lapMode||'multiple').replace(/"/g,'""')}"`,
                             `"${(l.lap||'').replace(/"/g,'""')}"`,
+                            `"${(l.status||'Active').replace(/"/g,'""')}"`,
+                            `"${(l.duplicateOfUid||'').replace(/"/g,'""')}"`,
+                            Number(l.duplicateDeviceCount) || 1,
                             `"${(l.timePerLap||'').replace(/"/g,'""')}"`,
                             `"${(l.totalTime||'').replace(/"/g,'""')}"`,
                             `"${(l.pace||'').replace(/"/g,'""')}"`,
@@ -9976,8 +10337,9 @@
                 twice in a row AND Tesseract's own confidence score clears a
                 minimum bar — a single noisy frame can misread a digit, but two
                 consecutive agreeing reads at reasonable confidence is a strong
-                signal it's actually right. Manual "Capture & Scan" is still there
-                to force an immediate attempt.
+                signal it is actually right. The second matching frame records the
+                bib immediately, while a recent-duplicate latch prevents the same
+                runner from being logged repeatedly.
         */
 
         let ocrEngine = localStorage.getItem('ocrEngine') || 'tesseract';
@@ -9997,7 +10359,10 @@
         let autoScanTimerId_ = null;
         let autoScanBusy_ = false;
         let lastAutoScanReading_ = '';
-        let ocrAcceptedThisSession_ = false;
+        let ocrAcceptedThisSession_ = false; // retained for compatibility; live OCR now keeps scanning
+        let autoLogInFlight_ = false;
+        let autoLoggedBibLatch_ = '';
+        let autoReadMissStreak_ = 0;
         let ocrDeviceProfile_ = null;
         let availableCameraDevices_ = [];
         let currentCameraDeviceId_ = null;
@@ -10063,7 +10428,7 @@
             if (bibScannerUsingFallback_) return; // fallback path sets its own tip text
             document.getElementById('bibScannerTip').textContent = detectionMode === 'bibOnly'
                 ? 'Fast mode: fill the guide box with just the bib number (e.g. V1001, 1001, V 1001) and hold steady. Skips the runner-detection check — only use up close on an actual bib.'
-                : 'Auto-scans continuously — frame the runner wearing the bib. A person must be detected before the number is read (stops car plates/signage being logged). Tap Capture to force an immediate read.';
+                : 'Video OCR scans continuously — frame the runner wearing the bib. A stable registered number is logged automatically; no capture or LOG tap is needed.';
         }
 
         function isWebglAvailable_() {
@@ -10457,7 +10822,7 @@
             document.getElementById('bibScannerFallback').classList.remove('hidden');
             document.getElementById('bibScannerFallbackMsg').textContent = message;
             document.getElementById('bibScannerSwitchCamBtn').classList.add('hidden');
-            document.getElementById('bibScannerTip').textContent = 'Pick or take a photo of the bib — it\'ll be scanned the same way as a live camera frame.';
+            document.getElementById('bibScannerTip').textContent = 'Pick or take a photo of the bib — a valid recognized number is logged automatically.';
             stopAutoScan_();
         }
 
@@ -10511,7 +10876,12 @@
         }
 
         async function openBibScanner() {
-          // Wrapped so the 📷 button can never silently "do nothing": if anything
+          if (!updateSetupGate_()) {
+            alert('⚠️ Complete 1. Setup before starting live OCR.');
+            focusIncompleteSetup_();
+            return;
+          }
+          // Wrapped so the OCR button can never silently "do nothing": if anything
           // in the setup path throws, the modal still opens in photo-fallback
           // mode and the person is told what happened instead of a dead tap.
           try {
@@ -10525,16 +10895,14 @@
             lastPersonBox_ = null;
             detectionTickCounter_ = 0;
 
-            document.getElementById('bibScannerResultRow').classList.add('hidden');
-            document.getElementById('bibScannerResultRow').classList.remove('flex');
-            document.getElementById('bibScannerUseBtn').classList.add('hidden');
-            document.getElementById('bibScannerCaptureBtn').classList.remove('hidden');
-            document.getElementById('bibScannerCaptureBtn').disabled = false;
             document.getElementById('bibScannerFileInput').value = '';
             hideBibScannerFallback_();
             lastAutoScanReading_ = '';
             ocrAcceptedThisSession_ = false;
-            setBibScannerStatus_('');
+            autoLogInFlight_ = false;
+            autoLoggedBibLatch_ = '';
+            autoReadMissStreak_ = 0;
+            setBibScannerStatus_('👀 Starting live OCR…');
             const modalEl = document.getElementById('bibScannerModal');
             modalEl.classList.remove('hidden');
             modalEl.style.display = 'flex'; // belt-and-braces if the stylesheet is stale/cached
@@ -10589,7 +10957,9 @@
             stopAutoScan_();
             if (bibScannerUsingFallback_) return; // no live frames to sample in fallback mode
             const intervalMs = (ocrDeviceProfile_ || getOcrDeviceProfile_()).scanIntervalMs;
+            setBibScannerStatus_('👀 Live OCR ready — hold a bib steady in the guide');
             autoScanTimerId_ = setInterval(() => { autoScanTick_(); }, intervalMs);
+            setTimeout(() => autoScanTick_(), 150);
         }
 
         function stopAutoScan_() {
@@ -10959,7 +11329,7 @@
                 try {
                     const result = await runDetectionPipelineOnImage_(img);
                     if (result.barcodeDigits) {
-                        acceptOcrReading_(result.barcodeDigits, '✅ Barcode/QR decoded — check the number below.');
+                        acceptOcrReading_(result.barcodeDigits, `✅ Barcode/QR ${result.barcodeDigits} detected — recording…`);
                         return;
                     }
                     if (result.error) {
@@ -11047,22 +11417,73 @@
             return runTesseractOcr_(canvas);
         }
 
+        function noteAutoScanMiss_() {
+            autoReadMissStreak_ += 1;
+            if (autoReadMissStreak_ >= 2) autoLoggedBibLatch_ = '';
+        }
+
+        function autoRecordScannedBib_(bib, sourceMessage) {
+            bib = cleanOcrDigits_(bib);
+            if (!bib || autoLogInFlight_) return;
+            if (!isSetupComplete_()) {
+                setBibScannerStatus_('⚠️ Setup is incomplete — live logging paused.');
+                return;
+            }
+            if (bib === autoLoggedBibLatch_) {
+                setBibScannerStatus_(`✅ Bib ${bib} already logged — move to the next runner`);
+                return;
+            }
+
+            autoLogInFlight_ = true;
+            autoLoggedBibLatch_ = bib; // latch immediately so concurrent frames cannot double-log
+            const cpV = (document.getElementById('checkpoint')?.value || '').trim().toUpperCase();
+            const store = db.transaction(['logs'], 'readonly').objectStore('logs');
+            const getAllRequest = store.getAll();
+            getAllRequest.onsuccess = function(e) {
+                const recentDuplicate = (e.target.result || []).some(log => {
+                    if (!isCountableLog_(log)) return false;
+                    if (String(log.bib || '').toUpperCase() !== bib || String(log.checkpoint || '').toUpperCase() !== cpV) return false;
+                    if (lapMode === 'single') return true;
+                    return (Date.now() - parseCustomOrIsoDate(log.time).getTime()) < (dupWindow * 60 * 1000);
+                });
+                if (recentDuplicate) {
+                    autoLogInFlight_ = false;
+                    lastAutoScanReading_ = '';
+                    setBibScannerStatus_(`⏭️ Bib ${bib} was logged recently — move to the next runner`);
+                    return;
+                }
+
+                setBibScannerStatus_(sourceMessage || `✅ Detected ${bib} — recording…`);
+                logEntry(bib, {
+                    keepScannerActive: true,
+                    onLogged: function() {
+                        autoLogInFlight_ = false;
+                        lastAutoScanReading_ = '';
+                        autoReadMissStreak_ = 0;
+                        setBibScannerStatus_(`✅ Bib ${bib} logged — move to the next runner`);
+                    },
+                    onError: function(err) {
+                        autoLogInFlight_ = false;
+                        autoLoggedBibLatch_ = '';
+                        setBibScannerStatus_('⚠️ Could not save bib ' + bib + ': ' + ((err && err.message) || 'local database error'));
+                    }
+                });
+            };
+            getAllRequest.onerror = function() {
+                autoLogInFlight_ = false;
+                autoLoggedBibLatch_ = '';
+                setBibScannerStatus_('⚠️ Could not check recent scans. Try again.');
+            };
+        }
+
         function acceptOcrReading_(digits, statusMessage) {
-            ocrAcceptedThisSession_ = true;
-            stopAutoScan_();
-            setBibScannerStatus_(statusMessage || '✅ Recognized — check the number below.');
-            const resultRow = document.getElementById('bibScannerResultRow');
-            resultRow.classList.remove('hidden');
-            resultRow.classList.add('flex');
-            document.getElementById('bibScannerResultInput').value = digits;
-            document.getElementById('bibScannerUseBtn').classList.remove('hidden');
+            autoRecordScannedBib_(digits, statusMessage || `✅ Detected ${digits} — recording…`);
         }
 
         // Runs quietly in the background on the device-tier interval (see
         // getOcrDeviceProfile_) while the
-        // modal is open. Only auto-accepts once the same digit string is read twice
-        // in a row at or above OCR_MIN_CONFIDENCE -- a lone misread frame never gets
-        // to fill the field on its own.
+        // modal is open. It logs only after the same registered bib is read twice
+        // in a row at or above OCR_MIN_CONFIDENCE; a lone misread frame is ignored.
         const QUALITY_ERROR_MESSAGES = {
             blurry: '📵 Too blurry — hold steady',
             dark: '🔦 Too dark — more light needed',
@@ -11088,17 +11509,19 @@
         }
 
         async function autoScanTick_() {
-            if (autoScanBusy_ || ocrAcceptedThisSession_) return;
+            if (autoScanBusy_ || autoLogInFlight_) return;
             autoScanBusy_ = true;
             try {
                 const result = await runFullDetectionPipeline_();
                 if (result.barcodeDigits) {
-                    acceptOcrReading_(result.barcodeDigits, '✅ Barcode/QR decoded — check the number below.');
+                    autoReadMissStreak_ = 0;
+                    autoRecordScannedBib_(result.barcodeDigits, `✅ Barcode/QR ${result.barcodeDigits} detected — recording…`);
                     return;
                 }
                 if (result.error) {
                     lastAutoScanReading_ = '';
-                    setBibScannerStatus_(QUALITY_ERROR_MESSAGES[result.error] || '👀 Scanning...');
+                    noteAutoScanMiss_();
+                    setBibScannerStatus_(QUALITY_ERROR_MESSAGES[result.error] || '👀 Scanning…');
                     return;
                 }
 
@@ -11107,89 +11530,34 @@
 
                 if (!digits || digits.length < OCR_MIN_DIGITS || confidence < OCR_MIN_CONFIDENCE) {
                     lastAutoScanReading_ = '';
-                    setBibScannerStatus_('👀 Scanning...');
+                    noteAutoScanMiss_();
+                    setBibScannerStatus_('👀 Scanning…');
                     return;
                 }
 
-                // Not a registered bib format for this event (car plate, poster,
-                // random text) — reject and keep scanning.
                 if (!isValidConfiguredBib_(digits)) {
                     lastAutoScanReading_ = '';
+                    noteAutoScanMiss_();
                     setBibScannerStatus_(`🚫 "${digits}" isn't a registered bib format — ignoring`);
                     return;
                 }
 
+                autoReadMissStreak_ = 0;
+                if (digits === autoLoggedBibLatch_) {
+                    setBibScannerStatus_(`✅ Bib ${digits} already logged — move to the next runner`);
+                    return;
+                }
                 if (digits === lastAutoScanReading_) {
-                    acceptOcrReading_(digits);
+                    autoRecordScannedBib_(digits);
                 } else {
                     lastAutoScanReading_ = digits;
-                    setBibScannerStatus_(`👀 Reading ${digits}... hold steady`);
+                    setBibScannerStatus_(`👀 Reading ${digits}… hold steady for auto log`);
                 }
             } catch (err) {
-                // Swallow -- this is a silent background tick, not a user-initiated
-                // action; captureAndScanBib() surfaces real errors on manual taps.
+                noteAutoScanMiss_();
             } finally {
                 autoScanBusy_ = false;
             }
-        }
-
-        // Manual "Capture & Scan" -- forces an immediate read (bypassing the
-        // two-in-a-row stability requirement) for when the volunteer is confident
-        // the frame is good and doesn't want to wait for auto-scan to confirm.
-        async function captureAndScanBib() {
-            const captureBtn = document.getElementById('bibScannerCaptureBtn');
-            captureBtn.disabled = true;
-            const engineLabel = ocrEngine === 'tensorflow' ? 'TensorFlow.js' : (ocrEngine === 'paddleocr' ? 'PaddleOCR.js' : 'Tesseract.js');
-            setBibScannerStatus_(`🔎 Scanning with ${engineLabel}...`);
-
-            try {
-                const result = await runFullDetectionPipeline_();
-                if (result.barcodeDigits) {
-                    acceptOcrReading_(result.barcodeDigits, '✅ Barcode/QR decoded — check the number below.');
-                    captureBtn.disabled = false;
-                    return;
-                }
-                if (result.error) {
-                    setBibScannerStatus_(result.error === 'not_ready'
-                        ? '⚠️ Camera not ready yet — wait a second and try again.'
-                        : QUALITY_ERROR_MESSAGES[result.error]);
-                    captureBtn.disabled = false;
-                    return;
-                }
-
-                const { text, confidence } = await runOcrOnCanvas_(result.canvas);
-                const digits = cleanOcrDigits_(text);
-
-                if (!digits) {
-                    setBibScannerStatus_('❌ No number recognized — reframe the bib and try again.');
-                    captureBtn.disabled = false;
-                    return;
-                }
-                if (!isValidConfiguredBib_(digits)) {
-                    setBibScannerStatus_(`🚫 "${digits}" doesn't match any registered bib range for this event — that's probably not a bib (e.g. a car plate). Reframe on the runner's bib.`);
-                    captureBtn.disabled = false;
-                    return;
-                }
-                if (confidence < OCR_MIN_CONFIDENCE) {
-                    setBibScannerStatus_(`⚠️ Low confidence (${Math.round(confidence)}%) — got "${digits}", double-check it below.`);
-                } 
-                acceptOcrReading_(digits);
-                captureBtn.disabled = false;
-            } catch (err) {
-                setBibScannerStatus_('⚠️ OCR error: ' + err.message);
-                captureBtn.disabled = false;
-            }
-        }
-
-        function useScannedBib() {
-            const digits = cleanOcrDigits_(document.getElementById('bibScannerResultInput').value);
-            if (!digits) return;
-            const bibInput = document.getElementById('bibInput');
-            bibInput.value = digits;
-            stripBibSpaces_(bibInput);
-            autoScaleBibFontSize_();
-            closeBibScanner();
-            bibInput.focus();
         }
 
         /* ════════════════════════════════════════════════════════════════════
