@@ -1,9 +1,7 @@
-// v7: bumped so every device drops the old cached app shell and picks up the
-// new index.html (KM/category filters, status-only bulk deletes, keyboard-mode
-// bib entry, and edit isolation fixes). The fetch strategy below is also network-first for the app shell
-// now — the old cache-first strategy served a stale index.html forever, which
-// is why UI fixes (e.g. the camera button) never seemed to arrive on devices.
-const CACHE_NAME = 'race-logger-v7-cache';
+// v10: Lap/CP single-vs-multiple recording mode plus backend duplicate
+// arbitration across checkpoint devices. Cache bumped so every installed PWA
+// receives the new grey duplicate indicators and sync metadata handling.
+const CACHE_NAME = 'race-logger-v10-cache';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -21,6 +19,10 @@ function isShellRequest_(request) {
   const url = new URL(request.url);
   return ASSETS_TO_CACHE.some((path) => url.pathname === path || url.pathname.endsWith('/index.html') || url.pathname.endsWith('/tailwind.css') || url.pathname.endsWith('/manifest.json'));
 }
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -157,6 +159,7 @@ async function syncPendingLogs() {
             const confirmedIds = new Set(result.confirmedIds || []);
             const remakeIds = new Set(result.remakeIds || []);
             const deletedUidsSet = new Set(result.deletedUids || []);
+            const duplicateUpdatesByUid = new Map((result.duplicateUpdates || []).filter(Boolean).map(update => [update.uid, update]));
             const writeTx = db.transaction(["logs"], "readwrite");
             const writeStore = writeTx.objectStore("logs");
 
@@ -179,13 +182,26 @@ async function syncPendingLogs() {
                 if (confirmedIds.has(log.uid)) { writeStore.delete(log.id); }
                 else { log.syncAttempts = (log.syncAttempts || 0) + 1; writeStore.put(log); }
               }
-              else if (confirmedIds.has(log.uid)) { log.synced = true; log.remake = false; log.syncAttempts = 0; writeStore.put(log); }
+              else if (confirmedIds.has(log.uid)) {
+                log.synced = true; log.remake = false; log.syncAttempts = 0;
+                const duplicateUpdate = duplicateUpdatesByUid.get(log.uid);
+                if (duplicateUpdate) {
+                  log.status = duplicateUpdate.status || 'Duplicate';
+                  log.duplicateOfUid = duplicateUpdate.duplicateOfUid || '';
+                  log.duplicateDeviceCount = Number(duplicateUpdate.duplicateDeviceCount) || 2;
+                }
+                writeStore.put(log);
+              }
               else { log.syncAttempts = (log.syncAttempts || 0) + 1; writeStore.put(log); }
             });
 
             writeTx.oncomplete = () => {
               for (const client of allClients) {
-                client.postMessage({ type: 'race-log-sync-complete', summary: result.summary });
+                client.postMessage({
+                  type: 'race-log-sync-complete',
+                  summary: result.summary,
+                  appRefreshEpoch: result.appRefreshEpoch
+                });
               }
               resolve();
             };
