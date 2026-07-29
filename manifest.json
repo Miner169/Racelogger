@@ -1,7 +1,7 @@
 {
   "name": "Race Bib Logger",
   "short_name": "Race Log",
-  "description": "Offline-first checkpoint bib scanning and race tracking for volunteers.",
+  "description": "Offline-first checkpoint bib scanning with dynamic event categories, race distances, safety tracking, and live race command views.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
