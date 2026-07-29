@@ -1,7 +1,7 @@
-// v13: event-profile UX, header-driven Setup configuration, future-event validation,
-// grouped checkpoint progress mapping, and race-specific setup reset. Cache bumped so
-// every installed PWA receives the new category/KM workflow promptly.
-const CACHE_NAME = 'race-logger-v13-cache';
+// v15: balanced bib-entry controls, simplified checkpoint setup, frequency-coloured
+// Last 4 runners, and compact empty Director widgets. Cache bumped so installed PWAs
+// receive the layout and race-day usability changes promptly.
+const CACHE_NAME = 'race-logger-v15-cache';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
