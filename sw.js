@@ -1,7 +1,6 @@
-// v15: balanced bib-entry controls, simplified checkpoint setup, frequency-coloured
-// Last 4 runners, and compact empty Director widgets. Cache bumped so installed PWAs
-// receive the layout and race-day usability changes promptly.
-const CACHE_NAME = 'race-logger-v15-cache';
+// v16: automatic bib-defined passages, newest-20 operational sync, focus-only
+// inline OCR/keyboard tools, 20-step repeat colours, and hardened camera/IndexedDB paths.
+const CACHE_NAME = 'race-logger-v16-cache';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -85,7 +84,7 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
       return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+        if (!networkResponse || (!networkResponse.ok && networkResponse.type !== 'opaque')) {
           return networkResponse;
         }
         const responseToCache = networkResponse.clone();
@@ -108,6 +107,23 @@ self.addEventListener('sync', (event) => {
   }
 });
 
+
+function parseClientTimeMs_(value) {
+  if (!value) return Date.now();
+  const text = String(value).trim();
+  let match = text.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)?$/i);
+  if (match) {
+    let hour = Number(match[4]);
+    const meridiem = String(match[7] || '').toUpperCase();
+    if (meridiem === 'PM' && hour < 12) hour += 12;
+    if (meridiem === 'AM' && hour === 12) hour = 0;
+    const time = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]), hour, Number(match[5]), Number(match[6])).getTime();
+    if (Number.isFinite(time)) return time;
+  }
+  const parsed = Date.parse(text);
+  return Number.isFinite(parsed) ? parsed : Date.now();
+}
+
 async function syncPendingLogs() {
   const allClients = await self.clients.matchAll({ includeUncontrolled: true });
   for (const client of allClients) {
@@ -115,16 +131,39 @@ async function syncPendingLogs() {
   }
 
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("RaceLoggerDB", 3);
+    const request = indexedDB.open("RaceLoggerDB", 4);
     request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error('RaceLoggerDB upgrade is blocked by another open tab.'));
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains("logs")) db.createObjectStore("logs", { keyPath: "id", autoIncrement: true });
+      const logStore = db.objectStoreNames.contains("logs")
+        ? request.transaction.objectStore("logs")
+        : db.createObjectStore("logs", { keyPath: "id", autoIncrement: true });
+      [
+        ["byUid", "uid"],
+        ["byBib", "bib"],
+        ["byCheckpoint", "checkpoint"],
+        ["byClientTime", "clientTimeMs"]
+      ].forEach(([name, keyPath]) => {
+        if (!logStore.indexNames.contains(name)) logStore.createIndex(name, keyPath, { unique: false });
+      });
+      const cursorReq = logStore.openCursor();
+      cursorReq.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (!cursor) return;
+        const log = cursor.value;
+        if (!Number.isFinite(Number(log.clientTimeMs))) {
+          log.clientTimeMs = parseClientTimeMs_(log.time);
+          cursor.update(log);
+        }
+        cursor.continue();
+      };
       if (!db.objectStoreNames.contains("meta")) db.createObjectStore("meta", { keyPath: "key" });
       if (!db.objectStoreNames.contains("safetyNotes")) db.createObjectStore("safetyNotes", { keyPath: "bib" });
     };
     request.onsuccess = async () => {
       const db = request.result;
+      db.onversionchange = () => db.close();
       if (!db.objectStoreNames.contains("logs") || !db.objectStoreNames.contains("meta")) {
         resolve(); return;
       }
@@ -139,9 +178,10 @@ async function syncPendingLogs() {
 
       if (!syncUrl) { resolve(); return; }
 
-      const tx = db.transaction(["logs"], "readwrite");
+      const tx = db.transaction(["logs"], "readonly");
       const store = tx.objectStore("logs");
       const getAllReq = store.getAll();
+      getAllReq.onerror = () => reject(getAllReq.error || new Error('Could not read pending logs.'));
 
       getAllReq.onsuccess = async () => {
         const allLogs = getAllReq.result || [];
@@ -149,11 +189,19 @@ async function syncPendingLogs() {
         if (unsynced.length === 0) { resolve(); return; }
 
         try {
-          const response = await fetch(`${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ action: "batch_sync", data: unsynced })
-          });
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 25000);
+          let response;
+          try {
+            response = await fetch(`${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({ action: "batch_sync", data: unsynced }),
+              signal: controller.signal
+            });
+          } finally {
+            clearTimeout(timeoutId);
+          }
           const result = await response.json();
           if (result.status === "success") {
             const confirmedIds = new Set(result.confirmedIds || []);
@@ -195,6 +243,8 @@ async function syncPendingLogs() {
               else { log.syncAttempts = (log.syncAttempts || 0) + 1; writeStore.put(log); }
             });
 
+            writeTx.onerror = () => reject(writeTx.error || new Error('Could not update synced logs.'));
+            writeTx.onabort = () => reject(writeTx.error || new Error('Background sync update was aborted.'));
             writeTx.oncomplete = () => {
               for (const client of allClients) {
                 client.postMessage({
