@@ -1,7 +1,7 @@
-// v10: Lap/CP single-vs-multiple recording mode plus backend duplicate
-// arbitration across checkpoint devices. Cache bumped so every installed PWA
-// receives the new grey duplicate indicators and sync metadata handling.
-const CACHE_NAME = 'race-logger-v10-cache';
+// v13: event-profile UX, header-driven Setup configuration, future-event validation,
+// grouped checkpoint progress mapping, and race-specific setup reset. Cache bumped so
+// every installed PWA receives the new category/KM workflow promptly.
+const CACHE_NAME = 'race-logger-v13-cache';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -200,7 +200,9 @@ async function syncPendingLogs() {
                 client.postMessage({
                   type: 'race-log-sync-complete',
                   summary: result.summary,
-                  appRefreshEpoch: result.appRefreshEpoch
+                  configMeta: result.configMeta,
+                  appRefreshEpoch: result.appRefreshEpoch,
+                  dataRevision: result.dataRevision
                 });
               }
               resolve();
