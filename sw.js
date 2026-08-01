@@ -1,6 +1,6 @@
-// v16: automatic bib-defined passages, newest-20 operational sync, focus-only
-// inline OCR/keyboard tools, 20-step repeat colours, and hardened camera/IndexedDB paths.
-const CACHE_NAME = 'race-logger-v16-cache';
+// v18: aggregate indexes, virtual safety rows, cached operations summaries, clock audit,
+// route validation, device health, structured incidents, COT alerts and accessibility.
+const CACHE_NAME = 'race-logger-v18-cache';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -124,6 +124,65 @@ function parseClientTimeMs_(value) {
   return Number.isFinite(parsed) ? parsed : Date.now();
 }
 
+function readStoreAll_(db, storeName) {
+  return new Promise((resolve) => {
+    if (!db.objectStoreNames.contains(storeName)) { resolve([]); return; }
+    try {
+      const req = db.transaction([storeName], 'readonly').objectStore(storeName).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    } catch (_) { resolve([]); }
+  });
+}
+
+function putStoreRecord_(db, storeName, record) {
+  return new Promise((resolve) => {
+    if (!db.objectStoreNames.contains(storeName)) { resolve(); return; }
+    try {
+      const tx = db.transaction([storeName], 'readwrite');
+      tx.objectStore(storeName).put(record);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+      tx.onabort = () => resolve();
+    } catch (_) { resolve(); }
+  });
+}
+
+async function postOperationalRecord_(syncUrl, action, key, value) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(`${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, [key]: value }),
+      signal: controller.signal
+    });
+    return await response.json();
+  } finally { clearTimeout(timeoutId); }
+}
+
+async function syncOperationalStores_(db, syncUrl) {
+  const incidents = (await readStoreAll_(db, 'incidents')).filter(row => row && row.synced === false);
+  for (const incident of incidents) {
+    try {
+      const result = await postOperationalRecord_(syncUrl, 'incident_upsert', 'incident', incident);
+      if (result.status === 'success' && result.incident) {
+        await putStoreRecord_(db, 'incidents', Object.assign({}, result.incident, { synced: true }));
+      }
+    } catch (_) { /* keep queued for next background sync */ }
+  }
+  const alerts = (await readStoreAll_(db, 'cotAlerts')).filter(row => row && row.synced === false);
+  for (const alert of alerts) {
+    try {
+      const result = await postOperationalRecord_(syncUrl, 'cot_alert_upsert', 'alert', alert);
+      if (result.status === 'success' && result.alert) {
+        await putStoreRecord_(db, 'cotAlerts', Object.assign({}, result.alert, { synced: true }));
+      }
+    } catch (_) { /* keep queued for next background sync */ }
+  }
+}
+
 async function syncPendingLogs() {
   const allClients = await self.clients.matchAll({ includeUncontrolled: true });
   for (const client of allClients) {
@@ -131,7 +190,7 @@ async function syncPendingLogs() {
   }
 
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("RaceLoggerDB", 4);
+    const request = indexedDB.open("RaceLoggerDB", 5);
     request.onerror = () => reject(request.error);
     request.onblocked = () => reject(new Error('RaceLoggerDB upgrade is blocked by another open tab.'));
     request.onupgradeneeded = () => {
@@ -143,7 +202,9 @@ async function syncPendingLogs() {
         ["byUid", "uid"],
         ["byBib", "bib"],
         ["byCheckpoint", "checkpoint"],
-        ["byClientTime", "clientTimeMs"]
+        ["byClientTime", "clientTimeMs"],
+        ["byCategory", "category"],
+        ["byStatus", "status"]
       ].forEach(([name, keyPath]) => {
         if (!logStore.indexNames.contains(name)) logStore.createIndex(name, keyPath, { unique: false });
       });
@@ -160,6 +221,10 @@ async function syncPendingLogs() {
       };
       if (!db.objectStoreNames.contains("meta")) db.createObjectStore("meta", { keyPath: "key" });
       if (!db.objectStoreNames.contains("safetyNotes")) db.createObjectStore("safetyNotes", { keyPath: "bib" });
+      if (!db.objectStoreNames.contains("aggregates")) db.createObjectStore("aggregates", { keyPath: "key" });
+      if (!db.objectStoreNames.contains("incidents")) db.createObjectStore("incidents", { keyPath: "id" });
+      if (!db.objectStoreNames.contains("cotAlerts")) db.createObjectStore("cotAlerts", { keyPath: "key" });
+      if (!db.objectStoreNames.contains("deviceHealth")) db.createObjectStore("deviceHealth", { keyPath: "deviceId" });
     };
     request.onsuccess = async () => {
       const db = request.result;
@@ -186,7 +251,10 @@ async function syncPendingLogs() {
       getAllReq.onsuccess = async () => {
         const allLogs = getAllReq.result || [];
         const unsynced = allLogs.filter(log => !log.synced);
-        if (unsynced.length === 0) { resolve(); return; }
+        if (unsynced.length === 0) {
+          try { await syncOperationalStores_(db, syncUrl); } catch (_) { /* queued for next attempt */ }
+          resolve(); return;
+        }
 
         try {
           const controller = new AbortController();
@@ -245,7 +313,8 @@ async function syncPendingLogs() {
 
             writeTx.onerror = () => reject(writeTx.error || new Error('Could not update synced logs.'));
             writeTx.onabort = () => reject(writeTx.error || new Error('Background sync update was aborted.'));
-            writeTx.oncomplete = () => {
+            writeTx.oncomplete = async () => {
+              try { await syncOperationalStores_(db, syncUrl); } catch (_) { /* queued for next attempt */ }
               for (const client of allClients) {
                 client.postMessage({
                   type: 'race-log-sync-complete',
