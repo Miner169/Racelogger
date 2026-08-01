@@ -1,7 +1,7 @@
 {
   "name": "Race Bib Logger",
   "short_name": "Race Log",
-  "description": "Offline-first bib recording with automatic passage tracking, newest-20 operational history, live OCR, runner safety monitoring, and race command views.",
+  "description": "Offline-first race bib logging with safety tracking, structured incidents, device health, arrival forecasting, COT alerts, and live race command views.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
