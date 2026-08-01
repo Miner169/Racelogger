@@ -1,22 +1,56 @@
-// v18: aggregate indexes, virtual safety rows, cached operations summaries, clock audit,
-// route validation, device health, structured incidents, COT alerts and accessibility.
-const CACHE_NAME = 'race-logger-v18-cache';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/tailwind.css',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/icon-512-maskable.png'
-];
+// Race Bib Logger v18.0.1 static-shell reliability revision 2.
+// Keeps the existing IndexedDB/background-sync logic below unchanged while making
+// app-shell caching safe for subdirectory deployments and shared web origins.
+const CACHE_PREFIX = 'race-logger-';
+const STATIC_CACHE = 'race-logger-static-v18-0-1-r2';
+const RUNTIME_CACHE = 'race-logger-runtime-v18-0-1-r2';
+const NETWORK_TIMEOUT_MS = 4500;
+const MAX_RUNTIME_ENTRIES = 80;
 
-// App-shell URLs that should always prefer the network (so deploys actually
-// reach devices) while still falling back to cache offline.
+// Resolve every app-shell asset from the service worker's actual scope. This works
+// whether the PWA is deployed at the origin root or under a path such as /race-log/.
+const SCOPE_URL = new URL(self.registration.scope);
+const APP_SHELL_URL = new URL('./index.html', SCOPE_URL).href;
+const ASSETS_TO_CACHE = [
+  './',
+  './index.html',
+  './tailwind.css',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-512-maskable.png'
+].map((path) => new URL(path, SCOPE_URL).href);
+const SHELL_URLS = new Set(ASSETS_TO_CACHE);
+
 function isShellRequest_(request) {
   if (request.mode === 'navigate') return true;
+  return SHELL_URLS.has(new URL(request.url).href);
+}
+
+function fetchWithTimeout_(request, timeoutMs = NETWORK_TIMEOUT_MS) {
+  if (typeof AbortController === 'undefined') return fetch(request);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(request, { signal: controller.signal })
+    .finally(() => clearTimeout(timeoutId));
+}
+
+async function trimRuntimeCache_() {
+  const cache = await caches.open(RUNTIME_CACHE);
+  const keys = await cache.keys();
+  const overflow = keys.length - MAX_RUNTIME_ENTRIES;
+  if (overflow <= 0) return;
+  await Promise.all(keys.slice(0, overflow).map((request) => cache.delete(request)));
+}
+
+function canRuntimeCache_(request, response) {
+  if (!response) return false;
+  if (!(response.ok || response.type === 'opaque')) return false;
   const url = new URL(request.url);
-  return ASSETS_TO_CACHE.some((path) => url.pathname === path || url.pathname.endsWith('/index.html') || url.pathname.endsWith('/tailwind.css') || url.pathname.endsWith('/manifest.json'));
+  // Never cache Apps Script/API traffic or non-HTTP(S) requests.
+  if (!/^https?:$/.test(url.protocol)) return false;
+  if (url.hostname === 'script.google.com' || url.hostname.endsWith('.googleusercontent.com')) return false;
+  return true;
 }
 
 self.addEventListener('message', (event) => {
@@ -24,81 +58,90 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('install', (event) => {
+  // Preserve the app's existing immediate-update behaviour. Pending race records live
+  // in IndexedDB, not in the app-shell cache, so replacing the shell does not erase them.
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      // Cache each asset independently so one missing/renamed file (e.g. during
-      // a deploy) doesn't fail the whole install and leave the app with no
-      // offline shell at all.
-      return Promise.all(
-        ASSETS_TO_CACHE.map((url) => cache.add(url).catch((err) => {
-          console.warn('SW: failed to precache', url, err);
-        }))
-      );
-    })
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(STATIC_CACHE);
+    await Promise.all(ASSETS_TO_CACHE.map(async (url) => {
+      try {
+        await cache.add(new Request(url, { cache: 'reload' }));
+      } catch (error) {
+        // One missing optional asset must not prevent the worker from installing.
+        console.warn('SW: failed to precache', url, error);
+      }
+    }));
+  })());
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const currentCaches = new Set([STATIC_CACHE, RUNTIME_CACHE]);
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames
+        .filter((name) => name.startsWith(CACHE_PREFIX) && !currentCaches.has(name))
+        .map((name) => caches.delete(name))
+    );
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  if (event.request.url.includes('script.google.com')) return;
+  const request = event.request;
+  if (request.method !== 'GET') return;
 
-  // ── App shell: NETWORK-FIRST with cache fallback ─────────────────────────
-  // Fresh HTML/CSS whenever online, cached copy when offline. This replaces
-  // the old cache-first behavior that pinned devices to whatever index.html
-  // they first installed.
-  if (isShellRequest_(event.request)) {
-    event.respondWith(
-      fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+  const requestUrl = new URL(request.url);
+  if (requestUrl.hostname === 'script.google.com') return;
+
+  // App shell: network first with a short timeout, then static-cache fallback.
+  if (isShellRequest_(request)) {
+    event.respondWith((async () => {
+      try {
+        const response = await fetchWithTimeout_(request);
+        if (response && response.ok && response.type === 'basic') {
+          const cacheWrite = caches.open(STATIC_CACHE)
+            .then((cache) => cache.put(request, response.clone()))
+            .catch((error) => console.warn('SW: shell cache write failed', error));
+          event.waitUntil(cacheWrite);
         }
-        return networkResponse;
-      }).catch(() => {
-        return caches.match(event.request).then((cached) => {
-          if (cached) return cached;
-          if (event.request.mode === 'navigate') return caches.match('/index.html');
+        return response;
+      } catch (_) {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        if (request.mode === 'navigate') {
+          const fallback = await caches.match(APP_SHELL_URL);
+          if (fallback) return fallback;
+        }
+        return new Response('Offline and the Race Logger app shell is not cached yet.', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
         });
-      })
-    );
+      }
+    })());
     return;
   }
 
-  // ── Everything else: cache-first (offline-friendly CDN libs, icons, etc.) ─
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || (!networkResponse.ok && networkResponse.type !== 'opaque')) {
-          return networkResponse;
-        }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-        return networkResponse;
-      }).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
-      });
-    })
-  );
+  // Runtime resources: cache first, then network. Keep this separate from the shell
+  // so a cache rotation cannot accidentally strand the main application offline.
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+
+    try {
+      const response = await fetch(request);
+      if (canRuntimeCache_(request, response)) {
+        const cacheWrite = caches.open(RUNTIME_CACHE)
+          .then((cache) => cache.put(request, response.clone()))
+          .then(() => trimRuntimeCache_())
+          .catch((error) => console.warn('SW: runtime cache write failed', error));
+        event.waitUntil(cacheWrite);
+      }
+      return response;
+    } catch (_) {
+      return new Response('', { status: 504, statusText: 'Offline' });
+    }
+  })());
 });
 
 self.addEventListener('sync', (event) => {
