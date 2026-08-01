@@ -1,13 +1,21 @@
 {
+  "id": "./",
   "name": "Race Bib Logger",
   "short_name": "Race Log",
   "description": "Offline-first race bib logging with safety tracking, structured incidents, device health, arrival forecasting, COT alerts, and live race command views.",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0a0a0c",
   "theme_color": "#0a0a0c",
+  "prefer_related_applications": false,
+  "categories": [
+    "sports",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -27,10 +35,5 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ],
-  "id": "./",
-  "categories": [
-    "sports",
-    "productivity"
   ]
 }
