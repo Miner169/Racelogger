@@ -1292,6 +1292,26 @@
             letter-spacing: 0.05em;
             text-transform: uppercase;
         }
+        .bib-collision-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.12rem 0.4rem;
+            border-radius: 0.3rem;
+            border: 1px solid rgba(34, 211, 238, 0.45);
+            background: rgba(34, 211, 238, 0.12);
+            color: #67e8f9;
+            font-size: 0.625rem;
+            line-height: 1.15;
+            font-weight: 900;
+            font-family: ui-monospace, monospace;
+            white-space: nowrap;
+        }
+        body.light-theme .bib-collision-badge {
+            border-color: rgba(8, 145, 178, 0.4);
+            background: rgba(8, 145, 178, 0.08);
+            color: #0e7490;
+        }
         .director-km-group-row { cursor: pointer; }
         .director-km-group-row:hover td { background: rgba(59,130,246,0.06); }
         .director-km-detail-row td:first-child { padding-left: 2.25rem !important; }
@@ -2281,6 +2301,109 @@
             #safetyTableViewport { max-height: calc(100vh - 16rem); }
             .integrity-issue-row, .device-health-row, .forecast-row, .incident-row, .cot-alert-row { grid-template-columns: 1fr; gap: .2rem; }
         }
+
+        /* ── v18.0.4 responsive readability, compact Director layout and collision-safe BIB normalization ── */
+        #directorWidgetsGrid {
+            align-items: start;
+            grid-auto-flow: dense;
+            grid-auto-rows: 4px;
+            column-gap: 1rem;
+            row-gap: 1rem;
+        }
+        #directorWidgetsGrid [data-widget] {
+            align-self: start;
+            min-width: 0;
+        }
+
+        /* Many Director labels were authored with fixed 9–11px utilities, so changing
+           the root font-size alone did not make them readable. These scoped overrides
+           preserve the compact dashboard while keeping operational text legible. */
+        #directorModeView .text-\[9px\]  { font-size: 0.70rem !important; line-height: 0.95rem !important; }
+        #directorModeView .text-\[10px\] { font-size: 0.76rem !important; line-height: 1.02rem !important; }
+        #directorModeView .text-\[11px\] { font-size: 0.82rem !important; line-height: 1.10rem !important; }
+        #directorModeView .text-xs { font-size: 0.84rem; line-height: 1.18rem; }
+        #directorModeView .text-sm { font-size: 0.96rem; line-height: 1.30rem; }
+        #directorModeView [data-widget] h2 { font-size: 0.82rem !important; line-height: 1.1rem !important; }
+        #directorModeView [data-widget] p { line-height: 1.25; }
+        #directorModeView .widget-width-controls button { min-width: 1.35rem; min-height: 1.35rem; font-size: 0.66rem !important; }
+
+        /* Event Profile uses the available landscape/desktop width and no longer wraps
+           the fourth summary tile onto an otherwise empty row. */
+        .event-profile-dialog {
+            width: min(64rem, calc(100vw - 1.25rem));
+            max-width: 64rem;
+            max-height: calc(100dvh - 1.25rem);
+        }
+        #eventProfileModal .event-profile-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        #eventProfileModal .event-profile-stat { padding: 0.7rem; }
+        #eventProfileModal .event-profile-stat strong { font-size: 1.3rem; }
+        #eventProfileModal .event-profile-stat span { font-size: 0.66rem; line-height: 0.9rem; }
+        #eventProfileModal .event-profile-km-title { font-size: 0.9rem; }
+        #eventProfileModal .event-profile-category-chip { font-size: 0.68rem; padding: 0.25rem 0.55rem; }
+        #eventProfileModal .event-profile-issue { font-size: 0.76rem; line-height: 1.35; }
+        #eventProfileModal .text-\[9px\] { font-size: 0.68rem !important; line-height: 0.95rem !important; }
+        #eventProfileModal .text-\[10px\] { font-size: 0.74rem !important; line-height: 1rem !important; }
+        #eventProfileModal .text-\[11px\] { font-size: 0.80rem !important; line-height: 1.08rem !important; }
+        .event-profile-issue.info { border-color: rgba(59,130,246,.4); background: rgba(59,130,246,.08); }
+        @media (min-width: 640px) {
+            #eventProfileModal .event-profile-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+        @media (min-width: 1100px) {
+            #eventProfileModal .event-profile-distance-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        /* Tablet landscape should use the split logger layout even below Tailwind's
+           1024px lg breakpoint. Both panes scroll independently instead of making the
+           whole page grow beyond the viewport. */
+        @media (min-width: 768px) and (orientation: landscape) {
+            body:not(.forced-portrait) {
+                height: 100dvh !important;
+                overflow: hidden !important;
+                padding-bottom: 0 !important;
+            }
+            body:not(.forced-portrait) > main {
+                min-height: 0 !important;
+                overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            body:not(.forced-portrait) #mainGridSplitter {
+                grid-template-columns: minmax(280px, 38vw) minmax(0, 1fr) !important;
+                align-items: stretch !important;
+                flex: 1 1 auto;
+                min-height: 0;
+            }
+            body:not(.forced-portrait) #mainGridSplitter > div {
+                height: 100%;
+                min-height: 0;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+            }
+        }
+        @media (min-width: 700px) {
+            body.forced-landscape {
+                height: 100dvh !important;
+                overflow: hidden !important;
+                padding-bottom: 0 !important;
+            }
+            body.forced-landscape > main {
+                min-height: 0 !important;
+                overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            body.forced-landscape #mainGridSplitter {
+                grid-template-columns: minmax(280px, 38vw) minmax(0, 1fr) !important;
+                align-items: stretch !important;
+                flex: 1 1 auto;
+                min-height: 0;
+            }
+            body.forced-landscape #mainGridSplitter > div {
+                height: 100%;
+                min-height: 0;
+                overflow-y: auto;
+            }
+        }
     </style>
 </head>
 <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
@@ -2306,12 +2429,12 @@
             <button id="directorModeDesktopBtn" type="button" aria-label="Open Director Mode" onclick="openDirectorMode()" class="hidden sm:flex items-center gap-1 text-[11px] font-bold bg-indigo-100 dark:bg-indigo-900/60 hover:bg-indigo-200 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 px-2.5 py-1 rounded-lg transition" title="Open the big-screen director dashboard (stats, leaderboard, category overview)">📺 Director Mode</button>
             <button id="directorModeMobileBtn" type="button" aria-label="Open Director Mode" onclick="openDirectorMode()" class="icon-tap-target sm:hidden text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white text-lg p-1" title="Director Mode">📺</button>
             <button onclick="toggleTheme()" id="themeBtn" class="icon-tap-target text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white text-lg p-1" title="Toggle Theme">☀️</button>
-            <button onclick="toggleSettings()" class="icon-tap-target text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white text-lg p-1" title="Settings">⚙️</button>
+            <button onclick="openSettings(event)" class="icon-tap-target text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white text-lg p-1" title="Settings">⚙️</button>
         </div>
     </header>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-hidden="true" onclick="if(event.target===this) closeSettings(event)">
         <div class="theme-panel p-5 rounded-2xl border w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-4">
             <div>
                 <h3 class="text-lg font-bold mb-0.5 theme-text">⚙️ App Settings</h3>
@@ -2433,6 +2556,9 @@
                 <div class="text-[9px] text-blue-600 dark:text-blue-400 font-medium leading-tight mt-0.5">
                     ℹ️ The logging screen is permanently capped at 20 rows for fast, predictable performance. Runner Safety Log and Director Mode still load the complete event dataset when opened.
                 </div>
+                <div class="text-[9px] theme-text-muted font-medium leading-tight mt-1 border theme-border rounded-lg px-2 py-1.5">
+                    🔤 Alphanumeric BIBs are preserved in the race record (uppercase, with spaces/punctuation removed), while their digits are used for duplicate checks, runner counts, passages, pace, and route calculations. Example: <strong>F1234B → 1234</strong>. BIBs with the same digits are treated as the same runner.
+                </div>
 
                 <label class="flex items-center gap-2 cursor-pointer select-none pt-1">
                     <input type="checkbox" id="batterySaverManualToggle" class="rounded border-neutral-300 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-950 text-red-600 focus:ring-0 w-4 h-4">
@@ -2484,8 +2610,8 @@
             </div>
 
             <div class="flex gap-2 justify-end border-t theme-border pt-3 mt-1">
-                <button type="button" onclick="toggleSettings()" class="bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-300 px-4 py-2 rounded-lg text-sm font-semibold">Cancel</button>
-                <button type="button" onclick="saveSettings()" class="bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">Save Settings</button>
+                <button type="button" onclick="closeSettings(event)" class="bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-300 px-4 py-2 rounded-lg text-sm font-semibold">Cancel</button>
+                <button type="button" id="settingsSaveBtn" onclick="saveSettings(event)" class="bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">Save Settings</button>
             </div>
         </div>
     </div>
@@ -2597,7 +2723,7 @@
                     <option value="paddleocr">PaddleOCR.js (experimental)</option>
                 </select>
             </div>
-            <p id="bibScannerTip" class="text-[10px] theme-text-muted -mt-1 leading-snug">Video OCR scans continuously. Hold a registered bib steady in the guide; after a stable match it is logged automatically.</p>
+            <p id="bibScannerTip" class="text-[10px] theme-text-muted -mt-1 leading-snug">Video OCR scans continuously. Hold a bib steady in the guide; after a stable match it is logged automatically.</p>
 
 
             <div class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 rounded-lg px-3 py-2 text-center">
@@ -2618,7 +2744,7 @@
             <div class="flex items-center gap-2 shrink-0">
                 <span id="directorSyncBadge" class="text-[10px] sm:text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-2 py-1 rounded-full font-bold whitespace-nowrap">● Live</span>
                 <button id="directorEventProfileBadge" onclick="openEventProfile_()" class="director-event-profile-badge event-config-health warning" title="View event categories, race distances, and Setup validation">Event setup</button>
-                <button onclick="toggleDirectorCustomize()" class="text-[10px] sm:text-xs bg-purple-100 dark:bg-purple-900/60 hover:bg-purple-200 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 px-2.5 py-1.5 rounded-lg font-bold transition">🎛️ Customize</button>
+                <button onclick="openDirectorCustomize(event)" class="text-[10px] sm:text-xs bg-purple-100 dark:bg-purple-900/60 hover:bg-purple-200 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 px-2.5 py-1.5 rounded-lg font-bold transition">🎛️ Customize</button>
                 <button onclick="pullServerRecords(); attemptSync();" class="text-[10px] sm:text-xs bg-blue-600 dark:bg-blue-900 hover:bg-blue-500 dark:hover:bg-blue-800 text-white px-2.5 py-1.5 rounded-lg font-bold transition">Refresh 🔄</button>
                 <button onclick="closeDirectorMode()" class="text-[10px] sm:text-xs bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 theme-text px-2.5 py-1.5 rounded-lg font-bold border theme-border transition">✕ Exit</button>
             </div>
@@ -2626,11 +2752,11 @@
 
         <!-- Widget picker: lets the person watching this screen choose which panels are
              worth their space, with a one-line explanation of what each one shows. -->
-        <div id="directorCustomizeModal" class="hidden fixed inset-0 bg-black/70 z-[70] flex items-center justify-center p-4" onclick="if(event.target===this) toggleDirectorCustomize()">
+        <div id="directorCustomizeModal" class="hidden fixed inset-0 bg-black/70 z-[70] flex items-center justify-center p-4" onclick="if(event.target===this) closeDirectorCustomize(event)">
             <div class="theme-panel border rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-5 flex flex-col gap-3">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-black theme-text uppercase tracking-wide">🎛️ Customize Race Command View</h3>
-                    <button onclick="toggleDirectorCustomize()" class="text-neutral-500 hover:theme-text text-lg leading-none">✕</button>
+                    <button onclick="closeDirectorCustomize(event)" class="text-neutral-500 hover:theme-text text-lg leading-none">✕</button>
                 </div>
                 <p class="text-[11px] theme-text-muted">Pick what's worth screen space right now — you can change this any time. Drag the ⠿ handle on any widget's header to rearrange them, use the 1/2/3 buttons to set how wide one is, and drag the bar at a widget's bottom edge to resize its height.</p>
 
@@ -2643,17 +2769,17 @@
                 <div id="directorWidgetCheckboxList" class="flex flex-col gap-2"></div>
                 <div class="flex gap-2 justify-between items-center border-t theme-border pt-3 mt-1">
                     <button onclick="resetDirectorWidgetLayout_(); resetDirectorWidgetSizes_();" class="text-[11px] text-neutral-500 hover:theme-text underline font-semibold">↺ Reset layout &amp; sizes to default</button>
-                    <button onclick="toggleDirectorCustomize()" class="bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">Done</button>
+                    <button onclick="closeDirectorCustomize(event)" class="bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">Done</button>
                 </div>
             </div>
         </div>
 
-        <div class="p-3 sm:p-6 max-w-[1900px] mx-auto flex flex-col gap-4 sm:gap-6">
+        <div class="p-3 sm:p-5 max-w-[1900px] mx-auto flex flex-col gap-3 sm:gap-4">
 
             <!-- At-a-glance stat tiles -->
             <div id="directorStatTiles" class="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3"></div>
 
-            <div class="grid grid-cols-1 xl:grid-cols-[1.1fr_1.7fr] gap-4 sm:gap-6 items-start">
+            <div class="grid grid-cols-1 xl:grid-cols-[1.1fr_1.7fr] gap-3 sm:gap-4 items-start">
 
                 <!-- Category overview -->
                 <section class="theme-panel rounded-2xl border shadow overflow-hidden">
@@ -2692,7 +2818,7 @@
             </div>
 
             <!-- Optional widgets -- each one is individually toggleable via 🎛️ Customize -->
-            <div id="directorWidgetsGrid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+            <div id="directorWidgetsGrid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
 
                 <section id="widget-glance" data-widget="glance" class="theme-panel rounded-2xl border shadow overflow-hidden flex flex-col">
                     <div class="px-4 py-3 border-b theme-border bg-neutral-200/50 dark:bg-neutral-900/10 flex items-start gap-2">
@@ -2862,7 +2988,7 @@
                 <section id="widget-integrity" data-widget="integrity" class="theme-panel rounded-2xl border shadow overflow-hidden flex flex-col">
                     <div class="px-4 py-3 border-b theme-border bg-neutral-200/50 dark:bg-neutral-900/10 flex items-start gap-2">
                         <span class="widget-drag-handle icon-tap-target text-neutral-400 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'integrity')">⠿</span>
-                        <div class="min-w-0 flex-1"><h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🧪 Data Integrity</h2><p class="text-[10px] theme-text-muted mt-0.5">Malformed times, invalid bibs, route jumps, stale devices, mapping gaps, and clock drift.</p></div>
+                        <div class="min-w-0 flex-1"><h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🧪 Data Integrity</h2><p class="text-[10px] theme-text-muted mt-0.5">Malformed times, uncategorized bibs, route jumps, stale devices, mapping gaps, and clock drift.</p></div>
                         <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="integrity"></div>
                     </div>
                     <div id="directorIntegrityBody" class="p-3"><div class="text-center theme-text-muted text-xs p-4">Integrity checks have not run.</div></div>
@@ -3105,7 +3231,7 @@
                                         <span id="bibEntryModeIcon" class="bib-entry-tool-icon" aria-hidden="true">🔢</span><span id="bibEntryModeLabel" class="sr-only">Numbers</span>
                                     </button>
                                 </div>
-                                <span id="bibInputToolsHint" class="sr-only">OCR and keyboard mode tools appear when this field is focused.</span>
+                                <span id="bibInputToolsHint" class="sr-only">OCR and keyboard mode tools appear when this field is focused. BIBs may contain any number of digits and optional letters.</span>
                             </div>
                             <button type="submit" id="logActionButton" onpointerdown="keepBibInputFocused_(event)" aria-label="Log bib" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-90 duration-75 text-white font-extrabold text-lg rounded-xl shadow-lg transition-all flex items-center justify-center"><span id="logActionButtonLabel">LOG</span></button>
                         </div>
@@ -3420,14 +3546,14 @@
     <div id="srAnnouncer" class="sr-only-live" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <script>
-        const APP_VERSION = "18.0.1";
+        const APP_VERSION = "18.0.4";
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let db;
         let dbReady_ = false;
         let dbOpenFailed_ = false;
         const SCAN_HISTORY_MAX_ROWS = 20;
         const RECENT_SYNC_LIMIT = 20;
-        const RACE_DB_VERSION = 5;
+        const RACE_DB_VERSION = 7;
         let recentCloudWindowUids_ = new Set();
         let bibInputToolsHideTimer_ = null;
         let monitorSyncPromise_ = null;
@@ -3482,7 +3608,7 @@
         let cotAlertsEnabled_ = localStorage.getItem('cotAlertsEnabled_v1') !== 'false';
         let appTextScale_ = localStorage.getItem('appTextScale_v1') || 'normal';
         let screenReaderAnnouncements_ = localStorage.getItem('screenReaderAnnouncements_v1') !== 'false';
-        const ROUTE_MODELS_STORAGE_KEY_ = 'routeModels_v18';
+        const ROUTE_MODELS_STORAGE_KEY_ = 'routeModels_v18_0_4';
         let routeModelsByKey_ = (() => { try { return JSON.parse(localStorage.getItem(ROUTE_MODELS_STORAGE_KEY_) || '{}'); } catch (_) { return {}; } })();
 
         const LOCAL_APP_REFRESH_EPOCH_KEY_ = 'appRefreshEpoch_v1';
@@ -3897,25 +4023,28 @@
             // revision repair; the regular logger only performs small incremental pulls.
         }
 
-        // A long BIB (or someone testing with extra digits) used to just overflow/clip
-        // against the input's fixed text-4xl size. This shrinks the font smoothly as the
-        // entered value gets longer, with a floor so it never becomes unreadably small,
-        // and snaps back to full size the moment the field is short again or cleared.
-        const BIB_FONT_BASE_REM = 2.25;   // matches the default text-4xl
+        // BIB length is event-defined, not hard-coded. One-, two-, three-, four-digit
+        // and longer alphanumeric BIBs all use the same field. The font is measured
+        // against the actual available input width instead of assuming a fixed digit count.
+        const BIB_FONT_BASE_REM = 2.25;
         const BIB_FONT_MIN_REM = 1.0;
-        const BIB_FONT_SHRINK_AFTER_CHARS = 4;
-        const BIB_FONT_SHRINK_STEP_REM = 0.22;
 
         function computeBibFontSizeRem_(charCount) {
-            if (charCount <= BIB_FONT_SHRINK_AFTER_CHARS) return BIB_FONT_BASE_REM;
-            const shrunk = BIB_FONT_BASE_REM - (charCount - BIB_FONT_SHRINK_AFTER_CHARS) * BIB_FONT_SHRINK_STEP_REM;
-            return Math.max(BIB_FONT_MIN_REM, shrunk);
+            if (charCount <= 4) return BIB_FONT_BASE_REM;
+            return Math.max(BIB_FONT_MIN_REM, BIB_FONT_BASE_REM - (charCount - 4) * 0.18);
         }
 
         function autoScaleBibFontSize_() {
             const el = document.getElementById('bibInput');
             if (!el) return;
-            el.style.fontSize = computeBibFontSizeRem_(el.value.length) + 'rem';
+            let size = computeBibFontSizeRem_(el.value.length);
+            el.style.fontSize = size + 'rem';
+            const available = Math.max(80, el.clientWidth - 36);
+            let guard = 0;
+            while (el.scrollWidth > available && size > BIB_FONT_MIN_REM && guard++ < 16) {
+                size = Math.max(BIB_FONT_MIN_REM, size - 0.08);
+                el.style.fontSize = size + 'rem';
+            }
         }
 
         /** Bib numbers never contain spaces (e.g. "V 2344" must become "V2344"). The
@@ -4174,6 +4303,11 @@
                 document.body.classList.add('forced-landscape');
             }
             loadHistory();
+            requestAnimationFrame(() => {
+                applyDirectorWidgetSizes_();
+                renderAllWidgetWidthControls_();
+                scheduleDirectorMasonry_();
+            });
         }
 
         function formatDashboardDateStr(dateInput) {
@@ -4241,6 +4375,143 @@
                 }).filter(Boolean);
         }
 
+        function normalizeBibOriginal_(value) {
+            return String(value || '').replace(/[^A-Za-z0-9]/g, '').trim().toUpperCase();
+        }
+
+        function extractBibNumber_(value) {
+            return normalizeBibOriginal_(value).replace(/[^0-9]/g, '');
+        }
+
+        function normalizeBibNumberKey_(value) {
+            const digits = extractBibNumber_(value);
+            if (!digits) return '';
+            return digits.replace(/^0+(?=\d)/, '') || '0';
+        }
+
+        function bibNumberKey_(value) {
+            if (value && typeof value === 'object') {
+                const stored = normalizeBibNumberKey_(value.bibNumberKey || '');
+                if (stored) return stored;
+                value = value.bibNumber || value.bib || value.bibKey || '';
+            }
+            return normalizeBibNumberKey_(value);
+        }
+
+        function bibIdentityKey_(value) {
+            if (value && typeof value === 'object') {
+                // Original normalized BIB is the runner identity. MO1234 and F1234B
+                // remain separate runners even though both use numeric group 1234.
+                const original = normalizeBibOriginal_(value.bib || value.originalBib || '');
+                if (original) return original;
+                const stored = normalizeBibOriginal_(value.bibKey || '');
+                if (stored) return stored;
+                value = value.bibNumber || '';
+            }
+            return normalizeBibOriginal_(value);
+        }
+
+        function decorateBibIdentity_(record) {
+            if (!record || typeof record !== 'object') return record;
+            const original = normalizeBibOriginal_(record.bib || record.bibKey);
+            const number = extractBibNumber_(record.bibNumber || original);
+            record.bib = original;
+            record.bibNumber = number;
+            record.bibNumberKey = normalizeBibNumberKey_(record.bibNumberKey || number);
+            record.bibKey = original;
+            if (!record.category) record.category = findCategoryConfigForBib_(original, categoryConfig)?.category || 'Uncategorized';
+            return record;
+        }
+
+        function buildBibCollisionRegistry_(logs) {
+            const groups = new Map();
+            (logs || []).forEach(log => {
+                const original = bibIdentityKey_(log);
+                const numeric = bibNumberKey_(log);
+                if (!original || !numeric) return;
+                if (!groups.has(numeric)) groups.set(numeric, new Map());
+                const group = groups.get(numeric);
+                const serverMs = Date.parse(log.serverReceivedAt || '');
+                const scanMs = Number(log.clientTimeMs) || parseCustomOrIsoDate(log.time).getTime();
+                const firstSeen = Number.isFinite(serverMs) ? serverMs : (Number.isFinite(scanMs) ? scanMs : Number.MAX_SAFE_INTEGER);
+                group.set(original, Math.min(group.get(original) ?? Number.MAX_SAFE_INTEGER, firstSeen));
+            });
+            const registry = new Map();
+            groups.forEach((originals, numeric) => {
+                const ordered = Array.from(originals.entries())
+                    .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' }))
+                    .map(entry => entry[0]);
+                ordered.forEach((original, index) => {
+                    registry.set(original, {
+                        numeric,
+                        index: index + 1,
+                        total: ordered.length,
+                        indicator: ordered.length > 1 ? `${numeric} ${index + 1}` : numeric
+                    });
+                });
+            });
+            return registry;
+        }
+
+        function applyBibCollisionIndicators_(logs) {
+            const registry = buildBibCollisionRegistry_(logs);
+            (logs || []).forEach(log => {
+                const meta = registry.get(bibIdentityKey_(log)) || {
+                    numeric: bibNumberKey_(log),
+                    index: 1,
+                    total: 1,
+                    indicator: bibNumberKey_(log) || bibIdentityKey_(log)
+                };
+                log.bibNumberKey = meta.numeric || '';
+                log.bibCollisionIndex = meta.index;
+                log.bibCollisionTotal = meta.total;
+                log.bibIndicator = meta.indicator;
+            });
+            return logs;
+        }
+
+        function bibCollisionBadgeHtml_(log) {
+            if (!log || Number(log.bibCollisionTotal) <= 1) return '';
+            const title = `Numeric BIB ${log.bibNumberKey} is shared by ${log.bibCollisionTotal} different original BIBs. ${log.bib} is runner ${log.bibCollisionIndex} in this numeric group.`;
+            return `<span class="bib-collision-badge" title="${escapeHtmlAttr_(title)}">${escapeHtml_(log.bibIndicator)}</span>`;
+        }
+
+        function compareBibNumericThenIdentity_(a, b) {
+            const aNum = bibNumberKey_(a);
+            const bNum = bibNumberKey_(b);
+            if (aNum.length !== bNum.length) return aNum.length - bNum.length;
+            const numericOrder = aNum.localeCompare(bNum);
+            if (numericOrder) return numericOrder;
+            const variantOrder = (Number(a && a.bibCollisionIndex) || 1) - (Number(b && b.bibCollisionIndex) || 1);
+            if (variantOrder) return variantOrder;
+            return bibIdentityKey_(a).localeCompare(bibIdentityKey_(b), undefined, { numeric: true, sensitivity: 'base' });
+        }
+
+        function bibLeadingPrefix_(value) {
+            const match = normalizeBibOriginal_(value).match(/^([A-Z]+)/);
+            return match ? match[1] : '';
+        }
+
+        function findExactOrNumericConfigForBib_(bib, configs) {
+            if (!bib || !Array.isArray(configs) || !configs.length) return null;
+            const original = normalizeBibOriginal_(bib);
+            const digits = extractBibNumber_(original);
+            if (!digits) return null;
+            const number = parseInt(digits, 10);
+            const leadingPrefix = bibLeadingPrefix_(original);
+            for (const config of configs) {
+                const ranges = parseBibRuleParts_(config.bibRule);
+                if (ranges.some(range => range.prefix === leadingPrefix && number >= range.lo && number <= range.hi)) return config;
+            }
+            // Last-minute and alphanumeric BIB fallback: ignore letters only after an
+            // exact-prefix lookup failed. First matching Setup row wins deterministically.
+            for (const config of configs) {
+                const ranges = parseBibRuleParts_(config.bibRule);
+                if (ranges.some(range => number >= range.lo && number <= range.hi)) return config;
+            }
+            return null;
+        }
+
         function buildEventConfigMetaClient_(rows, serverMeta) {
             const configs = Array.isArray(rows) ? rows : [];
             const issues = [];
@@ -4277,7 +4548,12 @@
                     const a = ranges[i], b = ranges[j];
                     if (a.prefix !== b.prefix) continue;
                     if (Math.max(a.lo, b.lo) <= Math.min(a.hi, b.hi)) {
-                        issues.push({ level: 'error', code: 'overlap-bib-rule', row: b.sourceRow, message: `BIB rules overlap between Setup rows ${a.sourceRow} and ${b.sourceRow}.` });
+                        issues.push({
+                            level: 'info',
+                            code: 'overlap-bib-rule',
+                            row: b.sourceRow,
+                            message: `Setup rows ${a.sourceRow} and ${b.sourceRow} accept some of the same BIB numbers. This is allowed, but an overlapping BIB can match more than one category; automatic category assignment uses the first matching Setup row. Use unique ranges only when the overlap is not intentional.`
+                        });
                     }
                 }
             }
@@ -4380,9 +4656,11 @@
             const issueList = document.getElementById('eventProfileIssueList');
             if (issueList) {
                 const issues = Array.isArray(meta?.issues) ? meta.issues : [];
-                issueList.innerHTML = issues.length ? issues.map(issue =>
-                    `<div class="event-profile-issue ${issue.level === 'error' ? 'error' : 'warning'}"><span>${issue.level === 'error' ? '❌' : '⚠️'}</span><span>${escapeHtml_(issue.message || 'Configuration issue')}</span></div>`
-                ).join('') : '<div class="event-profile-issue"><span>✅</span><span>No overlapping BIB ranges or missing category/KM fields were detected.</span></div>';
+                issueList.innerHTML = issues.length ? issues.map(issue => {
+                    const level = issue.level === 'error' ? 'error' : (issue.level === 'warning' ? 'warning' : 'info');
+                    const icon = level === 'error' ? '❌' : (level === 'warning' ? '⚠️' : 'ℹ️');
+                    return `<div class="event-profile-issue ${level}"><span>${icon}</span><span>${escapeHtml_(issue.message || 'Configuration note')}</span></div>`;
+                }).join('') : '<div class="event-profile-issue"><span>✅</span><span>No missing or invalid required Setup fields were detected.</span></div>';
             }
 
             const stale = isCheckpointMapStale_();
@@ -4486,7 +4764,7 @@
             (allLogs || []).forEach(l => {
                 if (!isCountableLog_(l)) return;
                 const cfg = findCategoryConfigForBib_(l.bib, summaryRows);
-                if (cfg && cfg.bibRule && scannedSets.has(cfg.bibRule)) scannedSets.get(cfg.bibRule).add(l.bib);
+                if (cfg && cfg.bibRule && scannedSets.has(cfg.bibRule)) scannedSets.get(cfg.bibRule).add(bibIdentityKey_(l));
             });
             return scannedSets;
         }
@@ -4612,8 +4890,9 @@
             }, 150);
         })();
 
-        // Version 5 adds aggregate, incident, COT-alert and device-health stores, plus
-        // category/status indexes, while retaining all v4 scan indexes.
+        // Version 7 separates runner identity from the stripped numeric group.
+        // Original BIBs such as MO1234 and F1234B remain distinct runners while both
+        // can still use numeric group 1234 for Setup matching, sorting and indicators.
         bootstrapFirstUseUi_();
         let dbRequest = null;
         try {
@@ -4635,6 +4914,8 @@
             const indexes = [
                 ['byUid', 'uid', false],
                 ['byBib', 'bib', false],
+                ['byBibKey', 'bibKey', false],
+                ['byBibNumberKey', 'bibNumberKey', false],
                 ['byCheckpoint', 'checkpoint', false],
                 ['byClientTime', 'clientTimeMs', false],
                 ['byCategory', 'category', false],
@@ -4651,10 +4932,21 @@
                 const cursor = event.target.result;
                 if (!cursor) return;
                 const value = cursor.value;
+                let changed = false;
                 if (!Number.isFinite(Number(value.clientTimeMs))) {
                     value.clientTimeMs = parseCustomOrIsoDate(value.time).getTime();
-                    cursor.update(value);
+                    changed = true;
                 }
+                const original = normalizeBibOriginal_(value.bib || value.bibKey);
+                const number = extractBibNumber_(value.bibNumber || original);
+                const numberKey = normalizeBibNumberKey_(value.bibNumberKey || number);
+                const identityKey = original;
+                if (value.bib !== original) { value.bib = original; changed = true; }
+                if (value.bibNumber !== number) { value.bibNumber = number; changed = true; }
+                if (value.bibNumberKey !== numberKey) { value.bibNumberKey = numberKey; changed = true; }
+                if (value.bibKey !== identityKey) { value.bibKey = identityKey; changed = true; }
+                if (!value.category) { value.category = findCategoryConfigForBib_(original, categoryConfig)?.category || 'Uncategorized'; changed = true; }
+                if (changed) cursor.update(value);
                 cursor.continue();
             };
 
@@ -4832,14 +5124,39 @@
             };
         }
         
-        function toggleSettings() { 
-            const isHidden = document.getElementById("settingsModal").classList.toggle("hidden"); 
-            if(!isHidden) {
-                document.getElementById("syncUrlInput").value = syncUrl;
-                document.getElementById("testConnectionStatusFeedback").className = "hidden";
-                updateSettingsWipeCounterFootprint();
-                renderEventConfigSurfaces_();
+        function openSettings(event) {
+            if (event) { event.preventDefault(); event.stopPropagation(); }
+            const modal = document.getElementById("settingsModal");
+            if (!modal || !modal.classList.contains("hidden")) return;
+            modal.classList.remove("hidden");
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('overflow-hidden');
+            document.getElementById("syncUrlInput").value = syncUrl;
+            document.getElementById("testConnectionStatusFeedback").className = "hidden";
+            const saveBtn = document.getElementById('settingsSaveBtn');
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Settings'; }
+            updateSettingsWipeCounterFootprint();
+            renderEventConfigSurfaces_();
+        }
+
+        function closeSettings(event) {
+            if (event) { event.preventDefault(); event.stopPropagation(); }
+            const modal = document.getElementById("settingsModal");
+            if (!modal || modal.classList.contains("hidden")) return;
+            modal.classList.add("hidden");
+            modal.setAttribute('aria-hidden', 'true');
+            if (!isDirectorModeOpen && document.getElementById('safetyLogView')?.classList.contains('hidden')) {
+                document.body.classList.remove('overflow-hidden');
             }
+            const saveBtn = document.getElementById('settingsSaveBtn');
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Settings'; }
+        }
+
+        function toggleSettings(event) {
+            const modal = document.getElementById("settingsModal");
+            if (!modal) return;
+            if (modal.classList.contains("hidden")) openSettings(event);
+            else closeSettings(event);
         }
 
         function updateSettingsWipeCounterFootprint() {
@@ -4901,7 +5218,11 @@
         // "Import JSON" button — CSV is now the only export/backup format, so
         // there is no JSON file to import any more.
 
-        function saveSettings() { 
+        function saveSettings(event) { 
+            if (event) { event.preventDefault(); event.stopPropagation(); }
+            const saveBtn = document.getElementById('settingsSaveBtn');
+            if (saveBtn && saveBtn.disabled) return;
+            if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
             syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; 
             localStorage.setItem("syncUrl", syncUrl); 
             syncMetaToDb_();
@@ -4940,7 +5261,8 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             applyAppTextScale_();
 
             document.getElementById("dupWindowInput").value = dupWindowSeconds;
-            toggleSettings(); 
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Settings'; }
+            closeSettings(event); 
             updateSyncStatusLabel(); 
             applyLayoutOrientation();
             
@@ -5271,8 +5593,8 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             return null;
         }
 
-        function configuredCheckpointKmForBib_(bib, checkpointName) {
-            const cfg = findCategoryConfigForBib_(bib, categoryConfig);
+        function configuredCheckpointKmForBib_(bib, checkpointName, routeConfig) {
+            const cfg = findCategoryConfigForBib_(bib, categoryConfig) || routeConfig || null;
             const totalDistanceKm = parseRaceDistanceNumber_(cfg && cfg.km);
             if (Number.isFinite(totalDistanceKm) && totalDistanceKm > 0 && isCompletionCheckpoint_(checkpointName)) {
                 return { km: totalDistanceKm, source: 'completion-checkpoint' };
@@ -5415,7 +5737,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
 
         function isRecentSamePassage_(log, bib, checkpoint) {
             if (!isCountableLog_(log)) return false;
-            if (String(log.bib || '').toUpperCase() !== String(bib || '').toUpperCase()) return false;
+            if (bibIdentityKey_(log) !== bibIdentityKey_(bib)) return false;
             if (String(log.checkpoint || '').toUpperCase() !== String(checkpoint || '').toUpperCase()) return false;
             const ageMs = Date.now() - parseCustomOrIsoDate(log.time).getTime();
             return ageMs >= 0 && ageMs < (dupWindowSeconds * 1000);
@@ -5574,9 +5896,42 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             try { localStorage.setItem(ROUTE_MODELS_STORAGE_KEY_, JSON.stringify(routeModelsByKey_)); } catch (_) { /* storage optional */ }
         }
 
-        function routeModelForBib_(bib) {
+        function checkpointHistoryForRoute_(runnerLogs, currentCheckpoint) {
+            const checkpoints = [];
+            (runnerLogs || []).filter(isCountableLog_).slice().sort((a,b) => parseCustomOrIsoDate(a.time) - parseCustomOrIsoDate(b.time)).forEach(log => {
+                const cp = String(log.checkpoint || '').trim().toUpperCase();
+                if (cp && checkpoints[checkpoints.length - 1] !== cp) checkpoints.push(cp);
+            });
+            const current = String(currentCheckpoint || '').trim().toUpperCase();
+            if (current && checkpoints[checkpoints.length - 1] !== current) checkpoints.push(current);
+            return checkpoints;
+        }
+
+        function inferRouteConfigFromHistory_(runnerLogs, currentCheckpoint) {
+            const observed = checkpointHistoryForRoute_(runnerLogs, currentCheckpoint);
+            if (!observed.length) return null;
+            const candidates = (categoryConfig || []).map((cfg, order) => {
+                const sequence = Array.isArray(cfg.checkpointSequence) ? cfg.checkpointSequence : [];
+                if (!sequence.length) return null;
+                const aligned = alignObservedRouteToSequence_(observed, sequence);
+                if (!aligned) return null;
+                return { cfg, order, cost: aligned.cost, matched: aligned.path.length, span: aligned.idx - aligned.path[0] };
+            }).filter(Boolean).sort((a,b) => a.cost - b.cost || b.matched - a.matched || a.span - b.span || a.order - b.order);
+            if (!candidates.length) return null;
+            if (candidates.length > 1 && observed.length < 2 && candidates[0].cost === candidates[1].cost) return null;
+            return candidates[0].cfg;
+        }
+
+        function resolveBibCategory_(bib, runnerLogs, currentCheckpoint) {
             const cfg = findCategoryConfigForBib_(bib, categoryConfig);
-            return routeModelsByKey_[routeCategoryKeyForConfig_(cfg)] || null;
+            if (cfg) return { category: cfg.category || 'Uncategorized', config: cfg, routeConfig: cfg, source: 'setup' };
+            const routeConfig = inferRouteConfigFromHistory_(runnerLogs, currentCheckpoint);
+            return { category: 'Uncategorized', config: null, routeConfig, source: routeConfig ? 'route-inferred' : 'unmatched' };
+        }
+
+        function routeModelForBib_(bib, runnerLogs, currentCheckpoint) {
+            const resolved = resolveBibCategory_(bib, runnerLogs, currentCheckpoint);
+            return routeModelsByKey_[routeCategoryKeyForConfig_(resolved.routeConfig)] || null;
         }
 
         function routeTransitionOptions_(model, checkpoint) {
@@ -5633,10 +5988,10 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
         }
 
         function routeWarningForCandidate_(bib, currentCheckpoint, runnerLogs) {
-            const model = routeModelForBib_(bib);
+            const model = routeModelForBib_(bib, runnerLogs, currentCheckpoint);
             if (!model || !model.ready) return null;
             const bibUpper = String(bib || '').trim().toUpperCase();
-            if ((model.pioneers || []).map(v => String(v).toUpperCase()).includes(bibUpper)) return null;
+            if ((model.pioneers || []).map(v => bibIdentityKey_(v)).includes(bibIdentityKey_(bibUpper))) return null;
             const current = String(currentCheckpoint || '').trim().toUpperCase();
             const ordered = (runnerLogs || []).filter(isCountableLog_).slice().sort((a,b) => parseCustomOrIsoDate(a.time) - parseCustomOrIsoDate(b.time));
             const checkpoints = [];
@@ -5678,8 +6033,12 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
 
         function requestLogsForBib_(bib) {
             const store = db.transaction(["logs"], "readonly").objectStore("logs");
+            const key = bibIdentityKey_(bib);
+            if (key && store.indexNames && store.indexNames.contains('byBibKey')) {
+                return store.index('byBibKey').getAll(key);
+            }
             if (store.indexNames && store.indexNames.contains('byBib')) {
-                return store.index('byBib').getAll(String(bib || '').toUpperCase());
+                return store.index('byBib').getAll(normalizeBibOriginal_(bib));
             }
             return store.getAll();
         }
@@ -5689,6 +6048,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             const bI = document.getElementById('bibInput');
             const bib = bI.value.replace(/[^A-Za-z0-9]/g, '').trim().toUpperCase();
             if (!bib) { bI.focus(); return; }
+            if (!extractBibNumber_(bib)) { alert('⚠️ A BIB must contain at least one number. Letters before or after the number are allowed.'); bI.focus(); return; }
             const cpV = (document.getElementById('checkpoint')?.value || '').trim();
             const volV = (document.getElementById('volunteer')?.value || '').trim();
             if (!cpV || !volV) {
@@ -5712,6 +6072,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                     setTimeout(() => handleViewportResize(), 80);
                     return;
                 }
+                const categoryResolution = resolveBibCategory_(bib, runnerLogs, cpV);
                 const routeWarning = routeWarningForCandidate_(bib, cpV, runnerLogs);
                 if (routeWarning && !confirm(`⚠️ Route check for Bib ${bib}: ${routeWarning.message}
 
@@ -5724,6 +6085,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 logEntry(bib, {
                     routeWarning: routeWarning ? routeWarning.message : '',
                     routeWarningAcknowledged: !!routeWarning,
+                    categoryResolution,
                     onLogged: () => finishBibSubmission_(),
                     onError: () => {
                         finishBibSubmission_();
@@ -5769,12 +6131,19 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const remarkInput = document.getElementById('remarkInput');
             const bibInput = document.getElementById('bibInput');
             
-            const bibUpper = bib.toUpperCase();
-            const checkpointDistance = configuredCheckpointKmForBib_(bibUpper, checkpoint);
+            const bibUpper = normalizeBibOriginal_(bib);
+            const bibNumber = extractBibNumber_(bibUpper);
+            const bibNumberKey = normalizeBibNumberKey_(bibNumber);
+            const bibKey = bibUpper;
+            const categoryResolution = logOptions.categoryResolution || resolveBibCategory_(bibUpper, [], checkpoint);
+            const checkpointDistance = configuredCheckpointKmForBib_(bibUpper, checkpoint, categoryResolution.routeConfig);
             const originalDeviceNowMs = Date.now();
             const correctedNowMs = getCorrectedNowMs_();
             const entry = {
                 bib: bibUpper,
+                bibNumber,
+                bibNumberKey,
+                bibKey,
                 time: getFormattedTimestamp(new Date(correctedNowMs)),
                 originalDeviceTime: getFormattedTimestamp(new Date(originalDeviceNowMs)),
                 clockOffsetMs: Math.round(clockOffsetMs_),
@@ -5802,7 +6171,10 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 syncAttempts: 0,
                 speed: "",     
                 pace: "",      
-                category: "",
+                category: categoryResolution.category || 'Uncategorized',
+                categorySource: categoryResolution.source || 'unmatched',
+                routeKm: categoryResolution.routeConfig?.km || '',
+                routeCategory: categoryResolution.routeConfig?.category || '',
                 routeWarning: String(logOptions.routeWarning || ''),
                 routeWarningAcknowledged: !!logOptions.routeWarningAcknowledged
             };
@@ -6071,7 +6443,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const status = serverRecord.status || existing?.status || 'Active';
             const km = normalizeCheckpointKmValue_(serverRecord.checkpointKm);
             return {
-                bib: serverRecord.bib,
+                bib: normalizeBibOriginal_(serverRecord.bib),
+                bibNumber: extractBibNumber_(serverRecord.bibNumber || serverRecord.bib),
+                bibNumberKey: bibNumberKey_(serverRecord),
+                bibKey: bibIdentityKey_(serverRecord),
+                category: findCategoryConfigForBib_(serverRecord.bib, categoryConfig)?.category || 'Uncategorized',
                 time: serverRecord.time,
                 clientTimeMs: parseCustomOrIsoDate(serverRecord.time).getTime(),
                 checkpoint: serverRecord.checkpoint,
@@ -6329,7 +6705,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                                     (localLog.appVersion || '') !== (match.appVersion || localLog.appVersion || '');
                                 if (fieldsChanged || localLog.remake || !localLog.synced) {
                                     Object.assign(localLog, {
-                                        bib: match.bib,
+                                        bib: normalizeBibOriginal_(match.bib || localLog.bib),
+                                        bibNumber: extractBibNumber_(match.bibNumber || match.bib || localLog.bib),
+                                        bibNumberKey: bibNumberKey_(match.bibNumberKey || match.bibNumber || match.bib || localLog),
+                                        bibKey: bibIdentityKey_(match.bib ? match : localLog),
+                                        category: findCategoryConfigForBib_(match.bib || localLog.bib, categoryConfig)?.category || 'Uncategorized',
                                         time: match.time,
                                         clientTimeMs: parseCustomOrIsoDate(match.time).getTime(),
                                         checkpoint: match.checkpoint,
@@ -6374,7 +6754,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                             if (serverRecord.purge || status === 'deleted' || status === 'auto duplicate removed' || allDeletedUids.has(serverRecord.uid)) return;
                             const km = normalizeCheckpointKmValue_(serverRecord.checkpointKm);
                             store.add({
-                                bib: serverRecord.bib,
+                                bib: normalizeBibOriginal_(serverRecord.bib),
+                                bibNumber: extractBibNumber_(serverRecord.bibNumber || serverRecord.bib),
+                                bibNumberKey: bibNumberKey_(serverRecord),
+                                bibKey: bibIdentityKey_(serverRecord),
+                                category: findCategoryConfigForBib_(serverRecord.bib, categoryConfig)?.category || 'Uncategorized',
                                 time: serverRecord.time,
                                 clientTimeMs: parseCustomOrIsoDate(serverRecord.time).getTime(),
                                 checkpoint: serverRecord.checkpoint,
@@ -6447,13 +6831,13 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const targetedLastFour = sorted.slice(-4).reverse();
             const bibFrequency = new Map();
             sorted.forEach(log => {
-                const bibKey = String(log.bib || '').trim().toUpperCase();
+                const bibKey = bibIdentityKey_(log);
                 if (bibKey) bibFrequency.set(bibKey, (bibFrequency.get(bibKey) || 0) + 1);
             });
             let HTMLBuilder = "";
             targetedLastFour.forEach((item, index) => {
                 const bibText = String(item.bib || '').trim();
-                const bibKey = bibText.toUpperCase();
+                const bibKey = bibIdentityKey_(item);
                 const count = Math.max(1, bibFrequency.get(bibKey) || 1);
                 const colourBucket = Math.min(20, count);
                 const animationClass = index === 0 && triggerInlineAnimationFlag ? ' animate-new-bib-bounce' : '';
@@ -6493,7 +6877,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
             const newBib = bibEl.value.replace(/[^A-Za-z0-9]/g, '').trim().toUpperCase();
             const newRemark = remarkEl.value.trim();
-            if (!newBib) { bibEl.focus(); return; }
+            if (!newBib || !extractBibNumber_(newBib)) { alert('⚠️ A BIB must contain at least one number. Letters before or after the number are allowed.'); bibEl.focus(); return; }
 
             // Cancel any legacy timer before touching a row. The transaction reads by
             // IndexedDB primary key and preserves the UID, so only this exact scan can
@@ -6522,6 +6906,10 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 }
                 const updated = Object.assign({}, log, {
                     bib: newBib,
+                    bibNumber: extractBibNumber_(newBib),
+                    bibNumberKey: bibNumberKey_(newBib),
+                    bibKey: bibIdentityKey_(newBib),
+                    category: findCategoryConfigForBib_(newBib, categoryConfig)?.category || 'Uncategorized',
                     remark: newRemark,
                     synced: false,
                     remake: false,
@@ -6557,16 +6945,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
          * returned null, so category/pace/speed/lap live-preview metrics never had
          * real data to work with. */
         function findCategoryConfigForBib_(bib, categoryConfig) {
-            if (!bib || !categoryConfig || !categoryConfig.length) return null;
-            const m = String(bib).match(/^([A-Za-z]*)(\d+)$/);
-            if (!m) return null;
-            const bibPrefix = m[1].toUpperCase();
-            const bibNum = parseInt(m[2], 10);
-            for (const c of categoryConfig) {
-                const ranges = parseBibRuleParts_(c.bibRule);
-                if (ranges.some(r => r.prefix === bibPrefix && bibNum >= r.lo && bibNum <= r.hi)) return c;
-            }
-            return null;
+            return findExactOrNumericConfigForBib_(bib, categoryConfig);
         }
 
         function formatDurationHMS_(totalSeconds) {
@@ -6634,8 +7013,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     const catKey = metricCategoryKey_(cfg);
                     if (!context.categoryPaces.has(catKey)) context.categoryPaces.set(catKey, []);
                     context.categoryPaces.get(catKey).push(pace);
-                    if (!context.bibKnownPaces.has(log.bib)) context.bibKnownPaces.set(log.bib, []);
-                    context.bibKnownPaces.get(log.bib).push({ time: logTime.getTime(), distance: km, pace });
+                    const bibKey = bibIdentityKey_(log);
+                    if (!context.bibKnownPaces.has(bibKey)) context.bibKnownPaces.set(bibKey, []);
+                    context.bibKnownPaces.get(bibKey).push({ time: logTime.getTime(), distance: km, pace });
                 }
             });
 
@@ -6698,7 +7078,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             }
 
             const logTimeMs = parseCustomOrIsoDate(log.time).getTime();
-            const ownSamples = metricContext && metricContext.bibKnownPaces ? (metricContext.bibKnownPaces.get(log.bib) || []).filter(sample => sample.time < logTimeMs) : [];
+            const ownSamples = metricContext && metricContext.bibKnownPaces ? (metricContext.bibKnownPaces.get(bibIdentityKey_(log)) || []).filter(sample => sample.time < logTimeMs) : [];
             if (ownSamples.length && totalSeconds > 0) {
                 const latest = ownSamples.sort((a, b) => b.time - a.time)[0];
                 const estimatedKm = Math.min(totalDistanceKm, Math.max(latest.distance, totalSeconds / latest.pace));
@@ -6742,8 +7122,10 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
          * which accounts for a harder/easier second half better than simple linear pace.
          */
         function computeLivePreviewMetrics_(log, bibHistorySorted, categoryConfig, metricContext) {
-            const cfg = findCategoryConfigForBib_(log.bib, categoryConfig);
-            if (!cfg) return null;
+            const setupCfg = findCategoryConfigForBib_(log.bib, categoryConfig);
+            const cfg = setupCfg || inferRouteConfigFromHistory_(bibHistorySorted, log.checkpoint);
+            if (!cfg) return { category: 'Uncategorized', km: '', bibRule: '', lap: String(Math.max(1, bibHistorySorted.findIndex(l => l.uid === log.uid) + 1)), timePerLap: '-', totalTime: '-', pace: '', speed: '', projectedFinish: '-', flagoff: '-' };
+            const displayCategory = setupCfg ? (cfg.category || 'Uncategorized') : 'Uncategorized';
 
             const flagoffDate = new Date(cfg.flagoff);
             const totalDistanceKm = parseRaceDistanceNumber_(cfg.km);
@@ -6810,9 +7192,10 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             try { flagoffDisplay = getFormattedTimestamp(flagoffDate); } catch(_) {}
 
             return {
-                category:      cfg.category || 'Unknown',
+                category:      displayCategory,
                 km:            cfg.km || '',
-                bibRule:       cfg.bibRule || '',
+                bibRule:       setupCfg ? (cfg.bibRule || '') : '',
+                routeCategory: setupCfg ? '' : (cfg.category || ''),
                 checkpointKm:  distanceCoveredKm ? Math.round(distanceCoveredKm * 100) / 100 : (log.checkpointKm || null),
                 checkpointKmSource: distanceInfo.source || log.checkpointKmSource || '',
                 checkpointKmEstimated: !!distanceInfo.estimated,
@@ -6885,8 +7268,10 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const map = new Map();
             allLogs.forEach(l => {
                 if (!isCountableLog_(l)) return;
-                if (!map.has(l.bib)) map.set(l.bib, []);
-                map.get(l.bib).push(l);
+                const key = bibIdentityKey_(l);
+                if (!key) return;
+                if (!map.has(key)) map.set(key, []);
+                map.get(key).push(l);
             });
             map.forEach(list => list.sort((a, b) => parseCustomOrIsoDate(a.time) - parseCustomOrIsoDate(b.time)));
             return map;
@@ -6903,7 +7288,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             if (isDuplicateLog_(log)) {
                 const cfg = findCategoryConfigForBib_(log.bib, catCfg);
                 return Object.assign({}, log, {
-                    category: (cfg && cfg.category) || log.category || '-',
+                    category: (cfg && cfg.category) || log.category || 'Uncategorized',
                     km: (cfg && cfg.km) || log.km || '',
                     lap: 'Duplicate',
                     timePerLap: '-',
@@ -6913,9 +7298,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     projectedFinish: '-'
                 });
             }
-            const history = bibHistoryMap.get(log.bib) || [log];
+            const history = bibHistoryMap.get(bibIdentityKey_(log)) || [log];
             const preview = computeLivePreviewMetrics_(log, history, catCfg, metricContext);
-            return preview ? Object.assign({}, log, preview) : log;
+            return preview ? Object.assign({}, log, preview) : Object.assign({}, log, { category: log.category || 'Uncategorized' });
         }
 
         /**
@@ -6936,10 +7321,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 // UI behaves as if they're already gone, while the record itself sticks
                 // around in IndexedDB so the sync loop keeps retrying until the server
                 // actually confirms the delete.
-                const rawLogs = (e.target.result || []).filter(l => !l.pendingDelete && !isAutoRemovedDuplicate_(l));
+                const rawLogs = (e.target.result || []).filter(l => !l.pendingDelete && !isAutoRemovedDuplicate_(l)).map(decorateBibIdentity_);
                 const _bibMap = buildBibHistoryMap_(rawLogs);
                 const _metricContext = buildMetricEstimationContext_(rawLogs, categoryConfig);
                 const logs = rawLogs.map(l => withLivePreview_(l, _bibMap, categoryConfig, _metricContext));
+                applyBibCollisionIndicators_(logs);
                 callback(logs);
             };
         }
@@ -7051,7 +7437,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             { id: 'forecast', label: '🌊 Arrival Forecast', explain: 'Forecast arrivals for the next 15 and 30 minutes.' },
             { id: 'health', label: '🩺 Device Health', explain: 'Battery, queue age, storage, app version, clock drift, and last contact.' },
             { id: 'incidents', label: '🚨 Incident Board', explain: 'Open medical, transport, search, and withdrawal workflows.' },
-            { id: 'integrity', label: '🧪 Data Integrity', explain: 'Malformed times, invalid bibs, route jumps, stale devices, and mapping gaps.' },
+            { id: 'integrity', label: '🧪 Data Integrity', explain: 'Malformed times, uncategorized bibs, route jumps, stale devices, and mapping gaps.' },
         ];
         const DIRECTOR_WIDGET_PREFS_KEY = 'directorWidgetPrefs_v1';
 
@@ -7080,16 +7466,29 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             renderAllWidgetWidthControls_();
         }
 
-        function toggleDirectorCustomize() {
+        function openDirectorCustomize(event) {
+            if (event) { event.preventDefault(); event.stopPropagation(); }
+            const modal = document.getElementById('directorCustomizeModal');
+            if (!modal || !modal.classList.contains('hidden')) return;
+            modal.classList.remove('hidden');
+            renderDirectorWidgetCheckboxes_();
+            renderDirectorFontScaleButtons_();
+        }
+
+        function closeDirectorCustomize(event) {
+            if (event) { event.preventDefault(); event.stopPropagation(); }
+            const modal = document.getElementById('directorCustomizeModal');
+            if (!modal || modal.classList.contains('hidden')) return;
+            modal.classList.add('hidden');
+            applyDirectorWidgetVisibility_();
+            scheduleDirectorMasonry_();
+        }
+
+        function toggleDirectorCustomize(event) {
             const modal = document.getElementById('directorCustomizeModal');
             if (!modal) return;
-            const isHidden = modal.classList.toggle('hidden');
-            if (!isHidden) {
-                renderDirectorWidgetCheckboxes_();
-                renderDirectorFontScaleButtons_();
-            } else {
-                applyDirectorWidgetVisibility_();
-            }
+            if (modal.classList.contains('hidden')) openDirectorCustomize(event);
+            else closeDirectorCustomize(event);
         }
 
         function renderDirectorWidgetCheckboxes_() {
@@ -7112,6 +7511,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             prefs[id] = enabled;
             saveDirectorWidgetPrefs_(prefs);
             applyDirectorWidgetVisibility_();
+            scheduleDirectorMasonry_();
         }
 
         // ============================================================
@@ -7154,6 +7554,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 const el = document.getElementById('widget-' + id);
                 if (el) el.style.order = index;
             });
+            scheduleDirectorMasonry_();
         }
 
         function resetDirectorWidgetLayout_() {
@@ -7217,6 +7618,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
         // the reorder handles above, dragging a strip at the bottom of each widget.
         // ============================================================
         const DIRECTOR_WIDGET_SIZES_KEY = 'directorWidgetSizes_v1';
+        const DIRECTOR_COMPACT_LAYOUT_MIGRATION_KEY_ = 'directorCompactLayout_v18_0_2';
         const DIRECTOR_WIDGET_BODY_IDS = {
             glance: 'directorGlanceBody',
             chart: 'directorChartBody',
@@ -7235,6 +7637,50 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
         const WIDGET_MIN_HEIGHT_PX = 100;
         const WIDGET_MAX_HEIGHT_PX = 800;
         let widgetResizeState = null; // { widgetId, bodyEl, handleEl, startY, startHeight }
+        let directorMasonryRaf_ = 0;
+        let directorMasonryObserver_ = null;
+
+        function getDirectorGridColumnCount_() {
+            if (window.innerWidth >= 1280) return 3;
+            if (window.innerWidth >= 1024) return 2;
+            return 1;
+        }
+
+        function scheduleDirectorMasonry_() {
+            if (directorMasonryRaf_) cancelAnimationFrame(directorMasonryRaf_);
+            directorMasonryRaf_ = requestAnimationFrame(() => {
+                directorMasonryRaf_ = 0;
+                layoutDirectorMasonry_();
+            });
+        }
+
+        function layoutDirectorMasonry_() {
+            const grid = document.getElementById('directorWidgetsGrid');
+            const view = document.getElementById('directorModeView');
+            if (!grid || !view || view.classList.contains('hidden')) return;
+            const style = getComputedStyle(grid);
+            const rowHeight = parseFloat(style.gridAutoRows) || 4;
+            const rowGap = parseFloat(style.rowGap) || 16;
+            grid.querySelectorAll('[data-widget]').forEach(section => {
+                if (getComputedStyle(section).display === 'none') {
+                    section.style.gridRowEnd = '';
+                    return;
+                }
+                section.style.gridRowEnd = 'auto';
+                const height = Math.ceil(section.getBoundingClientRect().height);
+                const span = Math.max(1, Math.ceil((height + rowGap) / (rowHeight + rowGap)));
+                section.style.gridRowEnd = `span ${span}`;
+            });
+        }
+
+        function ensureDirectorMasonryObserver_() {
+            if (directorMasonryObserver_ || typeof ResizeObserver === 'undefined') return;
+            directorMasonryObserver_ = new ResizeObserver(() => scheduleDirectorMasonry_());
+            const grid = document.getElementById('directorWidgetsGrid');
+            if (!grid) return;
+            directorMasonryObserver_.observe(grid);
+            grid.querySelectorAll('[data-widget]').forEach(section => directorMasonryObserver_.observe(section));
+        }
 
         function loadDirectorWidgetSizes_() {
             try {
@@ -7248,11 +7694,24 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             localStorage.setItem(DIRECTOR_WIDGET_SIZES_KEY, JSON.stringify(sizes));
         }
 
+        function migrateDirectorCompactLayout_() {
+            if (localStorage.getItem(DIRECTOR_COMPACT_LAYOUT_MIGRATION_KEY_) === 'done') return;
+            const sizes = loadDirectorWidgetSizes_();
+            Object.keys(sizes).forEach(id => {
+                if (sizes[id] && Object.prototype.hasOwnProperty.call(sizes[id], 'heightPx')) {
+                    delete sizes[id].heightPx;
+                }
+            });
+            saveDirectorWidgetSizes_(sizes);
+            localStorage.setItem(DIRECTOR_COMPACT_LAYOUT_MIGRATION_KEY_, 'done');
+        }
+
         function setDirectorWidgetEmptyState_(widgetId, isEmpty) {
             const section = document.getElementById('widget-' + widgetId);
             const body = document.getElementById(DIRECTOR_WIDGET_BODY_IDS[widgetId]);
             if (!section || !body) return;
             section.classList.toggle('director-widget-empty', !!isEmpty);
+            scheduleDirectorMasonry_();
             if (isEmpty) {
                 body.style.height = '';
                 body.style.maxHeight = '';
@@ -7274,11 +7733,14 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
         function applyDirectorWidgetSizes_() {
             const sizes = loadDirectorWidgetSizes_();
+            const availableColumns = getDirectorGridColumnCount_();
             DIRECTOR_WIDGET_DEFS.forEach(w => {
                 const section = document.getElementById('widget-' + w.id);
                 const body = document.getElementById(DIRECTOR_WIDGET_BODY_IDS[w.id]);
                 const size = sizes[w.id] || {};
-                if (section) section.style.gridColumn = size.colSpan ? ('span ' + size.colSpan) : '';
+                const requestedSpan = Math.max(1, Number(size.colSpan) || 1);
+                const effectiveSpan = Math.min(requestedSpan, availableColumns);
+                if (section) section.style.gridColumn = `span ${effectiveSpan}`;
                 if (body) {
                     const isEmpty = !!(section && section.classList.contains('director-widget-empty'));
                     if (size.heightPx && !isEmpty) {
@@ -7292,6 +7754,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     }
                 }
             });
+            scheduleDirectorMasonry_();
         }
 
         function resetDirectorWidgetSizes_() {
@@ -7305,7 +7768,8 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 const widgetId = container.getAttribute('data-widget-controls');
                 const sizes = loadDirectorWidgetSizes_();
                 const currentSpan = (sizes[widgetId] && sizes[widgetId].colSpan) || 1;
-                container.innerHTML = [1, 2, 3].map(span => {
+                const availableColumns = getDirectorGridColumnCount_();
+                container.innerHTML = Array.from({ length: availableColumns }, (_, i) => i + 1).map(span => {
                     const isActive = currentSpan === span;
                     const cls = isActive
                         ? 'bg-blue-600 dark:bg-blue-800 text-white'
@@ -7354,6 +7818,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             widgetResizeState.bodyEl.style.height = newHeight + 'px';
             widgetResizeState.bodyEl.style.maxHeight = newHeight + 'px';
             widgetResizeState.bodyEl.style.overflowY = 'auto';
+            scheduleDirectorMasonry_();
         }
 
         function onWidgetResizeEnd_() {
@@ -7366,6 +7831,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             saveDirectorWidgetSizes_(sizes);
             document.removeEventListener('pointermove', onWidgetResizeMove_);
             widgetResizeState = null;
+            scheduleDirectorMasonry_();
         }
         // Race Command View — text-size scaling (auto by screen size, or fixed)
         // ------------------------------------------------------------
@@ -7401,11 +7867,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
          */
         function computeAutoFontScale_() {
             const w = window.innerWidth;
-            if (w >= 2560) return 1.6;   // 4K monitor/TV
-            if (w >= 1920) return 1.35;  // 1080p TV or large monitor
-            if (w >= 1280) return 1.15;  // typical laptop/desktop
-            if (w >= 900) return 1.0;    // iPad landscape
-            return 0.9;                  // iPad portrait / small tablet
+            if (w >= 2560) return 1.65;  // 4K monitor/TV
+            if (w >= 1920) return 1.42;  // 1080p TV or large monitor
+            if (w >= 1280) return 1.22;  // typical laptop/desktop
+            if (w >= 900) return 1.08;   // iPad landscape
+            return 1.0;                  // iPad portrait / small tablet
         }
 
         function applyDirectorFontScale_() {
@@ -7415,6 +7881,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const mode = getDirectorFontScaleMode_();
             const scale = mode === 'auto' ? computeAutoFontScale_() : (DIRECTOR_FONT_SCALES[mode] || 1.0);
             document.documentElement.style.fontSize = (directorOriginalRootFontSizePx * scale) + 'px';
+            scheduleDirectorMasonry_();
         }
 
         function restoreRootFontSize_() {
@@ -7528,13 +7995,22 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             overlay.classList.remove('hidden');
             isDirectorModeOpen = true;
             document.body.classList.add('overflow-hidden');
+            migrateDirectorCompactLayout_();
             applyDirectorWidgetVisibility_();
+            applyDirectorWidgetSizes_();
             applyDirectorFontScale_();
+            ensureDirectorMasonryObserver_();
+            scheduleDirectorMasonry_();
 
             // Auto mode should re-scale if the window/orientation changes while open
             // (e.g. an iPad rotating, or a browser window being resized on a PC).
             if (directorAutoResizeHandler) window.removeEventListener('resize', directorAutoResizeHandler);
-            directorAutoResizeHandler = () => { if (getDirectorFontScaleMode_() === 'auto') applyDirectorFontScale_(); };
+            directorAutoResizeHandler = () => {
+                if (getDirectorFontScaleMode_() === 'auto') applyDirectorFontScale_();
+                applyDirectorWidgetSizes_();
+                renderAllWidgetWidthControls_();
+                scheduleDirectorMasonry_();
+            };
             window.addEventListener('resize', directorAutoResizeHandler);
 
             renderDirectorSummaryTable_(lastKnownSummaryRows);
@@ -7810,8 +8286,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             logs.forEach(l => {
                 if (!isCountableLog_(l)) return;
                 const ts = parseCustomOrIsoDate(l.time).getTime();
-                const existing = byBib.get(l.bib);
-                if (!existing || ts > existing._ts) byBib.set(l.bib, Object.assign({}, l, { _ts: ts }));
+                const key = bibIdentityKey_(l);
+                const existing = byBib.get(key);
+                if (!existing || ts > existing._ts) byBib.set(key, Object.assign({}, l, { _ts: ts, _bibKey: key }));
             });
             return Array.from(byBib.values());
         }
@@ -7851,10 +8328,10 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 const volunteerFilter = document.getElementById('safetyVolunteerFilterSelect')?.value || '';
 
                 roster = roster.map(r => {
-                    const note = localSafetyNotes_[r.bib] || null;
+                    const note = localSafetyNotes_[bibIdentityKey_(r)] || localSafetyNotes_[r.bib] || null;
                     const cfg = findCategoryConfigForBib_(r.bib, categoryConfig);
                     const km = (cfg && cfg.km) || r.km || '';
-                    const category = (cfg && cfg.category) || r.category || '';
+                    const category = (cfg && cfg.category) || r.category || 'Uncategorized';
                     return Object.assign({}, r, {
                         km,
                         category,
@@ -7867,12 +8344,13 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 });
                 const routeIssueByBib = new Map();
                 buildRouteValidation_(logs).forEach(issue => { if (!routeIssueByBib.has(issue.bib)) routeIssueByBib.set(issue.bib, issue.message); });
-                roster = roster.map(r => Object.assign({}, r, { _routeIssue: routeIssueByBib.get(String(r.bib || '').toUpperCase()) || '' }));
+                roster = roster.map(r => Object.assign({}, r, { _routeIssue: routeIssueByBib.get(bibIdentityKey_(r)) || '' }));
                 evaluateCotAlerts_(logs.filter(isCountableLog_));
 
                 if (query) {
                     roster = roster.filter(r =>
                         (r.bib||'').toLowerCase().includes(query) ||
+                        (r.bibIndicator||'').toLowerCase().includes(query) ||
                         formatKmLabel_(r.km).toLowerCase().includes(query) ||
                         (r.category||'').toLowerCase().includes(query) ||
                         (r.checkpoint||'').toLowerCase().includes(query) ||
@@ -7929,11 +8407,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 // consistently whether sorting by bib, category, checkpoint, or status.
                 roster.sort((a, b) => {
                     switch (sortBy) {
-                        case 'category':   return (a.category||'').localeCompare(b.category||'') || (a.bib||'').localeCompare(b.bib||'', undefined, {numeric:true});
-                        case 'checkpoint': return (a.checkpoint||'').localeCompare(b.checkpoint||'') || (a.bib||'').localeCompare(b.bib||'', undefined, {numeric:true});
-                        case 'status':     return (a._safetyStatus||'zzz').localeCompare(b._safetyStatus||'zzz') || (a.bib||'').localeCompare(b.bib||'', undefined, {numeric:true});
+                        case 'category':   return (a.category||'').localeCompare(b.category||'') || compareBibNumericThenIdentity_(a, b);
+                        case 'checkpoint': return (a.checkpoint||'').localeCompare(b.checkpoint||'') || compareBibNumericThenIdentity_(a, b);
+                        case 'status':     return (a._safetyStatus||'zzz').localeCompare(b._safetyStatus||'zzz') || compareBibNumericThenIdentity_(a, b);
                         case 'lastSeen':   return a._ts - b._ts;
-                        default:           return (a.bib||'').localeCompare(b.bib||'', undefined, {numeric:true});
+                        default:           return compareBibNumericThenIdentity_(a, b);
                     }
                 });
                 if (!safetySortAscending_) roster.reverse();
@@ -8133,7 +8611,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 const cfg = findCategoryConfigForBib_(r.bib, categoryConfig);
                 return Object.assign({}, r, {
                     km: (cfg && cfg.km) || r.km || '',
-                    category: (cfg && cfg.category) || r.category || '',
+                    category: (cfg && cfg.category) || r.category || 'Uncategorized',
                     _safetyStatus: note.status || ''
                 });
             });
@@ -8182,7 +8660,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const container = document.getElementById('directorStatTiles');
             if (!container) return;
 
-            const uniqueRunners = new Set(allLogs.map(l => l.bib)).size;
+            const uniqueRunners = new Set(allLogs.map(bibIdentityKey_).filter(Boolean)).size;
             const categories = new Set(allLogs
                 .filter(l => l.category && l.category !== '-')
                 .map(l => distanceCategoryKey_(l.km, l.category))).size;
@@ -8349,9 +8827,10 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 if (!log.bib || log.remake) return;
                 const lapCount = parseLapCount_(log.lap);
                 const ts = parseCustomOrIsoDate(log.time).getTime();
-                const existing = latestByBib.get(log.bib);
+                const key = bibIdentityKey_(log);
+                const existing = latestByBib.get(key);
                 if (!existing || lapCount > existing._lapCount || (lapCount === existing._lapCount && ts > existing._ts)) {
-                    latestByBib.set(log.bib, Object.assign({}, log, { _lapCount: lapCount, _ts: ts }));
+                    latestByBib.set(key, Object.assign({}, log, { _lapCount: lapCount, _ts: ts }));
                 }
             });
 
@@ -8431,7 +8910,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                                     return `
                                     <tr class="${i === 0 ? 'bg-amber-100/50 dark:bg-amber-900/10' : ''}">
                                         <td class="p-2 pl-3 font-black ${i === 0 ? 'text-amber-600 dark:text-amber-400' : 'theme-text-muted'}">${i + 1}</td>
-                                        <td class="p-2 font-black bib-text-highlight">${r.bib}</td>
+                                        <td class="p-2 font-black bib-text-highlight">${escapeHtml_(r.bib)} ${bibCollisionBadgeHtml_(r)}</td>
                                         <td class="p-2 text-center font-mono font-bold text-blue-700 dark:text-cyan-400">${r.lap || '-'}</td>
                                         <td class="p-2 text-center font-mono font-bold text-emerald-700 dark:text-emerald-400 hidden sm:table-cell">${(r.speed||'-').replace('*','')}</td>
                                         <td class="p-2 text-center font-mono font-bold text-indigo-700 dark:text-indigo-400">${(r.pace||'-').replace('*','')}</td>
@@ -8470,7 +8949,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             container.innerHTML = recent.map(log => `
                 <div class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-neutral-200/40 dark:hover:bg-neutral-800/40 text-xs">
                     <div class="flex items-center gap-2 min-w-0">
-                        <span class="font-black bib-text-highlight shrink-0">${log.bib}</span>
+                        <span class="font-black bib-text-highlight shrink-0">${escapeHtml_(log.bib)} ${bibCollisionBadgeHtml_(log)}</span>
                         <span class="text-[10px] bg-neutral-200 dark:bg-neutral-900 border theme-border px-1.5 py-0.5 rounded font-bold theme-text-muted shrink-0">${log.checkpoint || '-'}</span>
                     </div>
                     <span class="theme-text-muted text-[10px] shrink-0 whitespace-nowrap">${formatLogTime(log.time)}</span>
@@ -8559,7 +9038,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             container.innerHTML = flagged.map(log => `
                 <div class="flex flex-col gap-0.5 px-2.5 py-2 rounded-lg ${log.remake ? 'bg-red-100/60 dark:bg-red-900/20' : 'bg-yellow-100/40 dark:bg-yellow-900/10'} text-xs">
                     <div class="flex items-center justify-between gap-2">
-                        <span class="font-black bib-text-highlight">${log.bib}</span>
+                        <span class="font-black bib-text-highlight">${escapeHtml_(log.bib)} ${bibCollisionBadgeHtml_(log)}</span>
                         <span class="text-[10px] theme-text-muted whitespace-nowrap">${formatLogTime(log.time)}</span>
                     </div>
                     <div class="flex items-center gap-1.5 flex-wrap">
@@ -8685,7 +9164,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             setDirectorWidgetEmptyState_('glance', false);
 
             const total = validLogs.length;
-            const uniqueBibs = new Set(validLogs.map(l => l.bib)).size;
+            const uniqueBibs = new Set(validLogs.map(bibIdentityKey_).filter(Boolean)).size;
 
             const cpCounts = {};
             validLogs.forEach(l => { if (l.checkpoint) cpCounts[l.checkpoint] = (cpCounts[l.checkpoint] || 0) + 1; });
@@ -8824,10 +9303,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 // The server sends raw scan data only; every derived field (category,
                 // lap, pace, speed, projected finish) is computed here using the
                 // current categoryConfig sourced from the Setup sheet.
-                const rawLogs = (e.target.result || []).filter(l => !l.pendingDelete && !isAutoRemovedDuplicate_(l));
+                const rawLogs = (e.target.result || []).filter(l => !l.pendingDelete && !isAutoRemovedDuplicate_(l)).map(decorateBibIdentity_);
                 const _bibMap = buildBibHistoryMap_(rawLogs);
                 const _metricContext = buildMetricEstimationContext_(rawLogs, categoryConfig);
                 const logs = rawLogs.map(l => withLivePreview_(l, _bibMap, categoryConfig, _metricContext));
+                applyBibCollisionIndicators_(logs);
                 // ────────────────────────────────────────────────────────────────────
 
                 const query = document.getElementById('searchBar').value.toLowerCase().trim();
@@ -8838,7 +9318,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
                 const activeScopedLogs = scopedLogs.filter(isCountableLog_);
                 document.getElementById('totalCount').textContent = activeScopedLogs.length;
-                document.getElementById('uniqueCount').textContent = new Set(activeScopedLogs.map(l => l.bib)).size;
+                document.getElementById('uniqueCount').textContent = new Set(activeScopedLogs.map(bibIdentityKey_).filter(Boolean)).size;
                 const categoriesTile = document.getElementById('categoriesCount');
                 if (categoriesTile) categoriesTile.textContent = new Set(activeScopedLogs
                     .filter(l => l.category && l.category !== '-')
@@ -8850,14 +9330,15 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 if (isDirectorModeOpen) renderDirectorModeContent_(logs);
 
                 const frequencies = {}; 
-                activeScopedLogs.forEach(l => frequencies[l.bib] = (frequencies[l.bib] || 0) + 1);
+                activeScopedLogs.forEach(l => { const key = bibIdentityKey_(l); frequencies[key] = (frequencies[key] || 0) + 1; });
                 const logList = document.getElementById('logList'); logList.innerHTML = '';
 
                 // IndexedDB getAll() is primary-key ordered, not event-time ordered.
                 // A server pull can insert an older scan today, so explicitly sort by
                 // scan timestamp to guarantee newest-to-oldest history after every sync.
                 let filteredLogs = [...scopedLogs].sort(compareLogsNewestFirst_).filter(log => {
-                    return log.bib.toLowerCase().includes(query) || 
+                    return log.bib.toLowerCase().includes(query) ||
+                           (log.bibIndicator && log.bibIndicator.toLowerCase().includes(query)) ||
                            log.checkpoint.toLowerCase().includes(query) || 
                            (log.remark && log.remark.toLowerCase().includes(query)) ||
                            (log.category && log.category.toLowerCase().includes(query)) ||
@@ -8904,7 +9385,8 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                             </div>`;
                     } else {
                         const remarkHTML = log.remark ? `<div class="text-[11px] text-yellow-700 dark:text-yellow-500 italic mt-0.5">💬 ${escapeHtml_(log.remark)}</div>` : '';
-                        const freqBadge = frequencies[log.bib] > 1 ? `<span class="text-[10px] bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[log.bib]}x</span>` : '';
+                        const freqBadge = frequencies[bibIdentityKey_(log)] > 1 ? `<span class="text-[10px] bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[bibIdentityKey_(log)]}x</span>` : '';
+                        const collisionBadge = bibCollisionBadgeHtml_(log);
                         const duplicateBadge = duplicateLog ? `<span class="duplicate-status-badge" title="Backend-detected same-bib/same-checkpoint scan from another device. Excluded from passage and runner totals.">◻ Duplicate${log.duplicateDeviceCount ? ` • ${log.duplicateDeviceCount} devices` : ''}</span>` : '';
                         
                         const ownEntry = isOwnEntry(log);
@@ -8941,6 +9423,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span id="chevron-indicator-${log.uid}" class="text-neutral-600 dark:text-neutral-500 text-xs chevron-rotate ${chevronExpandedClass}">▼</span>
                                         <span class="text-xl ${log.remake ? 'text-red-600 line-through opacity-60' : (duplicateLog ? 'duplicate-bib-text font-black' : 'bib-text-highlight')}">${escapeHtml_(log.bib || '??')}</span>
+                                        ${collisionBadge}
                                         ${freqBadge}
                                         ${duplicateBadge}
                                         <span class="text-[10px] bg-neutral-200 dark:bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-700 dark:text-neutral-400 font-bold tracking-wide">${escapeHtml_(log.checkpoint)}</span>
@@ -9107,7 +9590,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             if (prompt("Type '0000' to clear log history:") !== "0000") return;
             const tx = db.transaction(["logs"], "readwrite");
             tx.objectStore("logs").clear();
-            tx.oncomplete = function() { scheduleAggregateRebuild_(true); loadHistory(); alert("Storage wiped."); toggleSettings(); };
+            tx.oncomplete = function() { scheduleAggregateRebuild_(true); loadHistory(); alert("Storage wiped."); closeSettings(); };
         }
 
         /* ════════════════════════════════════════════════════════════════════
@@ -9277,7 +9760,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 wipeLocalDataForNewEvent_(data.eventEpoch);
                 document.getElementById('adminTokenInput').value = '';
                 alert(`✅ Archived as "${data.archivedAs}". Live event reset — old Racelog rows remain in the sheet with Status = Deleted. Other devices will reset automatically on their next sync.`);
-                toggleSettings();
+                closeSettings();
             } catch (err) {
                 alert('❌ Connection error while starting fresh event. Nothing has been changed — try again once back online.');
             }
@@ -9777,7 +10260,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 return `
                     <div class="fastest-runner-row">
                         <span class="fastest-runner-rank ${RANK_CLASSES[i]}">${RANK_ICONS[i]}</span>
-                        <span class="fastest-runner-bib">${log.bib || '?'}</span>
+                        <span class="fastest-runner-bib">${escapeHtml_(log.bib || '?')} ${bibCollisionBadgeHtml_(log)}</span>
                         <span class="fastest-runner-cat">${catLabel}</span>
                         <div class="fastest-runner-bar">
                             <div class="fastest-runner-bar-fill" style="width:${barPct}%;background:${zone.barColor};"></div>
@@ -10016,7 +10499,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const minCount = minLogs || 1;
             const map = {};
             logs.forEach(l => {
-                const bib = (l.bib || '').toUpperCase();
+                const bib = bibIdentityKey_(l);
                 if (!bib) return;
                 if (!map[bib]) map[bib] = [];
                 map[bib].push(l);
@@ -10497,11 +10980,15 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     // display to ##### for a too-narrow column. A UTF-8 BOM is prepended below
                     // so Excel opens the file as UTF-8 instead of guessing a legacy codepage,
                     // which is the other common cause of a CSV looking corrupted on open.
-                    let csvContent = 'BIB,Time,OriginalDeviceTime,ClockOffsetMs,ClockConfidenceMs,AppVersion,Checkpoint,CheckpointKM,CheckpointKMSource,Volunteer,Remark,Device,Latitude,Longitude,ID,UID,Category,PassageMode,Passage,Status,DuplicateOfUID,DuplicateDeviceCount,TimeSincePriorPassage,TotalTime,Pace,Speed,ProjectedFinish,ProjectionMethod,Flagoff,PaceZone,PaceSecs,SpeedFloat,TrendLabel\r\n';
+                    let csvContent = 'OriginalBIB,NumericBIB,NumericKey,RunnerIndicator,BIBIdentityKey,Time,OriginalDeviceTime,ClockOffsetMs,ClockConfidenceMs,AppVersion,Checkpoint,CheckpointKM,CheckpointKMSource,Volunteer,Remark,Device,Latitude,Longitude,ID,UID,Category,PassageMode,Passage,Status,DuplicateOfUID,DuplicateDeviceCount,TimeSincePriorPassage,TotalTime,Pace,Speed,ProjectedFinish,ProjectionMethod,Flagoff,PaceZone,PaceSecs,SpeedFloat,TrendLabel\r\n';
                     logs.forEach(l => {
                         const enriched = enrichLogForExport_(l, logs);
                         csvContent += [
                             `"${(l.bib||'').replace(/"/g,'""')}"`,
+                            `"${extractBibNumber_(l.bibNumber || l.bib)}"`,
+                            `"${bibNumberKey_(l)}"`,
+                            `"${(l.bibIndicator || bibNumberKey_(l) || '').replace(/"/g,'""')}"`,
+                            `"${bibIdentityKey_(l)}"`,
                             `"${(l.time||'').replace(/"/g,'""')}"`,
                             `"${(l.originalDeviceTime||l.time||'').replace(/"/g,'""')}"`,
                             Number(l.clockOffsetMs) || 0,
@@ -11726,7 +12213,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 <p style="color:#888;font-size:0.8rem;">${dateStr} &nbsp;·&nbsp; Generated at ${timeStr} &nbsp;·&nbsp; Checkpoints: ${cpNames}</p>`;
 
             // ─── Section 2: Summary Statistics ───────────────────────────
-            const uniqueBibs = new Set(logs.filter(l => !l.remake).map(l => (l.bib||'').toUpperCase())).size;
+            const uniqueBibs = new Set(logs.filter(l => !l.remake).map(bibIdentityKey_).filter(Boolean)).size;
             const totalScans = logs.filter(l => !l.remake).length;
             const remarked   = flagged.length;
             const avgPace    = calcAvgPaceSeconds_(logs);
@@ -12038,7 +12525,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
         function aggregateCategoryForLog_(log) {
             const cfg = findCategoryConfigForBib_(log?.bib, categoryConfig);
-            return String((cfg && cfg.category) || log?.category || 'UNCLASSIFIED').toUpperCase();
+            return String((cfg && cfg.category) || log?.category || 'UNCATEGORIZED').toUpperCase();
         }
 
         function aggregateEligibleLog_(log) { return !!log && !log.pendingDelete && !isAutoRemovedDuplicate_(log); }
@@ -12077,7 +12564,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     else sync.pending = Math.max(0, Number(sync.pending || 0) + delta);
                     adjustAggregateMap_(checkpoint.values, String(log.checkpoint || 'UNSPECIFIED').toUpperCase(), delta);
                     adjustAggregateMap_(category.values, aggregateCategoryForLog_(log), delta);
-                    adjustAggregateMap_(bib.values, String(log.bib || '').toUpperCase(), delta);
+                    adjustAggregateMap_(bib.values, bibIdentityKey_(log), delta);
                 };
                 apply(before, -1); apply(after, 1);
                 global.uniqueBibs = Object.keys(bib.values).length;
@@ -12123,7 +12610,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     if (log.synced) synced++; else pending++;
                     const cp = String(log.checkpoint || 'UNSPECIFIED').toUpperCase();
                     const cat = aggregateCategoryForLog_(log);
-                    const bib = String(log.bib || '').toUpperCase();
+                    const bib = bibIdentityKey_(log);
                     byCheckpoint[cp] = (byCheckpoint[cp] || 0) + 1;
                     byCategory[cat] = (byCategory[cat] || 0) + 1;
                     if (bib) byBib[bib] = (byBib[bib] || 0) + 1;
@@ -12172,8 +12659,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const updatedLabel = r._safetyUpdatedAt ? `${formatLogTime(r._safetyUpdatedAt)}${r._safetyUpdatedBy ? ' • ' + r._safetyUpdatedBy : ''}` : '';
             const rowFlagClass = r._safetyStatus === 'missing' ? 'bg-red-100/60 dark:bg-red-900/20' : r._safetyStatus === 'medical' ? 'bg-orange-100/60 dark:bg-orange-900/20' : r._safetyStatus === 'withdrawn' ? 'bg-neutral-200/60 dark:bg-neutral-800/40' : '';
             const routeFlag = r._routeIssue ? `<span class="text-red-600 font-black" title="${escapeHtmlAttr_(r._routeIssue)}">⚠ route</span>` : '';
+            const collisionBadge = bibCollisionBadgeHtml_(r);
             return `<tr class="${rowFlagClass}" aria-rowindex="${Number(absoluteIndex || 0) + 2}">
-                <td class="p-2 pl-3 font-black bib-text-highlight whitespace-nowrap">${escapeHtml_(r.bib)} ${routeFlag}</td>
+                <td class="p-2 pl-3 font-black bib-text-highlight whitespace-nowrap">${escapeHtml_(r.bib)} ${collisionBadge} ${routeFlag}</td>
                 <td class="p-2 whitespace-nowrap font-black">${escapeHtml_(formatKmLabel_(r.km))}</td>
                 <td class="p-2 whitespace-nowrap">${escapeHtml_(r.category || '-')}</td>
                 <td class="p-2 whitespace-nowrap">${escapeHtml_(r.checkpoint || '-')}</td>
@@ -12217,15 +12705,19 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
         function buildRouteModelsClientFromLogs_(logs) {
             const grouped = new Map();
+            const byRunner = new Map();
             (logs || []).filter(isCountableLog_).forEach(log => {
-                const cfg = findCategoryConfigForBib_(log.bib, categoryConfig);
+                const bib = bibIdentityKey_(log);
+                if (!bib) return;
+                if (!byRunner.has(bib)) byRunner.set(bib, []);
+                byRunner.get(bib).push(log);
+            });
+            byRunner.forEach((runnerLogs, bib) => {
+                const cfg = findCategoryConfigForBib_(runnerLogs[0]?.bib, categoryConfig) || inferRouteConfigFromHistory_(runnerLogs, '');
                 const key = routeCategoryKeyForConfig_(cfg);
                 if (!key) return;
                 if (!grouped.has(key)) grouped.set(key, { cfg, byBib: new Map() });
-                const group = grouped.get(key);
-                const bib = String(log.bib || '').toUpperCase();
-                if (!group.byBib.has(bib)) group.byBib.set(bib, []);
-                group.byBib.get(bib).push(log);
+                grouped.get(key).byBib.set(bib, runnerLogs);
             });
             const models = {};
             grouped.forEach((group, key) => {
@@ -12264,15 +12756,15 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const localModels = Object.keys(routeModelsByKey_ || {}).length ? routeModelsByKey_ : buildRouteModelsClientFromLogs_(logs);
             const byBib = new Map();
             (logs || []).filter(isCountableLog_).forEach(log => {
-                const bib = String(log.bib || '').toUpperCase();
+                const bib = bibIdentityKey_(log);
                 if (!bib) return;
                 if (!byBib.has(bib)) byBib.set(bib, []);
                 byBib.get(bib).push(log);
             });
             byBib.forEach((runnerLogs, bib) => {
-                const cfg = findCategoryConfigForBib_(bib, categoryConfig);
+                const cfg = findCategoryConfigForBib_(runnerLogs[0]?.bib, categoryConfig) || inferRouteConfigFromHistory_(runnerLogs, '');
                 const model = localModels[routeCategoryKeyForConfig_(cfg)];
-                if (!model || !model.ready || (model.pioneers || []).includes(bib)) return;
+                if (!model || !model.ready || (model.pioneers || []).map(bibIdentityKey_).includes(bib)) return;
                 const cps=[];
                 runnerLogs.slice().sort((a,b)=>parseCustomOrIsoDate(a.time)-parseCustomOrIsoDate(b.time)).forEach(log=>{const cp=String(log.checkpoint||'').trim().toUpperCase();if(cp&&cps[cps.length-1]!==cp)cps.push(cp);});
                 if (Array.isArray(model.sequence) && model.sequence.length) {
@@ -12397,8 +12889,8 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             if(!cotAlertsEnabled_||!db||!db.objectStoreNames.contains('cotAlerts'))return;
             const roster=buildSafetyRosterFromLogs_(logs||[]),now=getCorrectedNowMs_(),updates=[];
             roster.forEach(r=>{if(isCompletionCheckpoint_(r.checkpoint))return;const cfg=findCategoryConfigForBib_(r.bib,categoryConfig);if(!cfg||!cfg.cotTime)return;const cot=parseCustomOrIsoDate(cfg.cotTime).getTime();if(!Number.isFinite(cot))return;const remain=(cot-now)/60000;const warning=cfg.cotWarningMinutes??cotWarningMinutes_, escalation=cfg.cotEscalationMinutes??cotEscalationMinutes_;let level='';if(remain<=0)level='overdue';else if(remain<=escalation)level='critical';else if(remain<=warning)level='warning';if(!level)return;const key=cotAlertKey_(r.bib,cfg.cotTime),existing=localCotAlerts_[key]||{};const changed=!existing.key||existing.level!==level||existing.escalated!==(level==='critical'||level==='overdue');const alert=Object.assign({},existing,{key,bib:r.bib,category:cfg.category||r.category||'',cotTime:cfg.cotTime,level,escalated:level==='critical'||level==='overdue',updatedAt:new Date().toISOString(),synced:changed?false:existing.synced!==false});localCotAlerts_[key]=alert;if(changed||!existing.key)updates.push(alert);});
-            const completedBibs=new Set(roster.filter(r=>isCompletionCheckpoint_(r.checkpoint)).map(r=>String(r.bib||'').toUpperCase()));
-            Object.values(localCotAlerts_).forEach(a=>{if(!a.acknowledged&&completedBibs.has(String(a.bib||'').toUpperCase())){a.acknowledged=true;a.acknowledgedBy='SYSTEM-FINISH';a.acknowledgedAt=new Date(now).toISOString();a.updatedAt=a.acknowledgedAt;a.synced=false;updates.push(a);}});
+            const completedBibs=new Set(roster.filter(r=>isCompletionCheckpoint_(r.checkpoint)).map(bibIdentityKey_).filter(Boolean));
+            Object.values(localCotAlerts_).forEach(a=>{if(!a.acknowledged&&completedBibs.has(bibIdentityKey_(a.bib))){a.acknowledged=true;a.acknowledgedBy='SYSTEM-FINISH';a.acknowledgedAt=new Date(now).toISOString();a.updatedAt=a.acknowledgedAt;a.synced=false;updates.push(a);}});
             if(updates.length){const dedup=[...new Map(updates.map(a=>[a.key,a])).values()];const tx=db.transaction(['cotAlerts'],'readwrite'),store=tx.objectStore('cotAlerts');dedup.forEach(a=>store.put(a));tx.oncomplete=()=>{renderSafetyCotAlerts_();syncPendingOperationalRecords_();const unack=dedup.filter(a=>!a.acknowledged);if(unack.length)announceToScreenReader_(`${unack.length} cutoff alert${unack.length===1?'':'s'} require acknowledgement.`);};}
         }
         function acknowledgeCotAlert_(key){const a=localCotAlerts_[decodeURIComponent(key)]||localCotAlerts_[key];if(!a)return;a.acknowledged=true;a.acknowledgedBy=(document.getElementById('volunteer')?.value||'').trim().toUpperCase();a.acknowledgedAt=new Date().toISOString();a.synced=false;db?.transaction(['cotAlerts'],'readwrite').objectStore('cotAlerts').put(a);renderSafetyCotAlerts_();if(syncUrl)fetch(`${syncUrl}${syncUrl.includes('?')?'&':'?'}nocache=${Date.now()}`,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'cot_alert_upsert',alert:a})}).then(r=>r.json()).then(d=>{if(d.status==='success'){a.synced=true;localCotAlerts_[a.key]=a;db?.transaction(['cotAlerts'],'readwrite').objectStore('cotAlerts').put(a);}}).catch(()=>{});}
@@ -12411,7 +12903,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
         function scheduleDeviceHealthReport_(delay=1000){setTimeout(()=>{if(!document.hidden)reportDeviceHealth_();},delay);}
         function startDeviceHealthReporting_(){if(deviceHealthTimer_)clearInterval(deviceHealthTimer_);scheduleDeviceHealthReport_(1500);deviceHealthTimer_=setInterval(()=>{if(!document.hidden)reportDeviceHealth_();},120000);}
 
-        function renderDataIntegrityWidget_(logs){const el=document.getElementById('directorIntegrityBody');if(!el)return;const local=logs||[];const malformed=local.filter(l=>!Number.isFinite(parseTimeStrictMs_(l.time))).length;const invalid=new Set(local.filter(l=>l.bib&&!findCategoryConfigForBib_(l.bib,categoryConfig)).map(l=>l.bib)).size;const mapping=local.filter(l=>isCountableLog_(l)&&(l.checkpointKm===''||l.checkpointKm===null||l.checkpointKm===undefined||!Number.isFinite(Number(l.checkpointKm))||Number(l.checkpointKm)<0)).length;const route=buildRouteValidation_(local);const server=serverOperationsSummary_?.integrity||{};const rows=[['Malformed times',Math.max(malformed,server.malformedTimes||0),'Check device locale and source timestamp'],['Invalid bibs',Math.max(invalid,server.invalidBibs||0),'No matching Setup BIB rule'],['Route jumps',Math.max(route.length,server.routeJumps||0),route[0]?.message||server.routeSamples?.[0]?.message||'Expected checkpoint sequence'],['Mapping gaps',Math.max(mapping,server.mappingGaps||0),'Checkpoint KM is missing'],['Stale devices',server.staleDevices||0,'No health report in 3 minutes'],['High clock drift',server.highClockDriftDevices||0,'Absolute offset exceeds 30 seconds']];el.innerHTML=rows.map(([name,count,desc])=>`<div class="integrity-issue-row"><strong>${escapeHtml_(name)}</strong><span class="${count?'ops-status-bad':'ops-status-good'}">${count}</span><span>${escapeHtml_(desc)}</span></div>`).join('');setDirectorWidgetEmptyState_('integrity',false);}
+        function renderDataIntegrityWidget_(logs){const el=document.getElementById('directorIntegrityBody');if(!el)return;const local=logs||[];const malformed=local.filter(l=>!Number.isFinite(parseTimeStrictMs_(l.time))).length;const uncategorized=new Set(local.filter(l=>l.bib&&!findCategoryConfigForBib_(l.bib,categoryConfig)).map(bibIdentityKey_).filter(Boolean)).size;const mapping=local.filter(l=>isCountableLog_(l)&&(l.checkpointKm===''||l.checkpointKm===null||l.checkpointKm===undefined||!Number.isFinite(Number(l.checkpointKm))||Number(l.checkpointKm)<0)).length;const route=buildRouteValidation_(local);const server=serverOperationsSummary_?.integrity||{};const rows=[['Malformed times',Math.max(malformed,server.malformedTimes||0),'Check device locale and source timestamp','bad'],['Uncategorized bibs',Math.max(uncategorized,server.uncategorizedBibs||0),'Retained, counted, and matched to a route when possible','warn'],['Route jumps',Math.max(route.length,server.routeJumps||0),route[0]?.message||server.routeSamples?.[0]?.message||'Expected checkpoint sequence','bad'],['Mapping gaps',Math.max(mapping,server.mappingGaps||0),'Checkpoint KM is missing','bad'],['Stale devices',server.staleDevices||0,'No health report in 3 minutes','bad'],['High clock drift',server.highClockDriftDevices||0,'Absolute offset exceeds 30 seconds','bad']];el.innerHTML=rows.map(([name,count,desc,level])=>`<div class="integrity-issue-row"><strong>${escapeHtml_(name)}</strong><span class="${count?(level==='warn'?'ops-status-warn':'ops-status-bad'):'ops-status-good'}">${count}</span><span>${escapeHtml_(desc)}</span></div>`).join('');setDirectorWidgetEmptyState_('integrity',false);}
 
         /* ════════════════════════════════════════════════════════════════════
            FINAL EVENT LISTENER REGISTRATIONS
@@ -14095,7 +14587,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                         return;
                     }
                     if (!isValidConfiguredBib_(digits)) {
-                        setBibScannerStatus_(`🚫 "${digits}" doesn't match any registered bib range for this event — that's probably not a bib. Try another photo.`);
+                        setBibScannerStatus_(`🚫 "${digits}" has no numeric BIB component — try another photo.`);
                         return;
                     }
                     if (confidence < OCR_MIN_CONFIDENCE) {
@@ -14249,6 +14741,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     setBibScannerStatus_(`⏭️ Bib ${bib} was logged recently — move to the next runner`);
                     return;
                 }
+                const categoryResolution = resolveBibCategory_(bib, runnerLogs, cpV);
                 const routeWarning = routeWarningForCandidate_(bib, cpV, runnerLogs);
                 if (routeWarning && !confirm(`⚠️ Route check for Bib ${bib}: ${routeWarning.message}
 
@@ -14266,6 +14759,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     keepScannerActive: true,
                     routeWarning: routeWarning ? routeWarning.message : '',
                     routeWarningAcknowledged: !!routeWarning,
+                    categoryResolution,
                     onLogged: function() {
                         autoLogInFlight_ = false;
                         lastAutoScanReading_ = '';
@@ -14292,7 +14786,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
         // Runs quietly in the background on the device-tier interval (see
         // getOcrDeviceProfile_) while the
-        // modal is open. It logs only after the same registered bib is read twice
+        // modal is open. It logs only after the same bib is read twice
         // in a row at or above OCR_MIN_CONFIDENCE; a lone misread frame is ignored.
         const QUALITY_ERROR_MESSAGES = {
             blurry: '📵 Too blurry — hold steady',
@@ -14311,11 +14805,10 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
         // dashboard would categorize. If the config hasn't synced yet (fresh
         // offline install), validation is skipped rather than blocking scans.
         function isValidConfiguredBib_(digits) {
-            if (!digits) return false;
-            if (!categoryConfig || !categoryConfig.length) return true; // no config yet — can't validate
-            try {
-                return !!findCategoryConfigForBib_(digits, categoryConfig);
-            } catch (e) { return true; } // validator must never brick scanning
+            // Last-minute and out-of-range runners are valid operational records. OCR
+            // only requires a plausible numeric component; unmatched values are saved
+            // as Uncategorized instead of being discarded.
+            return !!extractBibNumber_(digits);
         }
 
         async function autoScanTick_() {
@@ -14348,7 +14841,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 if (!isValidConfiguredBib_(digits)) {
                     lastAutoScanReading_ = '';
                     noteAutoScanMiss_();
-                    setBibScannerStatus_(`🚫 "${digits}" isn't a registered bib format — ignoring`);
+                    setBibScannerStatus_(`🚫 "${digits}" has no numeric BIB component — ignoring`);
                     return;
                 }
 
@@ -14378,6 +14871,8 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
         // Bib submission is handled by #bibEntryForm, so both the large LOG button
         // and the mobile keyboard's Enter/Go key use the same one-tap code path.
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { const el = document.getElementById('settingsModal'); if (el && !el.classList.contains('hidden')) closeSettings(e); } });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { const el = document.getElementById('directorCustomizeModal'); if (el && !el.classList.contains('hidden')) closeDirectorCustomize(e); } });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isDirectorModeOpen) closeDirectorMode(); });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { const el = document.getElementById('safetyLogView'); if (el && !el.classList.contains('hidden')) closeSafetyLog(); } });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { const el = document.getElementById('bibScannerModal'); if (el && !el.classList.contains('hidden')) closeBibScanner(); } });
