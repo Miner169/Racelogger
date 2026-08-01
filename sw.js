@@ -1,9 +1,9 @@
-// Race Bib Logger v18.0.1 static-shell reliability revision 2.
+// Race Bib Logger v18.0.4 static-shell and collision-safe BIB identity revision.
 // Keeps the existing IndexedDB/background-sync logic below unchanged while making
 // app-shell caching safe for subdirectory deployments and shared web origins.
 const CACHE_PREFIX = 'race-logger-';
-const STATIC_CACHE = 'race-logger-static-v18-0-1-r2';
-const RUNTIME_CACHE = 'race-logger-runtime-v18-0-1-r2';
+const STATIC_CACHE = 'race-logger-static-v18-0-4-r1';
+const RUNTIME_CACHE = 'race-logger-runtime-v18-0-4-r1';
 const NETWORK_TIMEOUT_MS = 4500;
 const MAX_RUNTIME_ENTRIES = 80;
 
@@ -233,7 +233,7 @@ async function syncPendingLogs() {
   }
 
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("RaceLoggerDB", 5);
+    const request = indexedDB.open("RaceLoggerDB", 7);
     request.onerror = () => reject(request.error);
     request.onblocked = () => reject(new Error('RaceLoggerDB upgrade is blocked by another open tab.'));
     request.onupgradeneeded = () => {
@@ -244,6 +244,8 @@ async function syncPendingLogs() {
       [
         ["byUid", "uid"],
         ["byBib", "bib"],
+        ["byBibKey", "bibKey"],
+        ["byBibNumberKey", "bibNumberKey"],
         ["byCheckpoint", "checkpoint"],
         ["byClientTime", "clientTimeMs"],
         ["byCategory", "category"],
@@ -256,10 +258,21 @@ async function syncPendingLogs() {
         const cursor = event.target.result;
         if (!cursor) return;
         const log = cursor.value;
+        let changed = false;
         if (!Number.isFinite(Number(log.clientTimeMs))) {
           log.clientTimeMs = parseClientTimeMs_(log.time);
-          cursor.update(log);
+          changed = true;
         }
+        const originalBib = String(log.bib || log.bibKey || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        const bibNumber = String(log.bibNumber || originalBib).replace(/[^0-9]/g, '');
+        const bibNumberKey = bibNumber ? (bibNumber.replace(/^0+(?=\d)/, '') || '0') : '';
+        const bibKey = originalBib;
+        if (log.bib !== originalBib) { log.bib = originalBib; changed = true; }
+        if (log.bibNumber !== bibNumber) { log.bibNumber = bibNumber; changed = true; }
+        if (log.bibNumberKey !== bibNumberKey) { log.bibNumberKey = bibNumberKey; changed = true; }
+        if (log.bibKey !== bibKey) { log.bibKey = bibKey; changed = true; }
+        if (!log.category) { log.category = 'Uncategorized'; changed = true; }
+        if (changed) cursor.update(log);
         cursor.continue();
       };
       if (!db.objectStoreNames.contains("meta")) db.createObjectStore("meta", { keyPath: "key" });
