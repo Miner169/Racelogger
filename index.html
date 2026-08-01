@@ -18,6 +18,12 @@
          asset the service worker caches like anything else. Rebuild it with:
            npx tailwindcss -i input.css -o tailwind.css --config tailwind.config.js --minify
          any time a new utility class is added to this file. -->
+    <!-- Critical no-flash visibility fallback. Keep this BEFORE tailwind.css and
+         intentionally do not use !important: Tailwind's responsive display utilities
+         (sm:flex, md:inline, lg:block, etc.) must be able to override .hidden on
+         larger screens. Declaring .hidden later in the page caused both the desktop
+         action and its mobile icon to be hidden at PC widths. -->
+    <style id="criticalVisibilityFallback">.hidden { display: none; }</style>
     <link rel="stylesheet" href="tailwind.css">
     <style>
         /* Theme Variables
@@ -1701,9 +1707,9 @@
         /* ── Base reset supplement ── */
         *, *::before, *::after { box-sizing: border-box; }
         img, svg { display: block; max-width: 100%; }
-        /* Critical visibility fallback when the external utility stylesheet is still
-           loading or unavailable on the first offline launch. */
-        .hidden { display: none !important; }
+        /* The critical .hidden fallback is declared before tailwind.css in <head>.
+           Do not redeclare it here: a later .hidden rule would override responsive
+           utilities such as sm:flex and hide desktop-only controls. */
         .sr-only {
             position: absolute !important;
             width: 1px !important;
@@ -2295,10 +2301,10 @@
             </button>
         </div>
         <div class="flex items-center gap-1.5">
-            <button onclick="openSafetyLog()" class="hidden sm:flex items-center gap-1 text-[11px] font-bold bg-red-100 dark:bg-red-900/60 hover:bg-red-200 dark:hover:bg-red-800 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800 px-2.5 py-1 rounded-lg transition" title="Runner Safety Log — every bib logged, sortable, with a safety status/remark for accounting for runners">🛟 Safety Log</button>
-            <button onclick="openSafetyLog()" class="icon-tap-target sm:hidden text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white text-lg p-1" title="Runner Safety Log">🛟</button>
-            <button onclick="openDirectorMode()" class="hidden sm:flex items-center gap-1 text-[11px] font-bold bg-indigo-100 dark:bg-indigo-900/60 hover:bg-indigo-200 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 px-2.5 py-1 rounded-lg transition" title="Open the big-screen director dashboard (stats, leaderboard, category overview)">📺 Director Mode</button>
-            <button onclick="openDirectorMode()" class="icon-tap-target sm:hidden text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white text-lg p-1" title="Director Mode">📺</button>
+            <button id="safetyLogDesktopBtn" type="button" aria-label="Open Runner Safety Log" onclick="openSafetyLog()" class="hidden sm:flex items-center gap-1 text-[11px] font-bold bg-red-100 dark:bg-red-900/60 hover:bg-red-200 dark:hover:bg-red-800 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800 px-2.5 py-1 rounded-lg transition" title="Runner Safety Log — every bib logged, sortable, with a safety status/remark for accounting for runners">🛟 Safety Log</button>
+            <button id="safetyLogMobileBtn" type="button" aria-label="Open Runner Safety Log" onclick="openSafetyLog()" class="icon-tap-target sm:hidden text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white text-lg p-1" title="Runner Safety Log">🛟</button>
+            <button id="directorModeDesktopBtn" type="button" aria-label="Open Director Mode" onclick="openDirectorMode()" class="hidden sm:flex items-center gap-1 text-[11px] font-bold bg-indigo-100 dark:bg-indigo-900/60 hover:bg-indigo-200 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 px-2.5 py-1 rounded-lg transition" title="Open the big-screen director dashboard (stats, leaderboard, category overview)">📺 Director Mode</button>
+            <button id="directorModeMobileBtn" type="button" aria-label="Open Director Mode" onclick="openDirectorMode()" class="icon-tap-target sm:hidden text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white text-lg p-1" title="Director Mode">📺</button>
             <button onclick="toggleTheme()" id="themeBtn" class="icon-tap-target text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white text-lg p-1" title="Toggle Theme">☀️</button>
             <button onclick="toggleSettings()" class="icon-tap-target text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white text-lg p-1" title="Settings">⚙️</button>
         </div>
@@ -3414,7 +3420,7 @@
     <div id="srAnnouncer" class="sr-only-live" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <script>
-        const APP_VERSION = "18.0.0";
+        const APP_VERSION = "18.0.1";
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let db;
         let dbReady_ = false;
