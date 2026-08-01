@@ -2302,7 +2302,7 @@
             .integrity-issue-row, .device-health-row, .forecast-row, .incident-row, .cot-alert-row { grid-template-columns: 1fr; gap: .2rem; }
         }
 
-        /* ── v18.0.4 responsive readability, compact Director layout and collision-safe BIB normalization ── */
+        /* ── v18.0.6 Director viewport safety, device-local last four, alphabet-only BIBs, GPS geofencing and collision-safe identity ── */
         #directorWidgetsGrid {
             align-items: start;
             grid-auto-flow: dense;
@@ -2314,6 +2314,95 @@
             align-self: start;
             min-width: 0;
         }
+
+        /* Director Mode must never create a page-wide horizontal scroll. The top bar
+           wraps its controls inside the viewport and keeps Exit visible at every width. */
+        #directorModeView {
+            overflow-x: hidden !important;
+            overscroll-behavior-x: none;
+            max-width: 100vw;
+        }
+        .director-mode-header {
+            width: 100%;
+            max-width: 100vw;
+            min-width: 0;
+            box-sizing: border-box;
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+        }
+        .director-mode-heading {
+            min-width: 0;
+            overflow: hidden;
+        }
+        .director-mode-title {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .director-mode-actions {
+            min-width: 0;
+            max-width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        #directorExitButton {
+            flex: 0 0 auto;
+            min-height: 2.35rem;
+            white-space: nowrap;
+        }
+        @media (max-width: 900px) {
+            .director-mode-header {
+                grid-template-columns: minmax(0, 1fr);
+                align-items: start;
+                gap: 0.5rem !important;
+            }
+            .director-mode-heading {
+                padding-right: 0;
+            }
+            .director-mode-title {
+                white-space: normal !important;
+                line-height: 1.15;
+            }
+            .director-mode-actions {
+                width: 100%;
+                justify-content: flex-start;
+                gap: 0.4rem !important;
+            }
+            #directorExitButton {
+                order: -10;
+                margin-right: auto;
+            }
+        }
+        @media (max-width: 520px) {
+            .director-mode-header {
+                padding-left: 0.65rem !important;
+                padding-right: 0.65rem !important;
+            }
+            .director-mode-actions > button,
+            .director-mode-actions > span {
+                max-width: 100%;
+            }
+            .director-mode-actions > button {
+                padding-left: 0.55rem !important;
+                padding-right: 0.55rem !important;
+            }
+        }
+
+        /* The recorder's audit strip is intentionally device-local. It remains a
+           single compact line even when an alphabet-only BIB such as SWEEPER is used. */
+        #splitLastRunner {
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            justify-content: flex-start !important;
+            padding-inline: 0.35rem;
+            scrollbar-width: none;
+        }
+        #splitLastRunner::-webkit-scrollbar { display: none; }
+        #splitLastRunner .last4-bib { flex: 0 0 auto; }
 
         /* Many Director labels were authored with fixed 9–11px utilities, so changing
            the root font-size alone did not make them readable. These scoped overrides
@@ -2404,6 +2493,31 @@
                 overflow-y: auto;
             }
         }
+
+        /* ── v18.0.6 GPS checkpoint advisor + dependable one-tap modal controls ── */
+        .one-tap-modal-control { touch-action: manipulation; min-height: 2.5rem; min-width: 2.5rem; }
+        .gps-checkpoint-advisor {
+            display: flex; align-items: center; gap: .65rem; padding: .55rem .65rem;
+            border: 1px solid rgba(59,130,246,.38); border-radius: .65rem;
+            background: rgba(59,130,246,.08); color: var(--text-main);
+        }
+        .gps-checkpoint-advisor.hidden { display: none !important; }
+        .gps-checkpoint-advisor.good { border-color: rgba(16,185,129,.42); background: rgba(16,185,129,.08); }
+        .gps-checkpoint-advisor.warn { border-color: rgba(245,158,11,.52); background: rgba(245,158,11,.10); }
+        .gps-checkpoint-advisor.spam { border-color: rgba(239,68,68,.62); background: rgba(239,68,68,.13); }
+        .gps-checkpoint-advisor-title { font-size: .68rem; font-weight: 900; line-height: 1.25; }
+        .gps-checkpoint-advisor-text { margin-top: .15rem; font-size: .58rem; color: var(--text-muted); line-height: 1.35; }
+        .gps-checkpoint-advisor-actions { display: flex; align-items: center; gap: .35rem; flex-shrink: 0; }
+        .gps-advisor-switch, .gps-advisor-keep { min-height: 2.2rem; padding: .35rem .55rem; border-radius: .5rem; font-size: .6rem; font-weight: 900; white-space: nowrap; }
+        .gps-advisor-switch { background: #2563eb; color: #fff; }
+        .gps-advisor-keep { border: 1px solid var(--border-color); background: var(--input-bg); color: var(--input-text); }
+        .location-spam-row { border-left: 4px solid #ef4444 !important; background: rgba(239,68,68,.08) !important; }
+        .location-spam-badge { display:inline-flex;align-items:center;border:1px solid rgba(239,68,68,.5);background:rgba(239,68,68,.14);color:#ef4444;border-radius:9999px;padding:.14rem .45rem;font-size:.56rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em; }
+        @media (max-width: 520px) {
+            .gps-checkpoint-advisor { align-items: flex-start; flex-direction: column; }
+            .gps-checkpoint-advisor-actions { width: 100%; }
+            .gps-checkpoint-advisor-actions button { flex: 1; }
+        }
     </style>
 </head>
 <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
@@ -2434,7 +2548,7 @@
     </header>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-hidden="true" onclick="if(event.target===this) closeSettings(event)">
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-hidden="true" data-modal-backdrop="settings">
         <div class="theme-panel p-5 rounded-2xl border w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-4">
             <div>
                 <h3 class="text-lg font-bold mb-0.5 theme-text">⚙️ App Settings</h3>
@@ -2557,7 +2671,7 @@
                     ℹ️ The logging screen is permanently capped at 20 rows for fast, predictable performance. Runner Safety Log and Director Mode still load the complete event dataset when opened.
                 </div>
                 <div class="text-[9px] theme-text-muted font-medium leading-tight mt-1 border theme-border rounded-lg px-2 py-1.5">
-                    🔤 Alphanumeric BIBs are preserved in the race record (uppercase, with spaces/punctuation removed), while their digits are used for duplicate checks, runner counts, passages, pace, and route calculations. Example: <strong>F1234B → 1234</strong>. BIBs with the same digits are treated as the same runner.
+                    🔤 BIBs may be numeric, alphanumeric, or letters only. The cleaned original value is the runner identity and remains in the Sheet/export. Digits, when present, provide a numeric grouping indicator (for example, MO1234 and F1234B share group 1234 but remain separate runners). A letters-only BIB such as <strong>SWEEPER</strong> is accepted and saved as Uncategorized unless its route can be inferred.
                 </div>
 
                 <label class="flex items-center gap-2 cursor-pointer select-none pt-1">
@@ -2610,21 +2724,21 @@
             </div>
 
             <div class="flex gap-2 justify-end border-t theme-border pt-3 mt-1">
-                <button type="button" onclick="closeSettings(event)" class="bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-300 px-4 py-2 rounded-lg text-sm font-semibold">Cancel</button>
+                <button type="button" data-modal-close="settings" class="bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-300 px-4 py-2 rounded-lg text-sm font-semibold">Cancel</button>
                 <button type="button" id="settingsSaveBtn" onclick="saveSettings(event)" class="bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">Save Settings</button>
             </div>
         </div>
     </div>
 
     <!-- Event Profile / Setup health — generated entirely from the server Setup sheet. -->
-    <div id="eventProfileModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100]" onclick="if(event.target===this) closeEventProfile_()">
+    <div id="eventProfileModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100]" data-modal-backdrop="eventProfile">
         <div class="event-profile-dialog theme-panel border rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto p-5 flex flex-col gap-4">
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <h3 class="text-lg font-black theme-text">🧭 Event Profile</h3>
                     <p class="text-[11px] theme-text-muted">Live category, distance, BIB-rule, and configuration-health view from the Setup sheet.</p>
                 </div>
-                <button type="button" onclick="closeEventProfile_()" class="theme-input border rounded-lg px-2.5 py-1.5 text-xs font-black shrink-0">✕ Close</button>
+                <button type="button" data-modal-close="eventProfile" class="one-tap-modal-control theme-input border rounded-lg px-2.5 py-1.5 text-xs font-black shrink-0">✕ Close</button>
             </div>
             <div id="eventProfileModalStats" class="event-profile-stats"></div>
             <div id="eventProfileMappingWarning" class="hidden checkpoint-map-stale"></div>
@@ -2649,25 +2763,25 @@
 
     <!-- Export Backup Scope chooser: shown when CSV/JSON export is tapped, so the
          volunteer picks (and understands) exactly what ends up in the file. -->
-    <div id="exportScopeModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[100]" onclick="if (event.target === this) closeExportScopePrompt_()">
+    <div id="exportScopeModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[100]" data-modal-backdrop="exportScope">
         <div class="theme-panel border theme-border rounded-2xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-3 max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between">
                 <h3 id="exportScopeModalTitle" class="text-base font-bold theme-text">📥 What should this backup include?</h3>
-                <button type="button" onclick="closeExportScopePrompt_()" class="text-xs text-neutral-600 dark:text-neutral-400 hover:theme-text font-bold px-1">✕</button>
+                <button type="button" data-modal-close="exportScope" aria-label="Close export options" class="one-tap-modal-control text-xs text-neutral-600 dark:text-neutral-400 hover:theme-text font-bold px-2 py-1">✕</button>
             </div>
             <p class="text-[11px] theme-text-muted leading-snug -mt-1">The three options below export different slices of the locally stored logs — pick the one that matches why you're backing up:</p>
 
-            <button type="button" onclick="chooseExportScope_('currentCp')" class="text-left theme-input border theme-border rounded-xl p-3 hover:opacity-80 active:scale-95 transition flex flex-col gap-0.5">
+            <button type="button" data-export-scope="currentCp" class="text-left theme-input border theme-border rounded-xl p-3 hover:opacity-80 active:scale-95 transition flex flex-col gap-0.5">
                 <span class="text-sm font-black theme-text">📍 Current CP only</span>
                 <span id="exportScopeCpDesc" class="text-[11px] theme-text-muted leading-snug">Only entries logged at this device's current checkpoint — from every device that scanned there. Best for an end-of-shift backup of this station's records.</span>
             </button>
 
-            <button type="button" onclick="chooseExportScope_('currentDevice')" class="text-left theme-input border theme-border rounded-xl p-3 hover:opacity-80 active:scale-95 transition flex flex-col gap-0.5">
+            <button type="button" data-export-scope="currentDevice" class="text-left theme-input border theme-border rounded-xl p-3 hover:opacity-80 active:scale-95 transition flex flex-col gap-0.5">
                 <span class="text-sm font-black theme-text">📱 Current device only</span>
                 <span class="text-[11px] theme-text-muted leading-snug">Only entries created on THIS device, from any checkpoint it was used at. Best for auditing exactly what you personally logged (e.g. before wiping this device).</span>
             </button>
 
-            <button type="button" onclick="chooseExportScope_('global')" class="text-left theme-input border theme-border rounded-xl p-3 hover:opacity-80 active:scale-95 transition flex flex-col gap-0.5">
+            <button type="button" data-export-scope="global" class="text-left theme-input border theme-border rounded-xl p-3 hover:opacity-80 active:scale-95 transition flex flex-col gap-0.5">
                 <span class="text-sm font-black theme-text">🌐 Global (all CPs, all devices)</span>
                 <span class="text-[11px] theme-text-muted leading-snug">Everything stored locally: every checkpoint and every device that has synced so far. The biggest file — best for a full-race master backup or handing to the race director.</span>
             </button>
@@ -2684,7 +2798,7 @@
                 <h3 class="text-base font-bold theme-text flex items-center gap-1.5">📹 Live OCR — Auto Log</h3>
                 <div class="flex items-center gap-1">
                     <button type="button" id="bibScannerSwitchCamBtn" onclick="switchBibScannerCamera_()" title="Switch camera" class="hidden icon-tap-target text-lg p-1 hover:opacity-70 transition">🔄</button>
-                    <button type="button" onclick="closeBibScanner()" class="text-neutral-500 hover:theme-text text-xl leading-none px-1">✕</button>
+                    <button type="button" data-modal-close="bibScanner" aria-label="Close scanner" class="one-tap-modal-control text-neutral-500 hover:theme-text text-xl leading-none px-2 py-1">✕</button>
                 </div>
             </div>
 
@@ -2736,27 +2850,27 @@
          separate from the fast-entry logging screen. Shows at-a-glance stats, the category
          overview, and a live per-category leaderboard. Auto-refreshes as sync data comes in. -->
     <div id="directorModeView" class="hidden fixed inset-0 z-[60] theme-bg overflow-y-auto">
-        <div class="theme-header border-b px-4 sm:px-6 py-3 flex items-center justify-between gap-3 sticky top-0 z-10 shadow-md">
-            <div class="flex items-center gap-3 min-w-0">
-                <h1 class="text-base sm:text-2xl font-black tracking-wide theme-header-text whitespace-nowrap">🏁 RACE COMMAND VIEW</h1>
-                <span id="directorClock" class="hidden md:inline text-xs sm:text-sm font-mono theme-text-muted whitespace-nowrap"></span>
+        <div class="director-mode-header theme-header border-b px-4 sm:px-6 py-3 gap-3 sticky top-0 z-10 shadow-md">
+            <div class="director-mode-heading flex items-center gap-3">
+                <h1 class="director-mode-title text-base sm:text-2xl font-black tracking-wide theme-header-text whitespace-nowrap">🏁 RACE COMMAND VIEW</h1>
+                <span id="directorClock" class="hidden md:inline text-xs sm:text-sm font-mono theme-text-muted whitespace-nowrap shrink-0"></span>
             </div>
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="director-mode-actions gap-2">
+                <button id="directorExitButton" type="button" onclick="closeDirectorMode()" aria-label="Exit Director Mode" class="text-[10px] sm:text-xs bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 theme-text px-2.5 py-1.5 rounded-lg font-bold border theme-border transition">✕ Exit</button>
                 <span id="directorSyncBadge" class="text-[10px] sm:text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-2 py-1 rounded-full font-bold whitespace-nowrap">● Live</span>
                 <button id="directorEventProfileBadge" onclick="openEventProfile_()" class="director-event-profile-badge event-config-health warning" title="View event categories, race distances, and Setup validation">Event setup</button>
-                <button onclick="openDirectorCustomize(event)" class="text-[10px] sm:text-xs bg-purple-100 dark:bg-purple-900/60 hover:bg-purple-200 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 px-2.5 py-1.5 rounded-lg font-bold transition">🎛️ Customize</button>
-                <button onclick="pullServerRecords(); attemptSync();" class="text-[10px] sm:text-xs bg-blue-600 dark:bg-blue-900 hover:bg-blue-500 dark:hover:bg-blue-800 text-white px-2.5 py-1.5 rounded-lg font-bold transition">Refresh 🔄</button>
-                <button onclick="closeDirectorMode()" class="text-[10px] sm:text-xs bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 theme-text px-2.5 py-1.5 rounded-lg font-bold border theme-border transition">✕ Exit</button>
+                <button type="button" onclick="openDirectorCustomize(event)" class="text-[10px] sm:text-xs bg-purple-100 dark:bg-purple-900/60 hover:bg-purple-200 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 px-2.5 py-1.5 rounded-lg font-bold transition">🎛️ Customize</button>
+                <button type="button" onclick="pullServerRecords(); attemptSync();" class="text-[10px] sm:text-xs bg-blue-600 dark:bg-blue-900 hover:bg-blue-500 dark:hover:bg-blue-800 text-white px-2.5 py-1.5 rounded-lg font-bold transition">Refresh 🔄</button>
             </div>
         </div>
 
         <!-- Widget picker: lets the person watching this screen choose which panels are
              worth their space, with a one-line explanation of what each one shows. -->
-        <div id="directorCustomizeModal" class="hidden fixed inset-0 bg-black/70 z-[70] flex items-center justify-center p-4" onclick="if(event.target===this) closeDirectorCustomize(event)">
+        <div id="directorCustomizeModal" class="hidden fixed inset-0 bg-black/70 z-[70] flex items-center justify-center p-4" data-modal-backdrop="directorCustomize">
             <div class="theme-panel border rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-5 flex flex-col gap-3">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-black theme-text uppercase tracking-wide">🎛️ Customize Race Command View</h3>
-                    <button onclick="closeDirectorCustomize(event)" class="text-neutral-500 hover:theme-text text-lg leading-none">✕</button>
+                    <button type="button" data-modal-close="directorCustomize" aria-label="Close customization" class="one-tap-modal-control text-neutral-500 hover:theme-text text-lg leading-none px-2 py-1">✕</button>
                 </div>
                 <p class="text-[11px] theme-text-muted">Pick what's worth screen space right now — you can change this any time. Drag the ⠿ handle on any widget's header to rearrange them, use the 1/2/3 buttons to set how wide one is, and drag the bar at a widget's bottom edge to resize its height.</p>
 
@@ -2769,7 +2883,7 @@
                 <div id="directorWidgetCheckboxList" class="flex flex-col gap-2"></div>
                 <div class="flex gap-2 justify-between items-center border-t theme-border pt-3 mt-1">
                     <button onclick="resetDirectorWidgetLayout_(); resetDirectorWidgetSizes_();" class="text-[11px] text-neutral-500 hover:theme-text underline font-semibold">↺ Reset layout &amp; sizes to default</button>
-                    <button onclick="closeDirectorCustomize(event)" class="bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">Done</button>
+                    <button type="button" data-modal-close="directorCustomize" class="one-tap-modal-control bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">Done</button>
                 </div>
             </div>
         </div>
@@ -3114,9 +3228,9 @@
     </div>
 
     <!-- Structured incident workflow -->
-    <div id="incidentModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100]" onclick="if(event.target===this) closeIncidentModal_()">
+    <div id="incidentModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100]" data-modal-backdrop="incident">
         <div class="theme-panel border rounded-2xl shadow-2xl w-full max-w-lg p-5 flex flex-col gap-3 max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between"><h3 class="text-base font-black theme-text">🚨 Incident Record</h3><button type="button" onclick="closeIncidentModal_()" class="theme-input border rounded px-2 py-1 text-xs">✕</button></div>
+            <div class="flex items-center justify-between"><h3 class="text-base font-black theme-text">🚨 Incident Record</h3><button type="button" data-modal-close="incident" class="one-tap-modal-control theme-input border rounded px-2 py-1 text-xs">✕</button></div>
             <input type="hidden" id="incidentIdInput">
             <div class="grid grid-cols-2 gap-2">
                 <div><label class="block text-[10px] font-bold theme-text-muted">Bib</label><input id="incidentBibInput" type="text" class="w-full theme-input border rounded-lg px-2.5 py-2 text-sm font-black uppercase"></div>
@@ -3128,7 +3242,7 @@
                 <div class="col-span-2"><label class="block text-[10px] font-bold theme-text-muted">Owner / responder</label><input id="incidentOwnerInput" type="text" class="w-full theme-input border rounded-lg px-2.5 py-2 text-xs"></div>
                 <div class="col-span-2"><label class="block text-[10px] font-bold theme-text-muted">Structured notes and actions</label><textarea id="incidentNotesInput" rows="4" class="w-full theme-input border rounded-lg px-2.5 py-2 text-xs" placeholder="Symptoms, contact attempts, dispatch time, destination, handover..."></textarea></div>
             </div>
-            <div class="flex gap-2 justify-end"><button type="button" onclick="closeIncidentModal_()" class="theme-input border rounded-lg px-4 py-2 text-xs font-bold">Cancel</button><button type="button" onclick="saveIncident_()" class="bg-red-600 hover:bg-red-500 text-white rounded-lg px-4 py-2 text-xs font-black">Save incident</button></div>
+            <div class="flex gap-2 justify-end"><button type="button" data-modal-close="incident" class="theme-input border rounded-lg px-4 py-2 text-xs font-bold">Cancel</button><button type="button" onclick="saveIncident_()" class="bg-red-600 hover:bg-red-500 text-white rounded-lg px-4 py-2 text-xs font-black">Save incident</button></div>
         </div>
     </div>
 
@@ -3170,6 +3284,17 @@
 
                     <div id="storageReadinessNotice" role="status" aria-live="polite">Local storage is starting. You can fill Setup now; bib logging unlocks automatically when storage is ready.</div>
 
+                    <div id="gpsCheckpointAdvisor" class="hidden gps-checkpoint-advisor" role="status" aria-live="polite">
+                        <div class="min-w-0 flex-1">
+                            <div id="gpsCheckpointAdvisorTitle" class="gps-checkpoint-advisor-title">📍 Checking checkpoint location…</div>
+                            <div id="gpsCheckpointAdvisorText" class="gps-checkpoint-advisor-text"></div>
+                        </div>
+                        <div class="gps-checkpoint-advisor-actions">
+                            <button type="button" id="gpsSwitchCheckpointBtn" class="gps-advisor-switch hidden">Use detected CP</button>
+                            <button type="button" id="gpsKeepCheckpointBtn" class="gps-advisor-keep hidden">Keep current</button>
+                        </div>
+                    </div>
+
                     <div id="setupFields" class="grid grid-cols-2 gap-2 transition-all duration-300">
                         <div>
                             <label class="block text-[10px] theme-text-muted mb-0.5 font-bold">Checkpoint Name <span class="text-red-600" aria-hidden="true">*</span></label>
@@ -3209,8 +3334,9 @@
 
                 <!-- Isolated Full-Width Container for Last 4 -->
                 <section class="theme-panel py-2 px-4 rounded-xl border shadow-sm text-center flex flex-col gap-0.5 relative">
-                    <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">Last 4 Runners</div>
-                    <div id="splitLastRunner" class="font-black text-xl tracking-wider truncate transition-all duration-200 min-h-[1.75rem] flex items-center justify-center gap-1">-</div>
+                    <div class="text-[9px] theme-text-muted font-black uppercase tracking-wider">Last 4 on this device</div>
+                    <div id="lastFourDeviceLabel" class="text-[9px] theme-text-muted font-semibold truncate" aria-live="polite"></div>
+                    <div id="splitLastRunner" class="font-black text-xl tracking-wider transition-all duration-200 min-h-[1.75rem] flex items-center gap-1" aria-label="Last four BIBs recorded on this device">-</div>
                 </section>
 
                 <!-- Fast Entry Log Form -->
@@ -3222,7 +3348,7 @@
                     <form id="bibEntryForm" onsubmit="handleBibEntrySubmit_(event)" class="flex flex-col gap-3" autocomplete="off">
                         <div class="bib-entry-submit-grid">
                             <div class="bib-input-shell">
-                                <input type="text" id="bibInput" inputmode="numeric" enterkeyhint="go" autocomplete="off" autocapitalize="characters" onfocus="warmUpGPS(); showBibInputTools_();" onblur="scheduleHideBibInputTools_();" onkeydown="handleBibInputKeydown_(event)" oninput="warmUpGPS(); stripBibSpaces_(this); autoScaleBibFontSize_();" placeholder="0" aria-describedby="bibInputToolsHint" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
+                                <input type="text" id="bibInput" inputmode="numeric" enterkeyhint="go" autocomplete="off" autocapitalize="characters" onfocus="warmUpGPS(); showBibInputTools_();" onblur="scheduleHideBibInputTools_();" onkeydown="handleBibInputKeydown_(event)" oninput="warmUpGPS(); stripBibSpaces_(this); autoScaleBibFontSize_();" placeholder="123 or SWEEPER" aria-describedby="bibInputToolsHint" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
                                 <div class="bib-input-tools" aria-label="Bib entry tools">
                                     <button type="button" id="bibOcrBtn" onpointerdown="event.preventDefault();" onclick="openBibScanner(); event.stopPropagation();" title="Start live OCR" aria-label="Start live OCR" class="bib-entry-tool">
                                         <span class="bib-entry-tool-icon" aria-hidden="true">📷</span>
@@ -3231,7 +3357,7 @@
                                         <span id="bibEntryModeIcon" class="bib-entry-tool-icon" aria-hidden="true">🔢</span><span id="bibEntryModeLabel" class="sr-only">Numbers</span>
                                     </button>
                                 </div>
-                                <span id="bibInputToolsHint" class="sr-only">OCR and keyboard mode tools appear when this field is focused. BIBs may contain any number of digits and optional letters.</span>
+                                <span id="bibInputToolsHint" class="sr-only">OCR and keyboard mode tools appear when this field is focused. BIBs may contain any number of digits, letters and digits, or letters only. Use the keyboard toggle for alphabet entry on phones.</span>
                             </div>
                             <button type="submit" id="logActionButton" onpointerdown="keepBibInputFocused_(event)" aria-label="Log bib" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-90 duration-75 text-white font-extrabold text-lg rounded-xl shadow-lg transition-all flex items-center justify-center"><span id="logActionButtonLabel">LOG</span></button>
                         </div>
@@ -3546,7 +3672,7 @@
     <div id="srAnnouncer" class="sr-only-live" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <script>
-        const APP_VERSION = "18.0.4";
+        const APP_VERSION = "18.0.6";
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let db;
         let dbReady_ = false;
@@ -3576,7 +3702,17 @@
         let cocoSsdModel_ = null;
         let cocoSsdLoadPromise_ = null;
         
-        let lastGeoposition = { latitude: null, longitude: null, timestamp: 0 }; 
+        let lastGeoposition = { latitude: null, longitude: null, accuracy: null, timestamp: 0 };
+        const CHECKPOINT_GPS_STORAGE_KEY_ = 'checkpointGpsBundle_v18_0_5';
+        let checkpointGpsBundle_ = (() => {
+            try { return JSON.parse(localStorage.getItem(CHECKPOINT_GPS_STORAGE_KEY_) || '{}') || {}; }
+            catch (_) { return {}; }
+        })();
+        let checkpointGpsPollTimer_ = null;
+        let checkpointGpsWatchId_ = null;
+        let gpsAdvisorCandidate_ = null;
+        let gpsAdvisorDismissedUntil_ = 0;
+        let gpsPositionPromise_ = null;
         let editingRowId = null; 
 
         // Safety Log state also lives above the async IndexedDB startup callback.
@@ -3608,7 +3744,7 @@
         let cotAlertsEnabled_ = localStorage.getItem('cotAlertsEnabled_v1') !== 'false';
         let appTextScale_ = localStorage.getItem('appTextScale_v1') || 'normal';
         let screenReaderAnnouncements_ = localStorage.getItem('screenReaderAnnouncements_v1') !== 'false';
-        const ROUTE_MODELS_STORAGE_KEY_ = 'routeModels_v18_0_4';
+        const ROUTE_MODELS_STORAGE_KEY_ = 'routeModels_v18_0_5';
         let routeModelsByKey_ = (() => { try { return JSON.parse(localStorage.getItem(ROUTE_MODELS_STORAGE_KEY_) || '{}'); } catch (_) { return {}; } })();
 
         const LOCAL_APP_REFRESH_EPOCH_KEY_ = 'appRefreshEpoch_v1';
@@ -4084,22 +4220,297 @@
             bibSpaceFlashTimeout_ = setTimeout(() => el.classList.remove('bib-space-rejected'), 250);
         }
 
+        function checkpointToken_(value) {
+            return String(value || '').trim().toUpperCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
+        }
+
+        function checkpointGpsProfiles_() {
+            return Array.isArray(checkpointGpsBundle_ && checkpointGpsBundle_.profiles)
+                ? checkpointGpsBundle_.profiles.filter(profile => profile && Number.isFinite(Number(profile.latitude)) && Number.isFinite(Number(profile.longitude)))
+                : [];
+        }
+
+        function checkpointGpsProfileNames_(profile) {
+            return [profile && profile.checkpoint].concat(Array.isArray(profile && profile.aliases) ? profile.aliases : [])
+                .map(checkpointToken_).filter(Boolean);
+        }
+
+        function checkpointGpsProfileMatches_(profile, checkpoint) {
+            const token = checkpointToken_(checkpoint);
+            return !!token && checkpointGpsProfileNames_(profile).includes(token);
+        }
+
+        function haversineMeters_(lat1, lon1, lat2, lon2) {
+            const values = [lat1, lon1, lat2, lon2].map(Number);
+            if (!values.every(Number.isFinite)) return Infinity;
+            const toRad = value => value * Math.PI / 180;
+            const dLat = toRad(values[2] - values[0]);
+            const dLon = toRad(values[3] - values[1]);
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(values[0])) * Math.cos(toRad(values[2])) * Math.sin(dLon / 2) ** 2;
+            return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
+        }
+
+        function checkpointProfilePriority_(profile, routeConfig) {
+            let score = String(profile && profile.source || '').toLowerCase() === 'configured' ? 100 : 0;
+            const routeKm = canonicalRaceKmKey_(routeConfig && routeConfig.km);
+            const profileKm = canonicalRaceKmKey_(profile && profile.raceKm);
+            const routeCategory = String(routeConfig && routeConfig.category || '').trim().toUpperCase();
+            const profileCategory = String(profile && profile.category || '').trim().toUpperCase();
+            if (routeKm && profileKm === routeKm) score += 30;
+            else if (!profileKm) score += 8;
+            else if (routeKm) score -= 20;
+            if (routeCategory && profileCategory === routeCategory) score += 20;
+            else if (!profileCategory) score += 5;
+            else if (routeCategory) score -= 10;
+            if (Number.isFinite(Number(profile && profile.checkpointKm))) score += 2;
+            return score;
+        }
+
+        function checkpointGpsProfileFor_(checkpoint, routeConfig) {
+            const matches = checkpointGpsProfiles_().filter(profile => checkpointGpsProfileMatches_(profile, checkpoint));
+            matches.sort((a, b) => checkpointProfilePriority_(b, routeConfig) - checkpointProfilePriority_(a, routeConfig));
+            return matches[0] || null;
+        }
+
+        function checkpointGpsKmFor_(checkpoint, routeConfig) {
+            const matches = checkpointGpsProfiles_().filter(profile => checkpointGpsProfileMatches_(profile, checkpoint) && Number.isFinite(Number(profile.checkpointKm)));
+            matches.sort((a, b) => checkpointProfilePriority_(b, routeConfig) - checkpointProfilePriority_(a, routeConfig));
+            const profile = matches[0];
+            if (!profile) return null;
+            const km = Number(profile.checkpointKm);
+            const total = parseRaceDistanceNumber_(routeConfig && routeConfig.km);
+            if (!(km >= 0) || (Number.isFinite(total) && km > total + .01)) return null;
+            return { km, source: `gps-profile:${profile.source || 'configured'}`, profile };
+        }
+
+        function nearestCheckpointGpsProfile_(position, profiles) {
+            const source = Array.isArray(profiles) ? profiles : checkpointGpsProfiles_();
+            const candidates = source.map(profile => ({
+                profile,
+                distanceM: haversineMeters_(position.latitude, position.longitude, profile.latitude, profile.longitude)
+            })).filter(item => Number.isFinite(item.distanceM));
+            candidates.sort((a, b) => a.distanceM - b.distanceM || checkpointProfilePriority_(b.profile, null) - checkpointProfilePriority_(a.profile, null));
+            return candidates[0] || null;
+        }
+
+        function gpsToleranceMeters_(profile, position) {
+            const radius = Math.max(25, Number(profile && profile.radiusM) || 250);
+            const accuracy = Math.max(0, Number(position && position.accuracy) || 0);
+            return Math.max(radius, accuracy * 2, 100);
+        }
+
+        function formatGpsDistance_(meters) {
+            if (!Number.isFinite(Number(meters))) return 'unknown distance';
+            const value = Number(meters);
+            return value < 1000 ? `${Math.round(value)} m` : `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)} km`;
+        }
+
+        function applyCheckpointGpsFromPayload_(payload) {
+            const bundle = payload && payload.checkpointGps;
+            if (!bundle || typeof bundle !== 'object' || !Array.isArray(bundle.profiles)) return;
+            checkpointGpsBundle_ = bundle;
+            try { localStorage.setItem(CHECKPOINT_GPS_STORAGE_KEY_, JSON.stringify(bundle)); } catch (_) { /* optional */ }
+            evaluateGpsCheckpointAdvisor_();
+        }
+
+        function gpsCheckpointDecision_(checkpoint, position, routeConfig) {
+            const profiles = checkpointGpsProfiles_();
+            if (!position || !Number.isFinite(Number(position.latitude)) || !Number.isFinite(Number(position.longitude)) || !profiles.length) {
+                return { status: 'unverified', checkpoint: checkpointToken_(checkpoint) };
+            }
+            const currentProfiles = profiles.filter(profile => checkpointGpsProfileMatches_(profile, checkpoint));
+            const currentNearest = nearestCheckpointGpsProfile_(position, currentProfiles);
+            const nearest = nearestCheckpointGpsProfile_(position, profiles);
+            const configuredProfiles = profiles.filter(profile => String(profile.source || '').toLowerCase() === 'configured');
+            const nearestConfigured = nearestCheckpointGpsProfile_(position, configuredProfiles);
+            const accuracy = Math.max(0, Number(position.accuracy) || 0);
+            const spamDistanceM = Math.max(5000, Number(checkpointGpsBundle_ && checkpointGpsBundle_.spamDistanceM) || 25000);
+            const hardSpam = !!(nearestConfigured && accuracy <= 250 && nearestConfigured.distanceM > spamDistanceM);
+            if (hardSpam) {
+                return { status: 'spam', checkpoint: checkpointToken_(checkpoint), nearest, nearestConfigured, distanceM: nearestConfigured.distanceM, accuracy };
+            }
+            if (nearest) {
+                const nearestTolerance = gpsToleranceMeters_(nearest.profile, position);
+                const nearDetected = nearest.distanceM <= nearestTolerance;
+                const detectedMatches = checkpointGpsProfileMatches_(nearest.profile, checkpoint);
+                if (nearDetected && !detectedMatches) {
+                    return { status: 'switch', checkpoint: checkpointToken_(checkpoint), nearest, currentNearest, distanceM: nearest.distanceM, accuracy };
+                }
+            }
+            if (currentNearest) {
+                const currentTolerance = gpsToleranceMeters_(currentNearest.profile, position);
+                if (currentNearest.distanceM <= currentTolerance) {
+                    return { status: 'good', checkpoint: checkpointToken_(checkpoint), currentNearest, distanceM: currentNearest.distanceM, accuracy };
+                }
+                if (currentNearest.distanceM > Math.max(2000, currentTolerance * 3)) {
+                    return { status: 'mismatch', checkpoint: checkpointToken_(checkpoint), nearest, currentNearest, distanceM: currentNearest.distanceM, accuracy };
+                }
+            }
+            return { status: 'unverified', checkpoint: checkpointToken_(checkpoint), nearest, currentNearest, accuracy };
+        }
+
+        function hideGpsCheckpointAdvisor_() {
+            const advisor = document.getElementById('gpsCheckpointAdvisor');
+            if (advisor) advisor.classList.add('hidden');
+        }
+
+        function evaluateGpsCheckpointAdvisor_() {
+            const advisor = document.getElementById('gpsCheckpointAdvisor');
+            if (!advisor) return;
+            const checkpoint = (document.getElementById('checkpoint')?.value || '').trim();
+            if (!checkpoint || !checkpointGpsProfiles_().length || lastGeoposition.latitude === null) {
+                hideGpsCheckpointAdvisor_();
+                return;
+            }
+            const decision = gpsCheckpointDecision_(checkpoint, lastGeoposition, null);
+            gpsAdvisorCandidate_ = decision;
+            const title = document.getElementById('gpsCheckpointAdvisorTitle');
+            const text = document.getElementById('gpsCheckpointAdvisorText');
+            const switchBtn = document.getElementById('gpsSwitchCheckpointBtn');
+            const keepBtn = document.getElementById('gpsKeepCheckpointBtn');
+            advisor.classList.remove('hidden', 'good', 'warn', 'spam');
+            switchBtn?.classList.add('hidden');
+            keepBtn?.classList.add('hidden');
+            if (decision.status === 'good') {
+                advisor.classList.add('good');
+                if (title) title.textContent = `📍 GPS matches ${checkpointToken_(checkpoint)}`;
+                if (text) text.textContent = `${formatGpsDistance_(decision.distanceM)} from the checkpoint profile${decision.accuracy ? ` • GPS accuracy ±${Math.round(decision.accuracy)} m` : ''}.`;
+                return;
+            }
+            if (decision.status === 'switch') {
+                advisor.classList.add('warn');
+                const detected = checkpointToken_(decision.nearest.profile.checkpoint);
+                if (title) title.textContent = `📍 Device appears to be at ${detected}`;
+                if (text) text.textContent = `Detected ${formatGpsDistance_(decision.nearest.distanceM)} away. Current Setup is ${checkpointToken_(checkpoint)}. Change Setup before logging at the new location.`;
+                if (switchBtn) { switchBtn.textContent = `Use ${detected}`; switchBtn.classList.remove('hidden'); }
+                keepBtn?.classList.remove('hidden');
+                return;
+            }
+            if (decision.status === 'spam') {
+                advisor.classList.add('spam');
+                if (title) title.textContent = '🚫 GPS is far outside the configured event area';
+                if (text) text.textContent = `${formatGpsDistance_(decision.distanceM)} from the nearest configured checkpoint. New scans are treated as Location Spam and excluded from counts unless the location configuration is corrected.`;
+                keepBtn?.classList.remove('hidden');
+                return;
+            }
+            if (decision.status === 'mismatch') {
+                advisor.classList.add('warn');
+                if (title) title.textContent = `⚠️ GPS no longer matches ${checkpointToken_(checkpoint)}`;
+                if (text) text.textContent = `${formatGpsDistance_(decision.distanceM)} from the selected checkpoint. The volunteer may have moved; confirm or change Checkpoint Name.`;
+                if (decision.nearest && decision.nearest.distanceM <= gpsToleranceMeters_(decision.nearest.profile, lastGeoposition)) {
+                    const detected = checkpointToken_(decision.nearest.profile.checkpoint);
+                    if (switchBtn) { switchBtn.textContent = `Use ${detected}`; switchBtn.classList.remove('hidden'); }
+                }
+                keepBtn?.classList.remove('hidden');
+                return;
+            }
+            if (Date.now() < gpsAdvisorDismissedUntil_) { hideGpsCheckpointAdvisor_(); return; }
+            advisor.classList.add('warn');
+            if (title) title.textContent = '📍 GPS checkpoint could not be confirmed';
+            if (text) text.textContent = checkpointGpsBundle_ && checkpointGpsBundle_.configuredCount
+                ? 'The location is not close enough to a configured checkpoint. Check GPS accuracy and the selected checkpoint.'
+                : 'Checkpoint locations are still being learned. Add rows to the CheckpointGPS sheet for immediate and reliable detection.';
+            keepBtn?.classList.remove('hidden');
+        }
+
+        function useGpsDetectedCheckpoint_() {
+            const decision = gpsAdvisorCandidate_;
+            const detected = decision && decision.nearest && checkpointToken_(decision.nearest.profile.checkpoint);
+            const input = document.getElementById('checkpoint');
+            if (!detected || !input) return;
+            input.value = detected;
+            gpsAdvisorDismissedUntil_ = 0;
+            onCheckpointInput_();
+            updateCheckpointKmHelp_();
+            announceToScreenReader_(`Checkpoint changed to ${detected} from GPS location.`);
+        }
+
+        function keepCurrentCheckpointFromGps_() {
+            gpsAdvisorDismissedUntil_ = Date.now() + 5 * 60 * 1000;
+            hideGpsCheckpointAdvisor_();
+        }
+
+        function updateLastGpsPosition_(pos) {
+            if (!pos || !pos.coords) return;
+            lastGeoposition.latitude = Number(pos.coords.latitude);
+            lastGeoposition.longitude = Number(pos.coords.longitude);
+            lastGeoposition.accuracy = Number(pos.coords.accuracy) || null;
+            lastGeoposition.timestamp = Number(pos.timestamp) || Date.now();
+            evaluateGpsCheckpointAdvisor_();
+        }
+
+        function requestGpsPosition_(forceFresh) {
+            if (!navigator.geolocation) return Promise.resolve(null);
+            const freshEnough = lastGeoposition.latitude !== null && (Date.now() - lastGeoposition.timestamp) < (forceFresh ? 45000 : 180000);
+            if (freshEnough) return Promise.resolve(lastGeoposition);
+            if (gpsPositionPromise_) return gpsPositionPromise_;
+            isGpsHardwareRunning = true;
+            gpsPositionPromise_ = new Promise(resolve => {
+                navigator.geolocation.getCurrentPosition(
+                    pos => { updateLastGpsPosition_(pos); resolve(lastGeoposition); },
+                    () => resolve(lastGeoposition.latitude === null ? null : lastGeoposition),
+                    { enableHighAccuracy: gpsQuality === 'high', timeout: forceFresh ? 6000 : 9000, maximumAge: forceFresh ? 15000 : 120000 }
+                );
+            }).finally(() => { gpsPositionPromise_ = null; isGpsHardwareRunning = false; });
+            return gpsPositionPromise_;
+        }
+
         function warmUpGPS() {
-            if (lowBatteryThresholdActive || batterySaverManual) return; 
+            if (lowBatteryThresholdActive || batterySaverManual) return;
             if (gpsWarmupTimeout) clearTimeout(gpsWarmupTimeout);
-            if (!navigator.geolocation) return;
-            if (lastGeoposition.latitude !== null && (Date.now() - lastGeoposition.timestamp) < 600000) return; 
-            if (!isGpsHardwareRunning) isGpsHardwareRunning = true;
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    lastGeoposition.latitude = pos.coords.latitude;
-                    lastGeoposition.longitude = pos.coords.longitude;
-                    lastGeoposition.timestamp = Date.now();
-                },
-                () => {},
-                { enableHighAccuracy: (gpsQuality === 'high'), timeout: 8000, maximumAge: 600000 }
-            );
+            requestGpsPosition_(false);
             gpsWarmupTimeout = setTimeout(shutOffGPSHardware, 10000);
+        }
+
+        function startCheckpointGpsMonitoring_() {
+            stopCheckpointGpsMonitoring_();
+            if (!navigator.geolocation || document.hidden || lowBatteryThresholdActive || batterySaverManual) return;
+            if (gpsQuality === 'high' && typeof navigator.geolocation.watchPosition === 'function') {
+                checkpointGpsWatchId_ = navigator.geolocation.watchPosition(
+                    updateLastGpsPosition_,
+                    () => {},
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+                );
+            } else {
+                requestGpsPosition_(false);
+                checkpointGpsPollTimer_ = setInterval(() => requestGpsPosition_(true), 60000);
+            }
+        }
+
+        function stopCheckpointGpsMonitoring_() {
+            if (checkpointGpsPollTimer_) { clearInterval(checkpointGpsPollTimer_); checkpointGpsPollTimer_ = null; }
+            if (checkpointGpsWatchId_ !== null && navigator.geolocation && typeof navigator.geolocation.clearWatch === 'function') {
+                try { navigator.geolocation.clearWatch(checkpointGpsWatchId_); } catch (_) { /* no-op */ }
+            }
+            checkpointGpsWatchId_ = null;
+        }
+
+        async function resolveGpsBeforeLog_(checkpoint) {
+            const position = await requestGpsPosition_(true);
+            const decision = gpsCheckpointDecision_(checkpoint, position, null);
+            if (decision.status === 'switch') {
+                const detected = checkpointToken_(decision.nearest.profile.checkpoint);
+                const change = confirm(`📍 GPS indicates ${detected} (${formatGpsDistance_(decision.nearest.distanceM)} away), but Setup is ${checkpointToken_(checkpoint)}.\n\nPress OK to change the checkpoint to ${detected}. Press Cancel to keep ${checkpointToken_(checkpoint)} and record a GPS mismatch acknowledgement.`);
+                if (change) {
+                    const input = document.getElementById('checkpoint');
+                    if (input) { input.value = detected; onCheckpointInput_(); }
+                    return { checkpoint: detected, status: 'verified', decision, acknowledged: true };
+                }
+                return { checkpoint: checkpointToken_(checkpoint), status: 'mismatch', decision, acknowledged: true };
+            }
+            if (decision.status === 'mismatch') {
+                const proceed = confirm(`⚠️ GPS is ${formatGpsDistance_(decision.distanceM)} from ${checkpointToken_(checkpoint)}. The volunteer may have moved.\n\nPress OK to log anyway with a location-mismatch audit flag, or Cancel to change Setup first.`);
+                return proceed
+                    ? { checkpoint: checkpointToken_(checkpoint), status: 'mismatch', decision, acknowledged: true }
+                    : { cancelled: true, decision };
+            }
+            if (decision.status === 'spam') {
+                const proceed = confirm(`🚫 This device is ${formatGpsDistance_(decision.distanceM)} from the nearest configured event checkpoint. This looks outside the event area.\n\nPress OK only to preserve the scan as LOCATION SPAM for audit. It will be excluded from runner counts, pace, standings and safety calculations. Press Cancel to stop.`);
+                return proceed
+                    ? { checkpoint: checkpointToken_(checkpoint), status: 'spam', decision, acknowledged: true }
+                    : { cancelled: true, decision };
+            }
+            return { checkpoint: checkpointToken_(checkpoint), status: decision.status === 'good' ? 'verified' : 'unverified', decision, acknowledged: false };
         }
 
         function shutOffGPSHardware() {
@@ -4232,12 +4643,20 @@
             return deviceString.split('::')[1];
         }
 
-        function isOwnEntry(log) {
+        function isThisDeviceEntry_(log) {
+            if (!log) return false;
             const myId = getOrCreateDeviceId();
-            if (log.creatorId) return log.creatorId === myId;
+            if (log.creatorId) return String(log.creatorId) === myId;
             const parsedId = parseCreatorId(log.device);
             if (parsedId) return parsedId === myId;
-            return true;
+            // A legacy record without any creator marker cannot safely be attributed
+            // to this phone after a global sync. Only an unsynced local legacy record
+            // is treated as this device's own entry.
+            return log.synced === false && !log.serverReceivedAt;
+        }
+
+        function isOwnEntry(log) {
+            return isThisDeviceEntry_(log);
         }
 
         function updateSearchBoxPlaceholder() {
@@ -4293,6 +4712,7 @@
             updateSearchBoxPlaceholder();
             updateSetupGate_();
             debouncedLoadHistory_();
+            evaluateGpsCheckpointAdvisor_();
         }
 
         function applyLayoutOrientation() {
@@ -4605,8 +5025,11 @@
             const healthLabel = getEventConfigHealthLabel_(meta);
             const distanceLabel = meta?.distanceCount === 1 ? 'distance' : 'distances';
             const categoryLabel = meta?.categoryCount === 1 ? 'category' : 'categories';
+            const gpsConfigured = Number(meta?.configuredGpsCount ?? checkpointGpsBundle_?.configuredCount) || 0;
+            const gpsLearned = Number(checkpointGpsBundle_?.learnedCount) || 0;
+            const gpsSummary = gpsConfigured || gpsLearned ? ` • GPS ${gpsConfigured} configured${gpsLearned ? ` + ${gpsLearned} learned` : ''}` : '';
             const summary = meta?.categoryCount
-                ? `${meta.distanceCount} ${distanceLabel} • ${meta.categoryCount} ${categoryLabel} • schema v${meta.schemaVersion}`
+                ? `${meta.distanceCount} ${distanceLabel} • ${meta.categoryCount} ${categoryLabel}${gpsSummary} • schema v${meta.schemaVersion}`
                 : 'No active category rows received from the Setup sheet.';
 
             const title = document.getElementById('eventConfigStripTitle');
@@ -4614,7 +5037,7 @@
             const stripHealth = document.getElementById('eventConfigStripHealth');
             if (title) title.textContent = meta?.categoryCount ? `${meta.eventName}: ${meta.distanceCount} ${distanceLabel}` : 'Event setup: waiting for categories';
             if (sub) sub.textContent = meta?.categoryCount
-                ? `${meta.categoryCount} category row${meta.categoryCount === 1 ? '' : 's'} synced dynamically from Setup`
+                ? `${meta.categoryCount} category row${meta.categoryCount === 1 ? '' : 's'} synced dynamically from Setup${gpsSummary}`
                 : 'Open Settings to verify the Google Apps Script connection.';
             [stripHealth, document.getElementById('eventProfileSettingsHealth')].forEach(el => {
                 if (!el) return;
@@ -4707,6 +5130,7 @@
                 const data = await response.json();
                 if (data.status !== 'success') throw new Error(data.message || 'Configuration request failed.');
                 renderSummaryDashboard(data.config || data.summary || [], data.configMeta);
+                applyRouteModelsFromPayload_(data);
                 if (button) { button.textContent = 'Updated ✓'; await new Promise(resolve => setTimeout(resolve, 650)); }
             } catch (err) {
                 alert(`❌ Could not refresh the event configuration: ${err.message || err}`);
@@ -5014,6 +5438,7 @@
             applyAppTextScale_();
             initBatteryMonitoring();
             startDeviceHealthReporting_();
+            startCheckpointGpsMonitoring_();
             checkPwaDisplay(); 
             resetSyncTimer();
             registerServiceWorkerAndBackgroundSync();
@@ -5056,6 +5481,7 @@
                 if (syncTimerId) { clearInterval(syncTimerId); syncTimerId = null; }
                 if (reconciliationTimerId) { clearInterval(reconciliationTimerId); reconciliationTimerId = null; }
                 if (deviceHealthTimer_) { clearInterval(deviceHealthTimer_); deviceHealthTimer_ = null; }
+                stopCheckpointGpsMonitoring_();
                 if (isDirectorModeOpen) {
                     if (directorClockIntervalId) { clearInterval(directorClockIntervalId); directorClockIntervalId = null; }
                     if (directorCotIntervalId) { clearInterval(directorCotIntervalId); directorCotIntervalId = null; }
@@ -5065,6 +5491,7 @@
             } else {
                 resetSyncTimer();
                 startDeviceHealthReporting_();
+                startCheckpointGpsMonitoring_();
                 syncPendingOperationalRecords_();
                 if (syncUrl) { attemptSync(); pullServerRecords(); }
                 if (isDirectorModeOpen) {
@@ -5105,6 +5532,7 @@
                     scheduleDeviceHealthReport_();
                     loadHistory();
                     if (event.data.summary) renderSummaryDashboard(event.data.summary, event.data.configMeta);
+                    applyRouteModelsFromPayload_(event.data);
                 }
             });
         }
@@ -5196,6 +5624,7 @@
                         feedback.textContent = `✅ Connected Successfully!${rowInfo}`;
                         feedback.className = "text-[10px] text-emerald-600 dark:text-emerald-500 font-bold block leading-tight mt-1";
                         if (parsed.summary) renderSummaryDashboard(parsed.summary, parsed.configMeta);
+                        applyRouteModelsFromPayload_(parsed);
                     } else {
                         feedback.textContent = `❌ Script error context: ${txt.slice(0, 60)}`;
                         feedback.className = "text-[10px] text-red-600 dark:text-red-500 font-bold block leading-tight mt-1";
@@ -5272,6 +5701,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 deactivateBatterySafeMode();
             }
             resetSyncTimer();
+            startCheckpointGpsMonitoring_();
             if (syncUrl && syncIntervalMs > 0) {
                 attemptSync(); 
                 pullServerRecords(); 
@@ -5599,6 +6029,8 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             if (Number.isFinite(totalDistanceKm) && totalDistanceKm > 0 && isCompletionCheckpoint_(checkpointName)) {
                 return { km: totalDistanceKm, source: 'completion-checkpoint' };
             }
+            const gpsMapped = checkpointGpsKmFor_(checkpointName, cfg || routeConfig || null);
+            if (gpsMapped) return gpsMapped;
             if (Number.isFinite(totalDistanceKm) && totalDistanceKm > 0) {
                 const key = canonicalRaceKmKey_(totalDistanceKm);
                 const mapped = normalizeCheckpointKmValue_(checkpointKmByRace_[key]);
@@ -5891,9 +6323,11 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
 
         function applyRouteModelsFromPayload_(payload) {
             const models = payload && payload.routeModels;
-            if (!models || typeof models !== 'object' || Array.isArray(models)) return;
-            routeModelsByKey_ = models;
-            try { localStorage.setItem(ROUTE_MODELS_STORAGE_KEY_, JSON.stringify(routeModelsByKey_)); } catch (_) { /* storage optional */ }
+            if (models && typeof models === 'object' && !Array.isArray(models)) {
+                routeModelsByKey_ = models;
+                try { localStorage.setItem(ROUTE_MODELS_STORAGE_KEY_, JSON.stringify(routeModelsByKey_)); } catch (_) { /* storage optional */ }
+            }
+            applyCheckpointGpsFromPayload_(payload);
         }
 
         function checkpointHistoryForRoute_(runnerLogs, currentCheckpoint) {
@@ -6043,13 +6477,13 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             return store.getAll();
         }
 
-        function checkDuplicateAndLog() {
+        async function checkDuplicateAndLog() {
             if (bibLogSubmissionInFlight_) return;
             const bI = document.getElementById('bibInput');
             const bib = bI.value.replace(/[^A-Za-z0-9]/g, '').trim().toUpperCase();
             if (!bib) { bI.focus(); return; }
-            if (!extractBibNumber_(bib)) { alert('⚠️ A BIB must contain at least one number. Letters before or after the number are allowed.'); bI.focus(); return; }
-            const cpV = (document.getElementById('checkpoint')?.value || '').trim();
+            // Numeric, alphanumeric and letters-only BIBs are all valid identities.
+            let cpV = (document.getElementById('checkpoint')?.value || '').trim();
             const volV = (document.getElementById('volunteer')?.value || '').trim();
             if (!cpV || !volV) {
                 alert("⚠️ Complete 1. Setup before entering a bib.");
@@ -6057,6 +6491,18 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 return;
             }
             setBibSubmitBusy_(true);
+            let gpsResult;
+            try {
+                gpsResult = await resolveGpsBeforeLog_(cpV);
+            } catch (_) {
+                gpsResult = { checkpoint: checkpointToken_(cpV), status: 'unverified', acknowledged: false };
+            }
+            if (gpsResult && gpsResult.cancelled) {
+                finishBibSubmission_();
+                evaluateGpsCheckpointAdvisor_();
+                return;
+            }
+            cpV = (gpsResult && gpsResult.checkpoint) || checkpointToken_(cpV);
             const request = requestLogsForBib_(bib);
             request.onerror = function() {
                 finishBibSubmission_();
@@ -6086,6 +6532,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     routeWarning: routeWarning ? routeWarning.message : '',
                     routeWarningAcknowledged: !!routeWarning,
                     categoryResolution,
+                    locationStatus: gpsResult && gpsResult.status || 'unverified',
+                    locationAcknowledged: !!(gpsResult && gpsResult.acknowledged),
+                    locationDecision: gpsResult && gpsResult.decision || null,
                     onLogged: () => finishBibSubmission_(),
                     onError: () => {
                         finishBibSubmission_();
@@ -6160,7 +6609,12 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 originalDeviceTimeMs: originalDeviceNowMs,
                 checkpointKm: checkpointDistance.km,
                 checkpointKmSource: checkpointDistance.source,
-                status: 'Active',
+                status: logOptions.locationStatus === 'spam' ? 'Location Spam' : 'Active',
+                gpsValidationStatus: logOptions.locationStatus || 'unverified',
+                gpsAccuracyM: Number(lastGeoposition.accuracy) || null,
+                gpsNearestCheckpoint: checkpointToken_(logOptions.locationDecision?.nearest?.profile?.checkpoint || logOptions.locationDecision?.nearestConfigured?.profile?.checkpoint || ''),
+                gpsDistanceToNearestM: Number(logOptions.locationDecision?.nearest?.distanceM ?? logOptions.locationDecision?.nearestConfigured?.distanceM) || null,
+                locationMismatchAcknowledged: !!logOptions.locationAcknowledged,
                 duplicateOfUid: '',
                 duplicateDeviceCount: 1,
                 latitude: lastGeoposition.latitude,
@@ -6191,7 +6645,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 triggerSuccessToast();
                 if (syncIntervalMs > 0) attemptSync();
                 requestBackgroundSync_();
-                announceToScreenReader_(`Bib ${entry.bib} logged at ${entry.checkpoint}.`);
+                announceToScreenReader_(entry.status === 'Location Spam'
+                    ? `Bib ${entry.bib} saved as location spam at ${entry.checkpoint}; excluded from race calculations.`
+                    : `Bib ${entry.bib} logged at ${entry.checkpoint}.`);
                 updateAggregateForMutation_(null, entry);
                 if (typeof logOptions.onLogged === 'function') logOptions.onLogged(entry);
             };
@@ -6307,6 +6763,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 const remakeIds   = new Set(data.remakeIds    || []);
                 const deletedIds  = new Set(data.deletedUids  || []);
                 const duplicateUpdate = (data.duplicateUpdates || []).find(update => update && update.uid === row.uid);
+                const locationUpdate = (data.locationUpdates || []).find(update => update && update.uid === row.uid);
                 const tx = db.transaction(["logs"], "readwrite");
                 if (deletedIds.has(row.uid)) {
                     // Server rejected this bib (previously deleted by admin) — remove locally
@@ -6328,6 +6785,12 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                         row.status = duplicateUpdate.status || 'Duplicate';
                         row.duplicateOfUid = duplicateUpdate.duplicateOfUid || '';
                         row.duplicateDeviceCount = Number(duplicateUpdate.duplicateDeviceCount) || 2;
+                    }
+                    if (locationUpdate) {
+                        row.status = locationUpdate.status || 'Location Spam';
+                        row.gpsValidationStatus = locationUpdate.gpsValidationStatus || 'spam';
+                        row.gpsNearestCheckpoint = locationUpdate.nearestCheckpoint || row.gpsNearestCheckpoint || '';
+                        row.gpsDistanceToNearestM = Number(locationUpdate.distanceM) || row.gpsDistanceToNearestM || null;
                     }
                     tx.objectStore("logs").put(row);
                 }
@@ -6373,6 +6836,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     const remakeIds   = new Set(data.remakeIds    || []);
                     const deletedIds  = new Set(data.deletedUids  || []);
                     const duplicateUpdatesByUid = new Map((data.duplicateUpdates || []).filter(Boolean).map(update => [update.uid, update]));
+                    const locationUpdatesByUid = new Map((data.locationUpdates || []).filter(Boolean).map(update => [update.uid, update]));
                     const tx = db.transaction(["logs"], "readwrite");
                     const store = tx.objectStore("logs");
                     unsynced.forEach(log => {
@@ -6397,6 +6861,13 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                                 log.status = duplicateUpdate.status || 'Duplicate';
                                 log.duplicateOfUid = duplicateUpdate.duplicateOfUid || '';
                                 log.duplicateDeviceCount = Number(duplicateUpdate.duplicateDeviceCount) || 2;
+                            }
+                            const locationUpdate = locationUpdatesByUid.get(log.uid);
+                            if (locationUpdate) {
+                                log.status = locationUpdate.status || 'Location Spam';
+                                log.gpsValidationStatus = locationUpdate.gpsValidationStatus || 'spam';
+                                log.gpsNearestCheckpoint = locationUpdate.nearestCheckpoint || log.gpsNearestCheckpoint || '';
+                                log.gpsDistanceToNearestM = Number(locationUpdate.distanceM) || log.gpsDistanceToNearestM || null;
                             }
                             store.put(log); 
                         } else {
@@ -6510,6 +6981,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 const serverRecords = Array.isArray(result.data) ? result.data : [];
                 const serverDeletedUids = new Set(result.deletedUids || []);
                 const serverDuplicateUpdates = result.duplicateUpdates || [];
+                const serverLocationUpdates = result.locationUpdates || [];
                 const hasRecentWindowMetadata = Array.isArray(result.recentGlobalUids) || Array.isArray(result.recentCheckpointUids);
                 if (hasRecentWindowMetadata) {
                     recentCloudWindowUids_ = new Set([...(result.recentGlobalUids || []), ...(result.recentCheckpointUids || [])]);
@@ -6537,6 +7009,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                             }
                         });
                         if (applyDuplicateUpdatesToStore_(store, localLogs, serverDuplicateUpdates)) changed = true;
+                        if (applyLocationUpdatesToStore_(store, localLogs, serverLocationUpdates)) changed = true;
 
                         serverRecords.forEach(serverRecord => {
                             if (!serverRecord || !serverRecord.uid) return;
@@ -6609,6 +7082,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 let allServerRecords = [];
                 const allDeletedUids = new Set();
                 const allDuplicateUpdates = new Map();
+                const allLocationUpdates = new Map();
                 let sinceRow = 0;
                 let useReset = true;
                 let guardIterations = 0;
@@ -6629,6 +7103,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     allServerRecords = allServerRecords.concat(batch);
                     (result.deletedUids || []).forEach(uid => allDeletedUids.add(uid));
                     (result.duplicateUpdates || []).forEach(update => { if (update && update.uid) allDuplicateUpdates.set(update.uid, update); });
+                    (result.locationUpdates || []).forEach(update => { if (update && update.uid) allLocationUpdates.set(update.uid, update); });
                     useReset = false;
                     const pageLastRow = Number(result.lastRow) || 0;
                     const serverLastRow = Number(result.syncToken) || pageLastRow;
@@ -6656,7 +7131,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 const activeServerCount = allServerRecords.filter(r => {
                     if (!r || !r.uid || allDeletedUids.has(r.uid) || r.purge) return false;
                     const status = String(r.status || '').toLowerCase();
-                    return status !== 'deleted' && status !== 'auto duplicate removed';
+                    return status !== 'deleted' && status !== 'auto duplicate removed' && status !== 'location spam';
                 }).length;
                 const outcome = await new Promise((resolve, reject) => {
                     const tx = db.transaction(['logs'], 'readwrite');
@@ -6675,6 +7150,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                                 store.delete(localLog.id); changed = true; removed++; return;
                             }
                             const duplicateUpdate = allDuplicateUpdates.get(localLog.uid);
+                            const locationUpdate = allLocationUpdates.get(localLog.uid);
                             if (duplicateUpdate && String(duplicateUpdate.status || '').toLowerCase() === 'auto duplicate removed') {
                                 store.delete(localLog.id); changed = true; removed++; return;
                             }
@@ -6686,7 +7162,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                             }
 
                             if (match) {
-                                const incoming = duplicateUpdate || match;
+                                const incoming = locationUpdate || duplicateUpdate || match;
                                 const incomingStatus = incoming.status || match.status || localLog.status || 'Active';
                                 const incomingDuplicateOf = incoming.duplicateOfUid || match.duplicateOfUid || '';
                                 const incomingDuplicateCount = Number(incoming.duplicateDeviceCount || match.duplicateDeviceCount) || (String(incomingStatus).toLowerCase() === 'duplicate' ? 2 : 1);
@@ -6720,6 +7196,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                                         latitude: match.latitude,
                                         longitude: match.longitude,
                                         status: incomingStatus,
+                                        gpsValidationStatus: locationUpdate?.gpsValidationStatus || localLog.gpsValidationStatus || (String(incomingStatus).toLowerCase() === 'location spam' ? 'spam' : 'unverified'),
+                                        gpsNearestCheckpoint: locationUpdate?.nearestCheckpoint || localLog.gpsNearestCheckpoint || '',
+                                        gpsDistanceToNearestM: Number(locationUpdate?.distanceM) || localLog.gpsDistanceToNearestM || null,
                                         duplicateOfUid: incomingDuplicateOf,
                                         duplicateDeviceCount: incomingDuplicateCount,
                                         lapMode: match.lapMode || localLog.lapMode || 'multiple',
@@ -6826,8 +7305,16 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
         function calculateLiveSplits(logs) {
             const splitLastRunner = document.getElementById("splitLastRunner");
-            if (logs.length < 1) { splitLastRunner.textContent = "-"; return; }
-            const sorted = [...logs].sort((a, b) => parseCustomOrIsoDate(a.time) - parseCustomOrIsoDate(b.time));
+            const gapEl = document.getElementById("splitGapTime");
+            const deviceLabelEl = document.getElementById("lastFourDeviceLabel");
+            if (deviceLabelEl) deviceLabelEl.textContent = getDeviceLabel(buildDeviceString()) || 'This device';
+            const ownLogs = (logs || []).filter(isThisDeviceEntry_);
+            if (ownLogs.length < 1) {
+                if (splitLastRunner) splitLastRunner.textContent = "-";
+                if (gapEl) gapEl.textContent = "-";
+                return;
+            }
+            const sorted = [...ownLogs].sort((a, b) => parseCustomOrIsoDate(a.time) - parseCustomOrIsoDate(b.time));
             const targetedLastFour = sorted.slice(-4).reverse();
             const bibFrequency = new Map();
             sorted.forEach(log => {
@@ -6851,7 +7338,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             if(sorted.length >= 2) {
                 const diffSeconds = Math.floor((parseCustomOrIsoDate(sorted[sorted.length - 1].time) - parseCustomOrIsoDate(sorted[sorted.length - 2].time)) / 1000);
                 const mins = Math.floor(diffSeconds / 60), secs = diffSeconds % 60;
-                document.getElementById("splitGapTime").textContent = mins > 0 ? `+${mins}m ${secs}s` : `+${secs}s`;
+                if (gapEl) gapEl.textContent = mins > 0 ? `+${mins}m ${secs}s` : `+${secs}s`;
+            } else if (gapEl) {
+                gapEl.textContent = "-";
             }
         }
 
@@ -6877,7 +7366,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
             const newBib = bibEl.value.replace(/[^A-Za-z0-9]/g, '').trim().toUpperCase();
             const newRemark = remarkEl.value.trim();
-            if (!newBib || !extractBibNumber_(newBib)) { alert('⚠️ A BIB must contain at least one number. Letters before or after the number are allowed.'); bibEl.focus(); return; }
+            if (!newBib) { alert('⚠️ Enter a BIB using letters, numbers, or both.'); bibEl.focus(); return; }
 
             // Cancel any legacy timer before touching a row. The transaction reads by
             // IndexedDB primary key and preserves the UID, so only this exact scan can
@@ -7113,6 +7602,50 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             return `${roundedKm} of ${totalDistanceKm} KM`;
         }
 
+        function nextCheckpointMetric_(log, bibHistorySorted, cfg, currentDistanceKm) {
+            const currentCheckpoint = checkpointToken_(log && log.checkpoint);
+            let nextCheckpoint = '';
+            let source = '';
+            const sequence = Array.isArray(cfg && cfg.checkpointSequence)
+                ? cfg.checkpointSequence.map(checkpointToken_).filter(Boolean) : [];
+            if (sequence.length) {
+                const observed = checkpointHistoryForRoute_(
+                    (bibHistorySorted || []).filter(item => parseCustomOrIsoDate(item.time) <= parseCustomOrIsoDate(log.time)),
+                    log.checkpoint
+                );
+                const aligned = alignObservedRouteToSequence_(observed, sequence);
+                if (aligned && aligned.idx < sequence.length - 1) {
+                    nextCheckpoint = sequence[aligned.idx + 1];
+                    source = 'configured-route';
+                }
+            }
+            if (!nextCheckpoint && currentCheckpoint) {
+                const model = routeModelsByKey_[routeCategoryKeyForConfig_(cfg)] || null;
+                const options = routeTransitionOptions_(model, currentCheckpoint).slice()
+                    .sort((a, b) => Number(b.count || 0) - Number(a.count || 0) || Number(b.support || 0) - Number(a.support || 0));
+                if (options.length) {
+                    nextCheckpoint = checkpointToken_(options[0].to);
+                    source = model && model.source || 'learned-route';
+                }
+            }
+            if (!nextCheckpoint) return null;
+            const nextKmInfo = checkpointGpsKmFor_(nextCheckpoint, cfg);
+            const currentProfile = checkpointGpsProfileFor_(log.checkpoint, cfg);
+            const nextProfile = checkpointGpsProfileFor_(nextCheckpoint, cfg);
+            const straightLineKm = currentProfile && nextProfile
+                ? haversineMeters_(currentProfile.latitude, currentProfile.longitude, nextProfile.latitude, nextProfile.longitude) / 1000
+                : null;
+            const courseDistanceKm = nextKmInfo && Number.isFinite(Number(currentDistanceKm))
+                ? Math.max(0, Number(nextKmInfo.km) - Number(currentDistanceKm)) : null;
+            return {
+                nextCheckpoint,
+                nextCheckpointKm: nextKmInfo ? Number(nextKmInfo.km) : null,
+                nextCourseDistanceKm: Number.isFinite(courseDistanceKm) ? Math.round(courseDistanceKm * 100) / 100 : null,
+                nextStraightLineKm: Number.isFinite(straightLineKm) ? Math.round(straightLineKm * 100) / 100 : null,
+                source
+            };
+        }
+
         /**
          * Computes a live preview for one log entry. Exact category-specific checkpoint
          * distances are preferred. When they are unavailable the estimator uses, in
@@ -7190,6 +7723,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
             let flagoffDisplay = '-';
             try { flagoffDisplay = getFormattedTimestamp(flagoffDate); } catch(_) {}
+            const nextMetric = nextCheckpointMetric_(log, bibHistorySorted, cfg, distanceCoveredKm);
 
             return {
                 category:      displayCategory,
@@ -7208,7 +7742,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 pace:          paceDisplay ? `${paceDisplay} min/km` : '',
                 speed:         speedDisplay,
                 projectedFinish,
-                flagoff:       flagoffDisplay
+                flagoff:       flagoffDisplay,
+                nextCheckpoint: nextMetric?.nextCheckpoint || '',
+                nextCheckpointKm: nextMetric?.nextCheckpointKm ?? null,
+                nextCourseDistanceKm: nextMetric?.nextCourseDistanceKm ?? null,
+                nextStraightLineKm: nextMetric?.nextStraightLineKm ?? null
             };
         }
 
@@ -7225,12 +7763,16 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             return normalizedLogStatus_(log) === 'auto duplicate removed';
         }
 
-        /** A duplicate audit row may remain visible in Scan History, but it must never
-         * inflate lap numbers, runner totals, standings, safety rosters, or analytics. */
+        function isLocationSpamLog_(log) {
+            return normalizedLogStatus_(log) === 'location spam';
+        }
+
+        /** Duplicate and GPS-spam audit rows stay visible, but never inflate passages,
+         * runner totals, standings, safety rosters, route learning, pace or analytics. */
         function isCountableLog_(log) {
             if (!log || !log.bib || log.remake || log.pendingDelete) return false;
             const status = normalizedLogStatus_(log);
-            return status !== 'deleted' && status !== 'duplicate' && status !== 'auto duplicate removed';
+            return status !== 'deleted' && status !== 'duplicate' && status !== 'auto duplicate removed' && status !== 'location spam';
         }
 
         function applyDuplicateUpdatesToStore_(store, localLogs, updates) {
@@ -7250,6 +7792,27 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 log.status = nextStatus;
                 log.duplicateOfUid = update.duplicateOfUid || '';
                 log.duplicateDeviceCount = Number(update.duplicateDeviceCount) || 2;
+                log.synced = true;
+                log.remake = false;
+                log.syncAttempts = 0;
+                store.put(log);
+                changed = true;
+            });
+            return changed;
+        }
+
+        function applyLocationUpdatesToStore_(store, localLogs, updates) {
+            if (!Array.isArray(updates) || !updates.length) return false;
+            const byUid = new Map((localLogs || []).map(log => [log.uid, log]));
+            let changed = false;
+            updates.forEach(update => {
+                if (!update || !update.uid) return;
+                const log = byUid.get(update.uid);
+                if (!log) return;
+                log.status = update.status || 'Location Spam';
+                log.gpsValidationStatus = update.gpsValidationStatus || (String(log.status).toLowerCase() === 'location spam' ? 'spam' : log.gpsValidationStatus || 'unverified');
+                log.gpsNearestCheckpoint = update.nearestCheckpoint || log.gpsNearestCheckpoint || '';
+                log.gpsDistanceToNearestM = Number(update.distanceM) || log.gpsDistanceToNearestM || null;
                 log.synced = true;
                 log.remake = false;
                 log.syncAttempts = 0;
@@ -7285,6 +7848,15 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
          */
         function withLivePreview_(log, bibHistoryMap, catCfg, metricContext) {
             if (!log.bib || log.remake) return log; // nothing useful to compute
+            if (isLocationSpamLog_(log)) {
+                const cfg = findCategoryConfigForBib_(log.bib, catCfg);
+                return Object.assign({}, log, {
+                    category: (cfg && cfg.category) || log.category || 'Uncategorized',
+                    km: (cfg && cfg.km) || log.km || '',
+                    lap: 'Location spam', timePerLap: '-', totalTime: '-', pace: '', speed: '', projectedFinish: '-',
+                    metricWarning: 'GPS location is outside the event area; excluded from race calculations.'
+                });
+            }
             if (isDuplicateLog_(log)) {
                 const cfg = findCategoryConfigForBib_(log.bib, catCfg);
                 return Object.assign({}, log, {
@@ -8601,6 +9173,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const quietDevices = Array.from(devices.values()).filter(ts => now - ts > 15 * 60000).length;
 
             const duplicateAuditCount = (allLogs || []).filter(isDuplicateLog_).length;
+            const locationSpamCount = (allLogs || []).filter(isLocationSpamLog_).length;
             const duplicateRate = allLogs && allLogs.length ? (duplicateAuditCount / allLogs.length) * 100 : 0;
             const pending = (allLogs || []).filter(log => !log.synced && !log.pendingDelete).length;
             const synced = Math.max(0, (allLogs || []).length - pending);
@@ -8625,6 +9198,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 { label: 'Device activity', value: `${activeDevices} active`, sub: `${quietDevices} not heard from in 15 min` },
                 { label: 'Safety attention', value: safetyAlerts, sub: `${completed} runners seen at finish/start-finish` },
                 { label: 'Duplicate audit', value: `${duplicateRate.toFixed(1)}%`, sub: `${duplicateAuditCount} grey duplicate records` },
+                { label: 'Location spam', value: locationSpamCount, sub: locationSpamCount ? 'Outside-event GPS records excluded from calculations' : 'No outside-event GPS records' },
                 { label: 'Pending upload', value: pending, sub: `${syncCoverage}% of local rows confirmed` },
                 { label: 'Full data freshness', value: formatMonitorSyncAge_(), sub: `${countable.length} active scans · ${roster.length} unique runners` }
             ];
@@ -9325,7 +9899,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     .map(l => distanceCategoryKey_(l.km, l.category))).size;
                 const pendingTile = document.getElementById('pendingSyncCount');
                 if (pendingTile) pendingTile.textContent = activeScopedLogs.filter(l => !l.synced).length;
-                calculateLiveSplits(activeScopedLogs); 
+                // This is an entry audit, not a race-total metric: show the four most
+                // recent records created on this device even when one was later marked
+                // duplicate or Location Spam, so the volunteer can retrace their taps.
+                const thisDeviceLogs = logs.filter(isThisDeviceEntry_);
+                calculateLiveSplits(thisDeviceLogs);
                 updateQueueStatus();
                 if (isDirectorModeOpen) renderDirectorModeContent_(logs);
 
@@ -9363,8 +9941,10 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     // loadHistory() over the full log set before any filtering.
                     const row = document.createElement('div');
                     const duplicateLog = isDuplicateLog_(log);
+                    const locationSpamLog = isLocationSpamLog_(log);
                     row.className = 'flex flex-col border-b theme-border bg-neutral-100/0 dark:bg-neutral-500/0 hover:bg-neutral-200/50 dark:hover:bg-neutral-500/5 transition-colors duration-700';
                     if (duplicateLog) row.classList.add('duplicate-log-row');
+                    if (locationSpamLog) row.classList.add('location-spam-row');
                     if (triggerScanHistorySlideFlag && log.uid === lastCreatedUid) {
                         row.classList.add('animate-scan-slide-in');
                         triggerScanHistorySlideFlag = false; // fires once, not on every future re-render
@@ -9388,6 +9968,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                         const freqBadge = frequencies[bibIdentityKey_(log)] > 1 ? `<span class="text-[10px] bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-900 px-1.5 py-0.5 rounded font-bold">${frequencies[bibIdentityKey_(log)]}x</span>` : '';
                         const collisionBadge = bibCollisionBadgeHtml_(log);
                         const duplicateBadge = duplicateLog ? `<span class="duplicate-status-badge" title="Backend-detected same-bib/same-checkpoint scan from another device. Excluded from passage and runner totals.">◻ Duplicate${log.duplicateDeviceCount ? ` • ${log.duplicateDeviceCount} devices` : ''}</span>` : '';
+                        const locationSpamBadge = locationSpamLog ? `<span class="location-spam-badge" title="GPS placed this device outside the configured event area. Preserved for audit, excluded from calculations.">🚫 Location spam</span>` : '';
                         
                         const ownEntry = isOwnEntry(log);
                         const editButtonHTML = (!duplicateLog && ownEntry && (isEditable(log.time) || log.remake)) ? `<button onclick="startEditing(${log.id}); event.stopPropagation();" class="text-xs text-blue-700 dark:text-blue-500 font-bold border border-blue-400/30 dark:border-blue-600/30 px-1.5 py-0.5 rounded bg-neutral-200/50 dark:bg-neutral-900/50">✏️ Edit</button>` : '';
@@ -9396,6 +9977,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                         let statusClass = log.synced ? 'text-emerald-700 dark:text-emerald-500 font-extrabold' : 'text-yellow-700 dark:text-yellow-600 font-extrabold';
                         if (log.remake) { statusText = 'REMAKE REQ'; statusClass = 'text-red-600 dark:text-red-500 font-black animate-pulse'; }
                         if (duplicateLog) { statusText = 'DUPLICATE'; statusClass = 'text-neutral-500 dark:text-neutral-400 font-black'; }
+                        if (locationSpamLog) { statusText = 'GPS SPAM'; statusClass = 'text-red-600 dark:text-red-400 font-black'; }
 
                         const isCurrentlyExpanded = activeExpandedUids.has(log.uid);
                         const panelExpandedClass = isCurrentlyExpanded ? 'expanded' : '';
@@ -9409,6 +9991,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                                     ${log.pace ? `<span title="Average pace from flag-off to the configured checkpoint KM">⏱️ Avg pace: ${log.pace.replace('*','')}</span>` : ''}
                                     ${log.speed ? `<span class="text-neutral-400">|</span><span title="Average speed from flag-off to the configured checkpoint KM">⚡ Avg speed: ${log.speed.replace('*','')}</span>` : ''}
                                     ${log.metricBasis ? `<span class="metric-basis-note">• based on ${escapeHtml_(log.metricBasis)} ${log.checkpointKmEstimated ? '<span class="metric-estimated-badge">EST.</span>' : ''}</span>` : ''}
+                                    ${log.nextCheckpoint ? `<span class="metric-basis-note" title="Next checkpoint from the configured route${log.nextStraightLineKm ? '; straight-line GPS distance shown separately from course distance' : ''}">→ Next ${escapeHtml_(log.nextCheckpoint)}${Number.isFinite(Number(log.nextCourseDistanceKm)) ? ` • ${escapeHtml_(log.nextCourseDistanceKm)} course km` : ''}${Number.isFinite(Number(log.nextStraightLineKm)) ? ` • ${escapeHtml_(log.nextStraightLineKm)} km straight-line` : ''}</span>` : ''}
                                     ${isPreview ? `<span class="text-neutral-400 italic" title="Legacy on-device estimate. Available scan history may still change after sync, so do not use this indicator alone for DQ or elimination decisions.">(live est.)</span>` : ''}
                                 </div>`;
                         }
@@ -9426,6 +10009,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                                         ${collisionBadge}
                                         ${freqBadge}
                                         ${duplicateBadge}
+                                        ${locationSpamBadge}
                                         <span class="text-[10px] bg-neutral-200 dark:bg-neutral-900 border px-1.5 py-0.5 rounded text-neutral-700 dark:text-neutral-400 font-bold tracking-wide">${escapeHtml_(log.checkpoint)}</span>
                                         ${log.checkpointKm ? `<span class="text-[10px] bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-800 px-1.5 py-0.5 rounded text-blue-700 dark:text-blue-400 font-black">${escapeHtml_(log.checkpointKm)} KM</span>` : ''}
                                     </div>
@@ -10980,7 +11564,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     // display to ##### for a too-narrow column. A UTF-8 BOM is prepended below
                     // so Excel opens the file as UTF-8 instead of guessing a legacy codepage,
                     // which is the other common cause of a CSV looking corrupted on open.
-                    let csvContent = 'OriginalBIB,NumericBIB,NumericKey,RunnerIndicator,BIBIdentityKey,Time,OriginalDeviceTime,ClockOffsetMs,ClockConfidenceMs,AppVersion,Checkpoint,CheckpointKM,CheckpointKMSource,Volunteer,Remark,Device,Latitude,Longitude,ID,UID,Category,PassageMode,Passage,Status,DuplicateOfUID,DuplicateDeviceCount,TimeSincePriorPassage,TotalTime,Pace,Speed,ProjectedFinish,ProjectionMethod,Flagoff,PaceZone,PaceSecs,SpeedFloat,TrendLabel\r\n';
+                    let csvContent = 'OriginalBIB,NumericBIB,NumericKey,RunnerIndicator,BIBIdentityKey,Time,OriginalDeviceTime,ClockOffsetMs,ClockConfidenceMs,AppVersion,Checkpoint,CheckpointKM,CheckpointKMSource,Volunteer,Remark,Device,Latitude,Longitude,GPSAccuracyM,GPSValidationStatus,GPSNearestCheckpoint,GPSDistanceToNearestM,LocationMismatchAcknowledged,NextCheckpoint,NextCheckpointKM,NextCourseDistanceKM,NextStraightLineKM,ID,UID,Category,PassageMode,Passage,Status,DuplicateOfUID,DuplicateDeviceCount,TimeSincePriorPassage,TotalTime,Pace,Speed,ProjectedFinish,ProjectionMethod,Flagoff,PaceZone,PaceSecs,SpeedFloat,TrendLabel\r\n';
                     logs.forEach(l => {
                         const enriched = enrichLogForExport_(l, logs);
                         csvContent += [
@@ -11002,6 +11586,15 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                             `"${getDeviceLabel(l.device)}"`,
                             (l.latitude !== undefined && l.latitude !== null && l.latitude !== '') ? l.latitude : '',
                             (l.longitude !== undefined && l.longitude !== null && l.longitude !== '') ? l.longitude : '',
+                            (l.gpsAccuracyM !== undefined && l.gpsAccuracyM !== null && l.gpsAccuracyM !== '') ? l.gpsAccuracyM : '',
+                            `"${(l.gpsValidationStatus||'').replace(/"/g,'""')}"`,
+                            `"${(l.gpsNearestCheckpoint||'').replace(/"/g,'""')}"`,
+                            (l.gpsDistanceToNearestM !== undefined && l.gpsDistanceToNearestM !== null && l.gpsDistanceToNearestM !== '') ? l.gpsDistanceToNearestM : '',
+                            l.locationMismatchAcknowledged ? 'TRUE' : 'FALSE',
+                            `"${(l.nextCheckpoint||'').replace(/"/g,'""')}"`,
+                            (l.nextCheckpointKm !== undefined && l.nextCheckpointKm !== null && l.nextCheckpointKm !== '') ? l.nextCheckpointKm : '',
+                            (l.nextCourseDistanceKm !== undefined && l.nextCourseDistanceKm !== null && l.nextCourseDistanceKm !== '') ? l.nextCourseDistanceKm : '',
+                            (l.nextStraightLineKm !== undefined && l.nextStraightLineKm !== null && l.nextStraightLineKm !== '') ? l.nextStraightLineKm : '',
                             l.id,
                             `"${(l.uid||'').replace(/"/g,'""')}"`,
                             `"${(l.category||'').replace(/"/g,'""')}"`,
@@ -12903,7 +13496,86 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
         function scheduleDeviceHealthReport_(delay=1000){setTimeout(()=>{if(!document.hidden)reportDeviceHealth_();},delay);}
         function startDeviceHealthReporting_(){if(deviceHealthTimer_)clearInterval(deviceHealthTimer_);scheduleDeviceHealthReport_(1500);deviceHealthTimer_=setInterval(()=>{if(!document.hidden)reportDeviceHealth_();},120000);}
 
-        function renderDataIntegrityWidget_(logs){const el=document.getElementById('directorIntegrityBody');if(!el)return;const local=logs||[];const malformed=local.filter(l=>!Number.isFinite(parseTimeStrictMs_(l.time))).length;const uncategorized=new Set(local.filter(l=>l.bib&&!findCategoryConfigForBib_(l.bib,categoryConfig)).map(bibIdentityKey_).filter(Boolean)).size;const mapping=local.filter(l=>isCountableLog_(l)&&(l.checkpointKm===''||l.checkpointKm===null||l.checkpointKm===undefined||!Number.isFinite(Number(l.checkpointKm))||Number(l.checkpointKm)<0)).length;const route=buildRouteValidation_(local);const server=serverOperationsSummary_?.integrity||{};const rows=[['Malformed times',Math.max(malformed,server.malformedTimes||0),'Check device locale and source timestamp','bad'],['Uncategorized bibs',Math.max(uncategorized,server.uncategorizedBibs||0),'Retained, counted, and matched to a route when possible','warn'],['Route jumps',Math.max(route.length,server.routeJumps||0),route[0]?.message||server.routeSamples?.[0]?.message||'Expected checkpoint sequence','bad'],['Mapping gaps',Math.max(mapping,server.mappingGaps||0),'Checkpoint KM is missing','bad'],['Stale devices',server.staleDevices||0,'No health report in 3 minutes','bad'],['High clock drift',server.highClockDriftDevices||0,'Absolute offset exceeds 30 seconds','bad']];el.innerHTML=rows.map(([name,count,desc,level])=>`<div class="integrity-issue-row"><strong>${escapeHtml_(name)}</strong><span class="${count?(level==='warn'?'ops-status-warn':'ops-status-bad'):'ops-status-good'}">${count}</span><span>${escapeHtml_(desc)}</span></div>`).join('');setDirectorWidgetEmptyState_('integrity',false);}
+        function renderDataIntegrityWidget_(logs){
+            const el=document.getElementById('directorIntegrityBody');
+            if(!el)return;
+            const local=logs||[];
+            const malformed=local.filter(l=>!Number.isFinite(parseTimeStrictMs_(l.time))).length;
+            const uncategorized=new Set(local.filter(l=>l.bib&&!findCategoryConfigForBib_(l.bib,categoryConfig)).map(bibIdentityKey_).filter(Boolean)).size;
+            const mapping=local.filter(l=>isCountableLog_(l)&&(l.checkpointKm===''||l.checkpointKm===null||l.checkpointKm===undefined||!Number.isFinite(Number(l.checkpointKm))||Number(l.checkpointKm)<0)).length;
+            const locationSpam=local.filter(isLocationSpamLog_).length;
+            const route=buildRouteValidation_(local);
+            const server=serverOperationsSummary_?.integrity||{};
+            const serverSpam=Number(serverOperationsSummary_?.totals?.locationSpam)||0;
+            const rows=[
+                ['Malformed times',Math.max(malformed,server.malformedTimes||0),'Check device locale and source timestamp','bad'],
+                ['Uncategorized bibs',Math.max(uncategorized,server.uncategorizedBibs||0),'Retained, counted, and matched to a route when possible','warn'],
+                ['Location spam',Math.max(locationSpam,serverSpam),'GPS outside the configured event area; preserved for audit and excluded','bad'],
+                ['Route jumps',Math.max(route.length,server.routeJumps||0),route[0]?.message||server.routeSamples?.[0]?.message||'Expected checkpoint sequence','bad'],
+                ['Mapping gaps',Math.max(mapping,server.mappingGaps||0),'Checkpoint KM is missing','bad'],
+                ['Stale devices',server.staleDevices||0,'No health report in 3 minutes','bad'],
+                ['High clock drift',server.highClockDriftDevices||0,'Absolute offset exceeds 30 seconds','bad']
+            ];
+            el.innerHTML=rows.map(([name,count,desc,level])=>`<div class="integrity-issue-row"><strong>${escapeHtml_(name)}</strong><span class="${count?(level==='warn'?'ops-status-warn':'ops-status-bad'):'ops-status-good'}">${count}</span><span>${escapeHtml_(desc)}</span></div>`).join('');
+            setDirectorWidgetEmptyState_('integrity',false);
+        }
+
+        const modalActionLastRun_ = new Map();
+
+        function runModalActionOnce_(key, action) {
+            const now = performance.now();
+            const last = modalActionLastRun_.get(key) || 0;
+            if (now - last < 500) return false;
+            modalActionLastRun_.set(key, now);
+            action();
+            return true;
+        }
+
+        function closeModalByKey_(key, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+            }
+            runModalActionOnce_(`close:${key}`, () => {
+                if (key === 'settings') closeSettings();
+                else if (key === 'directorCustomize') closeDirectorCustomize();
+                else if (key === 'exportScope') closeExportScopePrompt_();
+                else if (key === 'eventProfile') closeEventProfile_();
+                else if (key === 'bibScanner') closeBibScanner();
+                else if (key === 'incident') closeIncidentModal_();
+            });
+        }
+
+        function handleOneTapModalControl_(event) {
+            if (event.type === 'pointerup' && event.button !== undefined && event.button !== 0) return;
+            const target = event.target instanceof Element ? event.target : null;
+            if (!target) return;
+            const closeControl = target.closest('[data-modal-close]');
+            if (closeControl) {
+                closeModalByKey_(closeControl.dataset.modalClose, event);
+                return;
+            }
+            const exportControl = target.closest('[data-export-scope]');
+            if (exportControl) {
+                event.preventDefault(); event.stopPropagation();
+                if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+                const scope = exportControl.dataset.exportScope;
+                runModalActionOnce_(`export:${scope}`, () => chooseExportScope_(scope));
+                return;
+            }
+            const backdrop = target.closest('[data-modal-backdrop]');
+            if (backdrop && event.target === backdrop) closeModalByKey_(backdrop.dataset.modalBackdrop, event);
+        }
+
+        // Pointer-up closes immediately on modern touch/mouse devices. The click
+        // listener is a compatibility fallback for older WebViews and keyboard
+        // activation; the 500 ms action lock prevents a generated click repeating it.
+        document.addEventListener('pointerup', handleOneTapModalControl_, true);
+        document.addEventListener('click', handleOneTapModalControl_, true);
+
+        document.getElementById('gpsSwitchCheckpointBtn')?.addEventListener('click', useGpsDetectedCheckpoint_);
+        document.getElementById('gpsKeepCheckpointBtn')?.addEventListener('click', keepCurrentCheckpointFromGps_);
 
         /* ════════════════════════════════════════════════════════════════════
            FINAL EVENT LISTENER REGISTRATIONS
@@ -14716,7 +15388,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             if (autoReadMissStreak_ >= 2) autoLoggedBibLatch_ = '';
         }
 
-        function autoRecordScannedBib_(bib, sourceMessage) {
+        async function autoRecordScannedBib_(bib, sourceMessage) {
             bib = cleanOcrDigits_(bib);
             if (!bib || autoLogInFlight_) return;
             if (!isSetupComplete_()) {
@@ -14729,8 +15401,19 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             }
 
             autoLogInFlight_ = true;
-            autoLoggedBibLatch_ = bib; // latch immediately so concurrent frames cannot double-log
-            const cpV = (document.getElementById('checkpoint')?.value || '').trim().toUpperCase();
+            autoLoggedBibLatch_ = bib;
+            let cpV = (document.getElementById('checkpoint')?.value || '').trim().toUpperCase();
+            let gpsResult;
+            try { gpsResult = await resolveGpsBeforeLog_(cpV); }
+            catch (_) { gpsResult = { checkpoint: checkpointToken_(cpV), status: 'unverified', acknowledged: false }; }
+            if (gpsResult && gpsResult.cancelled) {
+                autoLogInFlight_ = false;
+                autoLoggedBibLatch_ = '';
+                lastAutoScanReading_ = '';
+                setBibScannerStatus_('⚠️ GPS checkpoint check cancelled — update Setup before scanning.');
+                return;
+            }
+            cpV = (gpsResult && gpsResult.checkpoint) || checkpointToken_(cpV);
             const getAllRequest = requestLogsForBib_(bib);
             getAllRequest.onsuccess = function(e) {
                 const runnerLogs = e.target.result || [];
@@ -14760,11 +15443,16 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     routeWarning: routeWarning ? routeWarning.message : '',
                     routeWarningAcknowledged: !!routeWarning,
                     categoryResolution,
-                    onLogged: function() {
+                    locationStatus: gpsResult && gpsResult.status || 'unverified',
+                    locationAcknowledged: !!(gpsResult && gpsResult.acknowledged),
+                    locationDecision: gpsResult && gpsResult.decision || null,
+                    onLogged: function(entry) {
                         autoLogInFlight_ = false;
                         lastAutoScanReading_ = '';
                         autoReadMissStreak_ = 0;
-                        setBibScannerStatus_(`✅ Bib ${bib} logged — move to the next runner`);
+                        setBibScannerStatus_(entry && entry.status === 'Location Spam'
+                            ? `🚫 Bib ${bib} saved as location spam — excluded from race counts`
+                            : `✅ Bib ${bib} logged — move to the next runner`);
                     },
                     onError: function(err) {
                         autoLogInFlight_ = false;
@@ -14804,11 +15492,10 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
         // app uses for laps/pace, so "valid" here always agrees with what the
         // dashboard would categorize. If the config hasn't synced yet (fresh
         // offline install), validation is skipped rather than blocking scans.
-        function isValidConfiguredBib_(digits) {
-            // Last-minute and out-of-range runners are valid operational records. OCR
-            // only requires a plausible numeric component; unmatched values are saved
-            // as Uncategorized instead of being discarded.
-            return !!extractBibNumber_(digits);
+        function isValidConfiguredBib_(value) {
+            // Last-minute, out-of-range and letters-only identifiers are valid
+            // operational records. Unmatched values are saved as Uncategorized.
+            return !!normalizeBibOriginal_(value);
         }
 
         async function autoScanTick_() {
