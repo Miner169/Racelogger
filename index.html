@@ -2277,8 +2277,46 @@
         body.text-scale-large #safetyLogBody tr { height: 4.25rem; }
         body.text-scale-xlarge #safetyLogBody tr { height: 5rem; }
         .sr-only-live { position: fixed; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-        #safetyTableViewport { max-height: calc(100vh - 19rem); overflow: auto; contain: strict; }
+        /* The Safety Log uses virtual rows, but size containment made the viewport
+           collapse to zero height on some browsers because its contents were not
+           allowed to contribute to layout. Keep layout/paint containment only and
+           give the roster a real responsive height so every runner row is visible. */
+        #safetyTableViewport {
+            height: 58vh;
+            min-height: 20rem;
+            max-height: calc(100vh - 19rem);
+            overflow: auto;
+            contain: layout paint style;
+            overscroll-behavior: contain;
+        }
+        @supports (height: 100dvh) {
+            #safetyTableViewport {
+                height: 58dvh;
+                max-height: calc(100dvh - 19rem);
+            }
+        }
+        #safetyLogTable { min-width: 920px; }
+        #safetyLogTable thead th {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            background: var(--panel-bg);
+            box-shadow: 0 1px 0 var(--border-color);
+        }
         #safetyLogBody tr { height: 3.6rem; }
+        .safety-roster-load-state {
+            border: 1px solid var(--border-color);
+            border-radius: 0.65rem;
+            background: var(--card-tint);
+            padding: 0.5rem 0.65rem;
+            font-size: 0.6875rem;
+            font-weight: 750;
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+        .safety-roster-load-state.ready { color: #10b981; border-color: rgba(16,185,129,.38); background: rgba(16,185,129,.08); }
+        .safety-roster-load-state.syncing { color: #3b82f6; border-color: rgba(59,130,246,.38); background: rgba(59,130,246,.08); }
+        .safety-roster-load-state.error { color: #f59e0b; border-color: rgba(245,158,11,.38); background: rgba(245,158,11,.08); }
         .virtual-spacer-cell { padding: 0 !important; border: 0 !important; height: 0; }
         .integrity-issue-row, .device-health-row, .forecast-row, .incident-row, .cot-alert-row {
             display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,.8fr) minmax(0,.8fr);
@@ -2298,11 +2336,15 @@
         .cot-alert-banner.critical { border-color: rgba(239,68,68,.55); background: rgba(239,68,68,.12); }
         .aggregate-fast-stat { font-variant-numeric: tabular-nums; }
         @media (max-width: 640px) {
-            #safetyTableViewport { max-height: calc(100vh - 16rem); }
+            #safetyTableViewport {
+                height: 26rem;
+                min-height: 20rem;
+                max-height: none;
+            }
             .integrity-issue-row, .device-health-row, .forecast-row, .incident-row, .cot-alert-row { grid-template-columns: 1fr; gap: .2rem; }
         }
 
-        /* ── v18.0.6 Director viewport safety, device-local last four, alphabet-only BIBs, GPS geofencing and collision-safe identity ── */
+        /* ── v18.0.8.1 Last-4 centering; v18.0.8 Safety roster visibility, complete-event loading, Director viewport safety, device-local last four, alphabet-only BIBs, GPS geofencing and collision-safe identity ── */
         #directorWidgetsGrid {
             align-items: start;
             grid-auto-flow: dense;
@@ -2397,11 +2439,24 @@
             max-width: 100%;
             overflow-x: auto;
             overflow-y: hidden;
-            justify-content: flex-start !important;
+            display: block !important;
+            text-align: center;
+            white-space: nowrap;
             padding-inline: 0.35rem;
             scrollbar-width: none;
         }
         #splitLastRunner::-webkit-scrollbar { display: none; }
+        /* Centre short Last-4 lists, but keep long/alphabetic BIBs safely
+           left-scrollable instead of clipping their beginning off-screen. */
+        #splitLastRunner .last4-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            width: max-content;
+            min-width: 100%;
+            margin-inline: auto;
+        }
         #splitLastRunner .last4-bib { flex: 0 0 auto; }
 
         /* Many Director labels were authored with fixed 9–11px utilities, so changing
@@ -2518,6 +2573,248 @@
             .gps-checkpoint-advisor-actions { width: 100%; }
             .gps-checkpoint-advisor-actions button { flex: 1; }
         }
+
+
+        /* ── v18.0.8 OLED minimalist bib-entry mode ──────────────────────────
+           This is a deliberately separate full-screen surface rather than a pile of
+           responsive overrides on the normal logger. It keeps the phone keyboard shut,
+           enlarges this device's last four entries, and uses near-total black pixels for
+           OLED battery savings during long checkpoint shifts. */
+        .minimal-mode-toggle {
+            width: 2.45rem;
+            height: 2.45rem;
+            min-width: 2.45rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.72rem;
+            border: 1px solid var(--border-color);
+            background: #000;
+            color: #fff;
+            font-size: 1.18rem;
+            font-weight: 900;
+            box-shadow: 0 4px 12px rgba(0,0,0,.28);
+        }
+        .minimal-mode-toggle[aria-pressed="true"] {
+            border-color: #34d399;
+            box-shadow: 0 0 0 2px rgba(52,211,153,.22);
+        }
+        body.minimal-bib-open { overflow: hidden !important; background: #000 !important; }
+        #minimalBibModeView {
+            position: fixed;
+            inset: 0;
+            z-index: 120;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            background: #000;
+            color: #fff;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .minimal-bib-shell {
+            width: min(100%, 56rem);
+            min-height: 100dvh;
+            margin: 0 auto;
+            padding: max(.75rem, env(safe-area-inset-top)) max(.75rem, env(safe-area-inset-right)) max(.9rem, env(safe-area-inset-bottom)) max(.75rem, env(safe-area-inset-left));
+            display: flex;
+            flex-direction: column;
+            gap: .75rem;
+            background: #000;
+        }
+        .minimal-bib-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
+        }
+        .minimal-bib-title {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: .08rem;
+        }
+        .minimal-bib-title strong { font-size: clamp(1rem, 3.8vw, 1.35rem); letter-spacing: .04em; }
+        .minimal-bib-title span { color: #9ca3af; font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .minimal-close-btn {
+            width: 2.85rem;
+            height: 2.85rem;
+            min-width: 2.85rem;
+            border-radius: 9999px;
+            border: 1px solid #33343b;
+            background: #111216;
+            color: #fff;
+            font-size: 1.25rem;
+            font-weight: 900;
+        }
+        .minimal-last4-panel {
+            border: 1px solid #27282e;
+            border-radius: 1rem;
+            background: #050505;
+            padding: .72rem;
+        }
+        .minimal-last4-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .6rem;
+            margin-bottom: .55rem;
+            color: #a3a3ab;
+            font-size: .68rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .11em;
+        }
+        #minimalLastFour {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: .48rem;
+        }
+        .minimal-last4-card {
+            min-width: 0;
+            min-height: 4.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: .15rem;
+            border: 1px solid #292a31;
+            border-radius: .82rem;
+            background: #0c0c0f;
+            padding: .42rem .25rem;
+        }
+        .minimal-last4-card strong {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: ui-monospace, monospace;
+            font-size: clamp(1rem, 5.3vw, 2rem);
+            line-height: 1;
+            color: #facc15;
+        }
+        .minimal-last4-card small { color: #7d7f88; font-size: .56rem; font-weight: 800; }
+        .minimal-last4-empty { grid-column: 1 / -1; color: #6b7280; text-align: center; padding: 1rem; font-weight: 700; }
+        .minimal-bib-display-wrap {
+            position: relative;
+            border: 2px solid #3a3a41;
+            border-radius: 1rem;
+            background: #030303;
+            min-height: 5.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: .75rem 3.4rem .75rem .8rem;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+        }
+        .minimal-bib-display-wrap.has-value { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.18); }
+        #minimalBibDisplay {
+            width: 100%;
+            color: #fff;
+            font-family: ui-monospace, monospace;
+            font-size: clamp(2rem, 10vw, 4.6rem);
+            line-height: 1;
+            font-weight: 950;
+            text-align: center;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+        #minimalBibDisplay.is-placeholder { color: #595b63; font-size: clamp(1rem, 4.5vw, 1.5rem); }
+        .minimal-backspace-btn {
+            position: absolute;
+            right: .55rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2.65rem;
+            height: 2.65rem;
+            border-radius: .72rem;
+            background: #16171b;
+            border: 1px solid #34353c;
+            color: #fff;
+            font-size: 1.2rem;
+        }
+        .minimal-keyboard-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: .42rem;
+        }
+        .minimal-keyboard-tab {
+            min-height: 2.45rem;
+            border-radius: .68rem;
+            border: 1px solid #2f3037;
+            background: #0d0e11;
+            color: #a3a3ab;
+            font-weight: 900;
+            font-size: .74rem;
+        }
+        .minimal-keyboard-tab.active { background: #172554; color: #dbeafe; border-color: #2563eb; }
+        #minimalBibKeyboard {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: .42rem;
+        }
+        .minimal-key {
+            min-width: 0;
+            min-height: clamp(3.25rem, 8.4vh, 4.6rem);
+            border-radius: .78rem;
+            border: 1px solid #2e3036;
+            background: #111216;
+            color: #fff;
+            font-family: ui-monospace, monospace;
+            font-size: clamp(1rem, 5vw, 1.65rem);
+            font-weight: 900;
+            box-shadow: 0 2px 0 #050505;
+        }
+        .minimal-key:active { background: #22242a; transform: translateY(1px) scale(.97); }
+        .minimal-key.utility { color: #93c5fd; background: #0b162c; font-size: clamp(.72rem, 3.4vw, 1rem); }
+        .minimal-key.danger { color: #fca5a5; background: #2a0d10; font-size: clamp(.72rem, 3.4vw, 1rem); }
+        .minimal-key.wide-2 { grid-column: span 2; }
+        .minimal-bib-actions {
+            display: grid;
+            grid-template-columns: minmax(5.5rem, .34fr) minmax(0, 1fr);
+            gap: .55rem;
+            margin-top: auto;
+        }
+        .minimal-clear-btn,
+        #minimalBibLogButton {
+            min-height: 4.25rem;
+            border-radius: .9rem;
+            font-weight: 950;
+        }
+        .minimal-clear-btn { background: #18191e; border: 1px solid #353740; color: #fca5a5; font-size: .85rem; }
+        #minimalBibLogButton {
+            border: 0;
+            background: linear-gradient(135deg, #1d4ed8, #4338ca);
+            color: #fff;
+            font-size: clamp(1.25rem, 5vw, 2rem);
+            box-shadow: 0 5px 20px rgba(37,99,235,.28);
+        }
+        #minimalBibLogButton:disabled { opacity: .48; }
+        #minimalBibStatus {
+            min-height: 1rem;
+            color: #9ca3af;
+            text-align: center;
+            font-size: .65rem;
+            font-weight: 700;
+        }
+        @media (max-width: 430px) {
+            .minimal-bib-shell { gap: .58rem; }
+            .minimal-last4-panel { padding: .55rem; }
+            .minimal-last4-card { min-height: 3.9rem; }
+            #minimalBibKeyboard { gap: .34rem; }
+            .minimal-key { border-radius: .65rem; min-height: clamp(3rem, 7.7vh, 3.8rem); }
+        }
+        @media (orientation: landscape) and (max-height: 600px) {
+            .minimal-bib-shell { width: min(100%, 72rem); display: grid; grid-template-columns: minmax(15rem,.72fr) minmax(24rem,1.28fr); grid-template-rows: auto auto 1fr auto; gap: .55rem .75rem; }
+            .minimal-bib-topbar { grid-column: 1 / -1; }
+            .minimal-last4-panel { grid-column: 1; grid-row: 2 / span 2; }
+            #minimalLastFour { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .minimal-bib-display-wrap { grid-column: 2; grid-row: 2; min-height: 4.7rem; }
+            .minimal-keyboard-area { grid-column: 2; grid-row: 3; min-height: 0; }
+            .minimal-bib-actions { grid-column: 1 / -1; grid-row: 4; }
+            .minimal-key { min-height: 2.65rem; font-size: 1rem; }
+        }
+
     </style>
 </head>
 <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
@@ -2846,6 +3143,50 @@
         </div>
     </div>
 
+
+    <!-- OLED minimalist entry surface. It mirrors the real bibInput value, so the
+         existing duplicate, GPS, route, sync, export and audit paths remain the single
+         source of truth. No separate log format is introduced. -->
+    <div id="minimalBibModeView" class="hidden" role="dialog" aria-modal="true" aria-labelledby="minimalBibModeTitle">
+        <div class="minimal-bib-shell">
+            <div class="minimal-bib-topbar">
+                <div class="minimal-bib-title">
+                    <strong id="minimalBibModeTitle">▦ QUICK BIB ENTRY</strong>
+                    <span id="minimalBibContext">This device · checkpoint not set</span>
+                </div>
+                <button type="button" class="minimal-close-btn" onclick="closeMinimalBibMode_(event)" aria-label="Close minimalist BIB entry" title="Close">✕</button>
+            </div>
+
+            <section class="minimal-last4-panel" aria-labelledby="minimalLastFourHeading">
+                <div class="minimal-last4-heading">
+                    <span id="minimalLastFourHeading">Last 4 on this device</span>
+                    <span id="minimalLastFourDevice">This device</span>
+                </div>
+                <div id="minimalLastFour" aria-live="polite"><div class="minimal-last4-empty">No local entries yet</div></div>
+            </section>
+
+            <div id="minimalBibDisplayWrap" class="minimal-bib-display-wrap">
+                <div id="minimalBibDisplay" class="is-placeholder" role="textbox" aria-label="BIB being entered" aria-live="polite">Tap the keypad</div>
+                <button type="button" class="minimal-backspace-btn" onclick="minimalBibBackspace_()" aria-label="Delete last character" title="Backspace">⌫</button>
+            </div>
+
+            <div class="minimal-keyboard-area">
+                <div class="minimal-keyboard-tabs" role="tablist" aria-label="On-screen keyboard layout">
+                    <button type="button" id="minimalTabNumbers" class="minimal-keyboard-tab" onclick="setMinimalBibKeyboardPage_('numbers')" role="tab">123</button>
+                    <button type="button" id="minimalTabLetters" class="minimal-keyboard-tab" onclick="setMinimalBibKeyboardPage_('letters')" role="tab">ABC</button>
+                    <button type="button" id="minimalTabSymbols" class="minimal-keyboard-tab" onclick="setMinimalBibKeyboardPage_('symbols')" role="tab">#+=</button>
+                </div>
+                <div id="minimalBibKeyboard" class="mt-2" aria-label="BIB on-screen keyboard"></div>
+            </div>
+
+            <div class="minimal-bib-actions">
+                <button type="button" class="minimal-clear-btn" onclick="clearMinimalBib_()">CLEAR</button>
+                <button type="button" id="minimalBibLogButton" onclick="submitMinimalBib_()" disabled>LOG</button>
+            </div>
+            <div id="minimalBibStatus" role="status" aria-live="polite">Phone keyboard stays closed in this mode.</div>
+        </div>
+    </div>
+
     <!-- Director / Big-Screen Mode: a dedicated wide-format report view for tablet/PC/TV,
          separate from the fast-entry logging screen. Shows at-a-glance stats, the category
          overview, and a live per-category leaderboard. Auto-refreshes as sync data comes in. -->
@@ -3129,10 +3470,13 @@
                 <h2 class="text-lg sm:text-xl font-black theme-header-text flex items-center gap-2">🛟 Runner Safety Log</h2>
                 <div class="flex items-center gap-2 flex-wrap justify-end">
                     <span id="safetySyncBadge" class="text-[10px] sm:text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-2 py-1 rounded-full font-bold whitespace-nowrap">● Local data ready</span>
-                    <button id="safetyFullSyncBtn" onclick="syncAllMonitorData_('safety', true)" class="text-[10px] sm:text-xs bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg font-bold transition">↻ Sync all logs</button>
+                    <button id="safetyFullSyncBtn" onclick="syncAllMonitorData_('safety', true)" class="text-[10px] sm:text-xs bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg font-bold transition">↻ Sync all runners</button>
                     <button onclick="openIncidentModal_()" class="text-[10px] sm:text-xs bg-red-600 dark:bg-red-800 hover:bg-red-500 text-white px-2.5 py-1.5 rounded-lg font-bold transition">＋ New incident</button>
                     <button onclick="closeSafetyLog()" class="text-[10px] sm:text-xs bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 theme-text px-2.5 py-1.5 rounded-lg font-bold border theme-border transition">✕ Exit</button>
                 </div>
+            </div>
+            <div id="safetyRosterLoadState" class="safety-roster-load-state syncing" role="status" aria-live="polite">
+                Loading the complete event runner list…
             </div>
 
             <div id="safetyCotAlertsPanel" class="hidden cot-alert-banner" aria-live="polite"></div>
@@ -3184,6 +3528,7 @@
                         <option value="missing">❓ Missing / Unaccounted</option>
                         <option value="__none__">— (no status set)</option>
                     </select>
+                    <button type="button" onclick="resetSafetyFilters_()" class="theme-input border rounded-md px-2.5 py-1.5 text-xs font-black">↺ Show all runners</button>
                 </div>
 
                 <div class="safety-matrix-shell">
@@ -3195,7 +3540,7 @@
                         <div class="flex gap-1 flex-wrap justify-end">
                             <button type="button" id="downloadSelectedSafetyBibsBtn" onclick="downloadSelectedSafetyBibs_()" title="Download the currently filtered bib numbers, one per line, for copy/paste" class="bg-emerald-700 dark:bg-emerald-800 hover:bg-emerald-600 dark:hover:bg-emerald-700 text-white border border-emerald-600 rounded px-2 py-1 text-[10px] font-bold">⬇️ Download BIBs (0)</button>
                             <button type="button" onclick="setSafetyMatrixSelection_('all')" class="theme-input border rounded px-2 py-1 text-[10px] font-bold">Select all</button>
-                            <button type="button" onclick="setSafetyMatrixSelection_('none')" class="theme-input border rounded px-2 py-1 text-[10px] font-bold">Clear</button>
+                            <button type="button" onclick="setSafetyMatrixSelection_('none')" class="theme-input border rounded px-2 py-1 text-[10px] font-bold">Select none</button>
                         </div>
                     </div>
                     <div id="safetyMatrixFilter" class="overflow-x-auto mt-2"></div>
@@ -3213,6 +3558,7 @@
                                 <th class="p-2">KM</th>
                                 <th class="p-2">Category</th>
                                 <th class="p-2">Last Checkpoint</th>
+                                <th class="p-2 text-center">Passages</th>
                                 <th class="p-2">Last Seen</th>
                                 <th class="p-2">Safety Status</th>
                                 <th class="p-2 min-w-[200px]">Remark</th>
@@ -3222,7 +3568,7 @@
                         <tbody id="safetyLogBody" class="divide-y theme-border"></tbody>
                     </table>
                 </div>
-                <div id="safetyLogEmptyState" class="hidden text-center theme-text-muted text-sm p-8">No bibs logged yet.</div>
+                <div id="safetyLogEmptyState" class="hidden text-center theme-text-muted text-sm p-8">No runners are available yet.</div>
             </div>
         </div>
     </div>
@@ -3343,12 +3689,15 @@
                 <section id="bibEntrySection" class="theme-panel p-4 rounded-xl border shadow flex flex-col gap-3 setup-required" onclick="focusIncompleteSetup_(event)">
                     <div class="bib-entry-heading-row">
                         <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
+                        <button type="button" id="minimalBibModeToggle" class="minimal-mode-toggle" onclick="toggleMinimalBibMode_(event)" aria-label="Open minimalist on-screen BIB keypad" aria-pressed="false" title="Minimalist on-screen BIB keypad">
+                            <span aria-hidden="true">▦</span>
+                        </button>
                     </div>
                     <div id="bibEntryGateMessage">Complete Checkpoint Name and Volunteer Initials in <strong>1. Setup</strong> before typing or scanning a bib.</div>
                     <form id="bibEntryForm" onsubmit="handleBibEntrySubmit_(event)" class="flex flex-col gap-3" autocomplete="off">
                         <div class="bib-entry-submit-grid">
                             <div class="bib-input-shell">
-                                <input type="text" id="bibInput" inputmode="numeric" enterkeyhint="go" autocomplete="off" autocapitalize="characters" onfocus="warmUpGPS(); showBibInputTools_();" onblur="scheduleHideBibInputTools_();" onkeydown="handleBibInputKeydown_(event)" oninput="warmUpGPS(); stripBibSpaces_(this); autoScaleBibFontSize_();" placeholder="123 or SWEEPER" aria-describedby="bibInputToolsHint" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
+                                <input type="text" id="bibInput" inputmode="text" enterkeyhint="go" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" onfocus="warmUpGPS(); showBibInputTools_();" onblur="scheduleHideBibInputTools_();" onkeydown="handleBibInputKeydown_(event)" oninput="warmUpGPS(); sanitizeBibTyping_(this); autoScaleBibFontSize_(); syncMinimalBibInput_();" placeholder="Any BIB: 7, MO1234, SWEEPER, PACER-A" aria-describedby="bibInputToolsHint" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
                                 <div class="bib-input-tools" aria-label="Bib entry tools">
                                     <button type="button" id="bibOcrBtn" onpointerdown="event.preventDefault();" onclick="openBibScanner(); event.stopPropagation();" title="Start live OCR" aria-label="Start live OCR" class="bib-entry-tool">
                                         <span class="bib-entry-tool-icon" aria-hidden="true">📷</span>
@@ -3357,7 +3706,7 @@
                                         <span id="bibEntryModeIcon" class="bib-entry-tool-icon" aria-hidden="true">🔢</span><span id="bibEntryModeLabel" class="sr-only">Numbers</span>
                                     </button>
                                 </div>
-                                <span id="bibInputToolsHint" class="sr-only">OCR and keyboard mode tools appear when this field is focused. BIBs may contain any number of digits, letters and digits, or letters only. Use the keyboard toggle for alphabet entry on phones.</span>
+                                <span id="bibInputToolsHint" class="sr-only">OCR and keyboard mode tools appear when this field is focused. Any non-empty printable BIB label is accepted, including spaces and punctuation. The minimalist keypad avoids opening the phone keyboard.</span>
                             </div>
                             <button type="submit" id="logActionButton" onpointerdown="keepBibInputFocused_(event)" aria-label="Log bib" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-90 duration-75 text-white font-extrabold text-lg rounded-xl shadow-lg transition-all flex items-center justify-center"><span id="logActionButtonLabel">LOG</span></button>
                         </div>
@@ -3672,7 +4021,7 @@
     <div id="srAnnouncer" class="sr-only-live" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <script>
-        const APP_VERSION = "18.0.6";
+        const APP_VERSION = "18.0.8.1";
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let db;
         let dbReady_ = false;
@@ -3682,6 +4031,8 @@
         const RACE_DB_VERSION = 7;
         let recentCloudWindowUids_ = new Set();
         let bibInputToolsHideTimer_ = null;
+        let minimalBibModeActive_ = false;
+        let minimalBibKeyboardPage_ = localStorage.getItem('minimalBibKeyboardPage_v1') || 'numbers';
         let monitorSyncPromise_ = null;
         let lastFullMonitorSyncAt_ = parseInt(localStorage.getItem('lastFullMonitorSyncAt_v1') || '0', 10);
         let fullMonitorDatasetResident_ = false;
@@ -4071,6 +4422,224 @@
             applyBibKeyboardMode_(bI.getAttribute('inputmode') === 'numeric' ? 'text' : 'numeric', true);
         }
 
+
+        const MINIMAL_BIB_KEYBOARDS_ = {
+            numbers: ['1','2','3','4','5','6','7','8','9','0'],
+            letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
+            symbols: ['-','/','#','.','_','+','&','@','(',')','[',']',':',';','\'','"','*','!','?','=','%',',']
+        };
+
+        function setMinimalBibStatus_(message, isError = false) {
+            const el = document.getElementById('minimalBibStatus');
+            if (!el) return;
+            el.textContent = message || '';
+            el.style.color = isError ? '#fca5a5' : '#9ca3af';
+        }
+
+        function syncMinimalBibInput_() {
+            const input = document.getElementById('bibInput');
+            const display = document.getElementById('minimalBibDisplay');
+            const wrap = document.getElementById('minimalBibDisplayWrap');
+            const logButton = document.getElementById('minimalBibLogButton');
+            const value = String(input?.value || '');
+            const normalized = normalizeBibOriginal_(value);
+            if (display) {
+                display.textContent = value || 'Tap the keypad';
+                display.classList.toggle('is-placeholder', !value);
+            }
+            wrap?.classList.toggle('has-value', !!value);
+            if (logButton) logButton.disabled = bibLogSubmissionInFlight_ || !isSetupComplete_() || !normalized;
+        }
+
+        function renderMinimalLastFour_(logs, frequencyMap) {
+            const root = document.getElementById('minimalLastFour');
+            if (!root) return;
+            const list = Array.isArray(logs) ? logs.slice(0, 4) : [];
+            if (!list.length) {
+                root.innerHTML = '<div class="minimal-last4-empty">No local entries yet</div>';
+                return;
+            }
+            root.innerHTML = list.map((item, index) => {
+                const bib = String(item?.bib || '').trim() || '—';
+                const key = bibIdentityKey_(item);
+                const count = Math.max(1, Number(frequencyMap?.get?.(key)) || 1);
+                const time = parseCustomOrIsoDate(item?.time);
+                const timeLabel = Number.isNaN(time.getTime()) ? '' : time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return `<div class="minimal-last4-card" title="${escapeHtmlAttr_(bib)} · ${count} local record${count === 1 ? '' : 's'}">`+
+                    `<strong>${escapeHtml_(bib)}</strong><small>${index === 0 ? 'LATEST' : timeLabel}</small></div>`;
+            }).join('');
+        }
+
+        function updateMinimalBibContext_() {
+            const checkpoint = String(document.getElementById('checkpoint')?.value || '').trim() || 'checkpoint not set';
+            const volunteer = String(document.getElementById('volunteer')?.value || '').trim() || 'volunteer not set';
+            const device = getDeviceLabel(buildDeviceString()) || 'This device';
+            const context = document.getElementById('minimalBibContext');
+            const deviceEl = document.getElementById('minimalLastFourDevice');
+            if (context) context.textContent = `${checkpoint.toUpperCase()} · ${volunteer.toUpperCase()} · ${device}`;
+            if (deviceEl) deviceEl.textContent = device;
+        }
+
+        function renderMinimalBibKeyboard_() {
+            const page = MINIMAL_BIB_KEYBOARDS_[minimalBibKeyboardPage_] ? minimalBibKeyboardPage_ : 'numbers';
+            minimalBibKeyboardPage_ = page;
+            localStorage.setItem('minimalBibKeyboardPage_v1', page);
+            ['numbers','letters','symbols'].forEach(name => {
+                const tab = document.getElementById(`minimalTab${name[0].toUpperCase()}${name.slice(1)}`);
+                tab?.classList.toggle('active', name === page);
+                tab?.setAttribute('aria-selected', name === page ? 'true' : 'false');
+            });
+            const root = document.getElementById('minimalBibKeyboard');
+            if (!root) return;
+            root.innerHTML = '';
+            const keys = MINIMAL_BIB_KEYBOARDS_[page];
+            keys.forEach(char => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'minimal-key';
+                button.textContent = char;
+                button.setAttribute('aria-label', `Enter ${char}`);
+                button.addEventListener('click', () => appendMinimalBibText_(char));
+                root.appendChild(button);
+            });
+            const addUtility = (label, text, handler, extraClass = 'utility') => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = `minimal-key ${extraClass}`;
+                button.textContent = text;
+                button.setAttribute('aria-label', label);
+                button.addEventListener('click', handler);
+                root.appendChild(button);
+            };
+            addUtility('Enter a space', 'SPACE', () => appendMinimalBibText_(' '), 'utility wide-2');
+            addUtility('Paste from clipboard', 'PASTE', pasteMinimalBibFromClipboard_, 'utility wide-2');
+            addUtility('Delete last character', '⌫', minimalBibBackspace_, 'danger wide-2');
+        }
+
+        function setMinimalBibKeyboardPage_(page) {
+            minimalBibKeyboardPage_ = page;
+            renderMinimalBibKeyboard_();
+        }
+
+        function appendMinimalBibText_(text) {
+            const input = document.getElementById('bibInput');
+            if (!input) return;
+            const incoming = String(text || '');
+            const available = Math.max(0, MAX_BIB_LABEL_LENGTH_ - input.value.length);
+            if (!available) {
+                setMinimalBibStatus_(`Maximum ${MAX_BIB_LABEL_LENGTH_} characters reached.`, true);
+                return;
+            }
+            input.value += incoming.slice(0, available);
+            sanitizeBibTyping_(input);
+            autoScaleBibFontSize_();
+            syncMinimalBibInput_();
+            setMinimalBibStatus_('Phone keyboard stays closed in this mode.');
+        }
+
+        function minimalBibBackspace_() {
+            const input = document.getElementById('bibInput');
+            if (!input || !input.value) return;
+            input.value = Array.from(input.value).slice(0, -1).join('');
+            autoScaleBibFontSize_();
+            syncMinimalBibInput_();
+        }
+
+        function clearMinimalBib_() {
+            const input = document.getElementById('bibInput');
+            if (input) input.value = '';
+            autoScaleBibFontSize_();
+            syncMinimalBibInput_();
+            setMinimalBibStatus_('Entry cleared.');
+        }
+
+        async function pasteMinimalBibFromClipboard_() {
+            try {
+                if (!navigator.clipboard?.readText) throw new Error('Clipboard access is unavailable');
+                const text = await navigator.clipboard.readText();
+                if (!text) throw new Error('Clipboard is empty');
+                appendMinimalBibText_(text);
+                setMinimalBibStatus_('Pasted from clipboard.');
+            } catch (error) {
+                setMinimalBibStatus_('Clipboard permission unavailable. Use the regular entry field for uncommon characters.', true);
+            }
+        }
+
+        function openMinimalBibMode_(event) {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            if (!isSetupComplete_()) {
+                alert('⚠️ Complete Checkpoint Name and Volunteer Initials before opening quick entry.');
+                focusIncompleteSetup_();
+                return;
+            }
+            const view = document.getElementById('minimalBibModeView');
+            const input = document.getElementById('bibInput');
+            if (!view || !input) return;
+            document.activeElement?.blur?.();
+            minimalBibModeActive_ = true;
+            input.dataset.previousInputmode = input.getAttribute('inputmode') || 'text';
+            input.setAttribute('inputmode', 'none');
+            input.readOnly = true;
+            view.classList.remove('hidden');
+            document.body.classList.add('minimal-bib-open');
+            const toggle = document.getElementById('minimalBibModeToggle');
+            toggle?.setAttribute('aria-pressed', 'true');
+            updateMinimalBibContext_();
+            renderMinimalBibKeyboard_();
+            syncMinimalBibInput_();
+            loadHistory();
+            setMinimalBibStatus_('Phone keyboard stays closed in this mode.');
+        }
+
+        function closeMinimalBibMode_(event) {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            if (!minimalBibModeActive_) return;
+            minimalBibModeActive_ = false;
+            const view = document.getElementById('minimalBibModeView');
+            const input = document.getElementById('bibInput');
+            view?.classList.add('hidden');
+            document.body.classList.remove('minimal-bib-open');
+            if (input) {
+                input.readOnly = false;
+                applyBibKeyboardMode_(localStorage.getItem('bibKeyboardMode') || input.dataset.previousInputmode || 'text', false);
+                delete input.dataset.previousInputmode;
+            }
+            document.getElementById('minimalBibModeToggle')?.setAttribute('aria-pressed', 'false');
+        }
+
+        function toggleMinimalBibMode_(event) {
+            if (minimalBibModeActive_) closeMinimalBibMode_(event);
+            else openMinimalBibMode_(event);
+        }
+
+        function submitMinimalBib_() {
+            if (!normalizeBibOriginal_(document.getElementById('bibInput')?.value || '')) {
+                setMinimalBibStatus_('Enter a BIB label first.', true);
+                return;
+            }
+            checkDuplicateAndLog();
+        }
+
+        function handleMinimalBibPhysicalKey_(event) {
+            if (!minimalBibModeActive_ || event.defaultPrevented) return;
+            if (event.key === 'Escape') { event.preventDefault(); closeMinimalBibMode_(event); return; }
+            if (event.key === 'Enter') { event.preventDefault(); submitMinimalBib_(); return; }
+            if (event.key === 'Backspace') { event.preventDefault(); minimalBibBackspace_(); return; }
+            if (event.ctrlKey || event.metaKey || event.altKey) return;
+            if (event.key && event.key.length === 1) {
+                event.preventDefault();
+                appendMinimalBibText_(event.key);
+            }
+        }
+
+        function initMinimalBibMode_() {
+            renderMinimalBibKeyboard_();
+            syncMinimalBibInput_();
+            document.addEventListener('keydown', handleMinimalBibPhysicalKey_, true);
+        }
+
         function initBatteryMonitoring() {
             if ('getBattery' in navigator) {
                 navigator.getBattery().then(battery => {
@@ -4183,41 +4752,21 @@
             }
         }
 
-        /** Bib numbers never contain spaces (e.g. "V 2344" must become "V2344"). The
-         * numeric keypad has no space key, but switching to the text keyboard
-         * (toggleKeyboardMode) or autocomplete/predictive text can still introduce one --
-         * this blocks the spacebar outright on keydown, with a brief red-border flash so
-         * the rejection is visible instead of silently doing nothing. */
-        function blockBibSpace_(evt) {
-            if (evt.code === 'Space' || evt.key === ' ' || evt.keyCode === 32) {
-                evt.preventDefault();
-                flashBibSpaceRejected_();
-            }
-        }
-
-        /** Belt-and-suspenders bib sanitiser for paste, autocomplete and predictive
-         * text. This event uses numeric/letter bibs, so punctuation and whitespace are
-         * rejected before they can reach IndexedDB, inline controls, or the Sheet. */
-        function stripBibSpaces_(el) {
-            if (/[^A-Za-z0-9]/.test(el.value)) {
-                const pos = el.selectionStart;
-                const before = el.value;
-                el.value = el.value.replace(/[^A-Za-z0-9]/g, '');
-                // Keep the caret roughly where the user was typing instead of jumping to the end.
-                const removedBeforeCaret = before.slice(0, pos).length - before.slice(0, pos).replace(/[^A-Za-z0-9]/g, '').length;
-                const newPos = Math.max(0, (pos || el.value.length) - removedBeforeCaret);
-                try { el.setSelectionRange(newPos, newPos); } catch (e) { /* some input types don't support this */ }
-                flashBibSpaceRejected_();
-            }
-        }
-
-        let bibSpaceFlashTimeout_;
-        function flashBibSpaceRejected_() {
-            const el = document.getElementById('bibInput');
+        /** Manual BIB entry accepts any printable label. We remove only control
+         * characters that cannot be represented safely in the PWA/Sheet, preserve
+         * spaces and punctuation, and cap the label at 64 characters. */
+        function sanitizeBibTyping_(el) {
             if (!el) return;
-            el.classList.add('bib-space-rejected');
-            clearTimeout(bibSpaceFlashTimeout_);
-            bibSpaceFlashTimeout_ = setTimeout(() => el.classList.remove('bib-space-rejected'), 250);
+            const before = String(el.value || '');
+            const pos = Number.isFinite(el.selectionStart) ? el.selectionStart : before.length;
+            let cleaned = before;
+            try { cleaned = cleaned.normalize('NFKC'); } catch (_) { /* old WebView */ }
+            cleaned = cleaned.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, MAX_BIB_LABEL_LENGTH_);
+            if (cleaned !== before) {
+                el.value = cleaned;
+                const newPos = Math.min(cleaned.length, pos);
+                try { el.setSelectionRange(newPos, newPos); } catch (_) { /* unsupported */ }
+            }
         }
 
         function checkpointToken_(value) {
@@ -4795,8 +5344,20 @@
                 }).filter(Boolean);
         }
 
+        const MAX_BIB_LABEL_LENGTH_ = 64;
+
+        function cleanBibText_(value) {
+            let text = String(value === null || value === undefined ? '' : value);
+            try { text = text.normalize('NFKC'); } catch (_) { /* old WebView */ }
+            return text
+                .replace(/[\u0000-\u001F\u007F]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, MAX_BIB_LABEL_LENGTH_);
+        }
+
         function normalizeBibOriginal_(value) {
-            return String(value || '').replace(/[^A-Za-z0-9]/g, '').trim().toUpperCase();
+            return cleanBibText_(value).toLocaleUpperCase();
         }
 
         function extractBibNumber_(value) {
@@ -5427,7 +5988,8 @@
             initSyncBadgeCollapseTimer_();
             loadSettingsState();
             updateSetupGate_();
-            applyBibKeyboardMode_(localStorage.getItem('bibKeyboardMode') || 'numeric');
+            applyBibKeyboardMode_(localStorage.getItem('bibKeyboardMode') || 'text');
+            initMinimalBibMode_();
             restoreHardRefreshDrafts_();
             updateSearchBoxPlaceholder();
             loadHistory();
@@ -6287,6 +6849,11 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 button.classList.toggle('log-submit-busy', bibLogSubmissionInFlight_);
             }
             if (label) label.textContent = bibLogSubmissionInFlight_ ? 'LOGGING…' : 'LOG';
+            const minimalButton = document.getElementById('minimalBibLogButton');
+            if (minimalButton) {
+                minimalButton.disabled = bibLogSubmissionInFlight_ || !isSetupComplete_() || !normalizeBibOriginal_(document.getElementById('bibInput')?.value || '');
+                minimalButton.textContent = bibLogSubmissionInFlight_ ? 'LOGGING…' : 'LOG';
+            }
         }
 
         function handleBibEntrySubmit_(event) {
@@ -6296,7 +6863,6 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
         }
 
         function handleBibInputKeydown_(event) {
-            blockBibSpace_(event);
             if (event.key === 'Enter') {
                 event.preventDefault();
                 handleBibEntrySubmit_(event);
@@ -6305,6 +6871,10 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
 
         function finishBibSubmission_(focusInput) {
             setBibSubmitBusy_(false);
+            if (minimalBibModeActive_) {
+                syncMinimalBibInput_();
+                return;
+            }
             if (focusInput !== false) {
                 const input = document.getElementById('bibInput');
                 setTimeout(() => { if (input && !input.disabled) input.focus({ preventScroll: true }); }, 0);
@@ -6480,9 +7050,13 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
         async function checkDuplicateAndLog() {
             if (bibLogSubmissionInFlight_) return;
             const bI = document.getElementById('bibInput');
-            const bib = bI.value.replace(/[^A-Za-z0-9]/g, '').trim().toUpperCase();
-            if (!bib) { bI.focus(); return; }
-            // Numeric, alphanumeric and letters-only BIBs are all valid identities.
+            const bib = normalizeBibOriginal_(bI.value);
+            if (!bib) {
+                if (minimalBibModeActive_) setMinimalBibStatus_('Enter a BIB label first.', true);
+                else bI.focus();
+                return;
+            }
+            // Any non-empty printable BIB label is a valid identity.
             let cpV = (document.getElementById('checkpoint')?.value || '').trim();
             const volV = (document.getElementById('volunteer')?.value || '').trim();
             if (!cpV || !volV) {
@@ -6656,9 +7230,10 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             };
             bibInput.value = '';
             autoScaleBibFontSize_();
+            syncMinimalBibInput_();
             remarkInput.value = ''; 
             shutOffGPSHardware();
-            if (!logOptions.keepScannerActive) bibInput.focus();
+            if (!logOptions.keepScannerActive && !minimalBibModeActive_) bibInput.focus();
             setTimeout(() => handleViewportResize(), 80);
         }
 
@@ -7311,6 +7886,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const ownLogs = (logs || []).filter(isThisDeviceEntry_);
             if (ownLogs.length < 1) {
                 if (splitLastRunner) splitLastRunner.textContent = "-";
+                renderMinimalLastFour_([], new Map());
                 if (gapEl) gapEl.textContent = "-";
                 return;
             }
@@ -7332,7 +7908,8 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 HTMLBuilder += `<span class="last4-bib last4-repeat-${colourBucket}${animationClass}" title="${escapeHtml_(bibText)} — ${countLabel}" aria-label="Bib ${escapeHtml_(bibText)}, ${countLabel}">${escapeHtml_(bibText)}</span>`;
                 if (index < targetedLastFour.length - 1) HTMLBuilder += ` <span class="text-neutral-500 font-bold mx-0.5">,</span> `;
             });
-            splitLastRunner.innerHTML = HTMLBuilder;
+            splitLastRunner.innerHTML = `<span class="last4-line">${HTMLBuilder}</span>`;
+            renderMinimalLastFour_(targetedLastFour, bibFrequency);
             if (triggerInlineAnimationFlag) triggerInlineAnimationFlag = false;
             
             if(sorted.length >= 2) {
@@ -7364,9 +7941,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const remarkEl = document.getElementById(`edit-remark-${id}`);
             if (!bibEl || !remarkEl || !db) return;
 
-            const newBib = bibEl.value.replace(/[^A-Za-z0-9]/g, '').trim().toUpperCase();
+            const newBib = normalizeBibOriginal_(bibEl.value);
             const newRemark = remarkEl.value.trim();
-            if (!newBib) { alert('⚠️ Enter a BIB using letters, numbers, or both.'); bibEl.focus(); return; }
+            if (!newBib) { alert('⚠️ Enter any non-empty BIB label. Letters, numbers, spaces and punctuation are accepted.'); bibEl.focus(); return; }
 
             // Cancel any legacy timer before touching a row. The transaction reads by
             // IndexedDB primary key and preserves the UID, so only this exact scan can
@@ -8490,6 +9067,14 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             return `${Math.floor(seconds / 3600)}h ago`;
         }
 
+        function updateSafetyRosterLoadState_(state, message) {
+            const el = document.getElementById('safetyRosterLoadState');
+            if (!el) return;
+            el.classList.remove('ready', 'syncing', 'error');
+            el.classList.add(state || 'ready');
+            el.textContent = message || '';
+        }
+
         function updateMonitorSyncLabels_(state, detail) {
             const directorBadge = document.getElementById('directorSyncBadge');
             const safetyBadge = document.getElementById('safetySyncBadge');
@@ -8509,7 +9094,12 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             if (safetyLast) safetyLast.textContent = formatMonitorSyncAge_();
             if (safetyButton) {
                 safetyButton.disabled = isBusy;
-                safetyButton.textContent = isBusy ? 'Syncing…' : '↻ Sync all logs';
+                safetyButton.textContent = isBusy ? 'Syncing all runners…' : '↻ Sync all runners';
+            }
+            if (isBusy) {
+                updateSafetyRosterLoadState_('syncing', 'Loading the complete event runner list. Local records remain visible while the download finishes…');
+            } else if (isError) {
+                updateSafetyRosterLoadState_('error', detail || 'Complete-event sync failed. Showing the runner records already stored on this device; tap Sync all runners to retry.');
             }
         }
 
@@ -8539,6 +9129,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 fullMonitorDatasetResident_ = isFullMonitorViewOpen_();
                 localStorage.setItem('lastFullMonitorSyncAt_v1', String(lastFullMonitorSyncAt_));
                 updateMonitorSyncLabels_('ready', `${result.totalServer || 0} server records checked; ${result.added || 0} added to this device.`);
+                updateSafetyRosterLoadState_('ready', 'Complete event data loaded. The Safety Log now lists every unique runner recorded in Racelog.');
                 if (target === 'safety' || !document.getElementById('safetyLogView')?.classList.contains('hidden')) {
                     pullSafetyNotesFromServer_();
                     renderSafetyLog_();
@@ -8819,15 +9410,37 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             };
         }
 
+        function resetSafetyFilters_(shouldRender = true) {
+            safetyQuickFilter_ = 'all';
+            safetyMatrixSelection_ = null;
+            [
+                'safetySearchBar',
+                'safetyCheckpointFilterSelect',
+                'safetyVolunteerFilterSelect',
+                'safetyStatusFilterSelect'
+            ].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            document.querySelectorAll('.safety-quick-chip').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-quick-filter') === 'all');
+            });
+            const viewport = document.getElementById('safetyTableViewport');
+            if (viewport) {
+                viewport.scrollTop = 0;
+                viewport.scrollLeft = 0;
+            }
+            renderSafetyMatrix_();
+            if (shouldRender) renderSafetyLog_();
+        }
+
         function openSafetyLog() {
             const overlay = document.getElementById('safetyLogView');
             if (!overlay) return;
             overlay.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
-            document.querySelectorAll('.safety-quick-chip').forEach(btn => {
-                btn.classList.toggle('active', btn.getAttribute('data-quick-filter') === safetyQuickFilter_);
-            });
-            renderSafetyMatrix_();
+            resetSafetyFilters_(false);
+            updateSafetyRosterLoadState_('syncing', 'Loading every runner recorded for this event…');
             updateMonitorSyncLabels_('ready');
             loadLocalSafetyNotes_(() => renderSafetyLog_());
             loadLocalIncidents_();
@@ -8852,15 +9465,38 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             }
         }
 
-        /** Latest-known state per bib: category, last checkpoint, last seen time. */
+        /** One row per unique runner, using their latest passage while retaining
+         * total passage count and first-seen time for an overall event roster. */
         function buildSafetyRosterFromLogs_(logs) {
             const byBib = new Map();
-            logs.forEach(l => {
+            (logs || []).forEach(l => {
                 if (!isCountableLog_(l)) return;
-                const ts = parseCustomOrIsoDate(l.time).getTime();
                 const key = bibIdentityKey_(l);
+                if (!key) return;
+                const parsedTs = parseCustomOrIsoDate(l.time).getTime();
+                const ts = Number.isFinite(parsedTs) ? parsedTs : 0;
                 const existing = byBib.get(key);
-                if (!existing || ts > existing._ts) byBib.set(key, Object.assign({}, l, { _ts: ts, _bibKey: key }));
+                if (!existing) {
+                    byBib.set(key, Object.assign({}, l, {
+                        _ts: ts,
+                        _firstTs: ts,
+                        _bibKey: key,
+                        _passageCount: 1
+                    }));
+                    return;
+                }
+                existing._passageCount = Number(existing._passageCount || 0) + 1;
+                if (!existing._firstTs || (ts && ts < existing._firstTs)) existing._firstTs = ts;
+                if (ts >= Number(existing._ts || 0)) {
+                    const count = existing._passageCount;
+                    const firstTs = existing._firstTs;
+                    Object.assign(existing, l, {
+                        _ts: ts,
+                        _firstTs: firstTs,
+                        _bibKey: key,
+                        _passageCount: count
+                    });
+                }
             });
             return Array.from(byBib.values());
         }
@@ -8887,6 +9523,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             getEnrichedLogsFromDb_(function(logs) {
                 let roster = buildSafetyRosterFromLogs_(logs);
                 const totalRosterCount = roster.length;
+                if (totalRosterCount > 0 && fullMonitorDatasetResident_) {
+                    updateSafetyRosterLoadState_('ready', `${totalRosterCount} unique runners loaded from the complete event dataset.`);
+                } else if (totalRosterCount > 0) {
+                    updateSafetyRosterLoadState_('syncing', `${totalRosterCount} runners are visible from local/recent data while the complete event roster downloads…`);
+                }
 
                 // Keep the checkpoint/volunteer dropdown options in sync with the data
                 // BEFORE reading their .value, so a just-added option isn't missed.
@@ -9017,7 +9658,16 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                     if (el) el.textContent = value;
                 });
 
-                if (emptyState) emptyState.classList.toggle('hidden', roster.length > 0);
+                if (emptyState) {
+                    emptyState.classList.toggle('hidden', roster.length > 0);
+                    if (!roster.length && totalRosterCount > 0) {
+                        emptyState.innerHTML = `No runners match the current filters.<br><button type="button" onclick="resetSafetyFilters_()" class="mt-3 theme-input border rounded-lg px-3 py-2 text-xs font-black">Show all ${totalRosterCount} runners</button>`;
+                    } else if (!roster.length) {
+                        emptyState.textContent = fullMonitorDatasetResident_
+                            ? 'No runner records exist in Racelog for this event.'
+                            : 'No runner records are stored locally yet. The complete event roster is still loading.';
+                    }
+                }
                 setSafetyVirtualRoster_(roster);
             });
         }
@@ -13258,6 +13908,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 <td class="p-2 whitespace-nowrap font-black">${escapeHtml_(formatKmLabel_(r.km))}</td>
                 <td class="p-2 whitespace-nowrap">${escapeHtml_(r.category || '-')}</td>
                 <td class="p-2 whitespace-nowrap">${escapeHtml_(r.checkpoint || '-')}</td>
+                <td class="p-2 text-center font-black font-mono">${escapeHtml_(String(r._passageCount || 1))}</td>
                 <td class="p-2 whitespace-nowrap text-[11px] theme-text-muted">${escapeHtml_(formatLogTime(r.time))}</td>
                 <td class="p-2"><select onchange="setSafetyNote_('${encodeInlineArg_(r.bib)}', this.value, document.getElementById('remark-${encodeInlineArg_(r.bib)}')?.value || '')" class="theme-input border rounded px-1.5 py-1 text-[11px]">${statusOptions}</select></td>
                 <td class="p-2"><input type="text" id="remark-${encodeInlineArg_(r.bib)}" value="${escapeHtmlAttr_(r._safetyRemark || '')}" onblur="setSafetyNote_('${encodeInlineArg_(r.bib)}', undefined, this.value)" onkeydown="if(event.key==='Enter') this.blur();" class="w-full theme-input border rounded px-2 py-1 text-[11px]"></td>
@@ -13293,7 +13944,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const table = document.getElementById('safetyLogTable');
             if (table) table.setAttribute('aria-rowcount', String(total + 1));
             const rows = safetyVirtualRoster_.slice(start, end).map((row, i) => renderSafetyRowHtml_(row, start + i)).join('');
-            body.innerHTML = `<tr aria-hidden="true"><td colspan="8" class="virtual-spacer-cell" style="height:${topHeight}px"></td></tr>${rows}<tr aria-hidden="true"><td colspan="8" class="virtual-spacer-cell" style="height:${bottomHeight}px"></td></tr>`;
+            body.innerHTML = `<tr aria-hidden="true"><td colspan="9" class="virtual-spacer-cell" style="height:${topHeight}px"></td></tr>${rows}<tr aria-hidden="true"><td colspan="9" class="virtual-spacer-cell" style="height:${bottomHeight}px"></td></tr>`;
         }
 
         function buildRouteModelsClientFromLogs_(logs) {
