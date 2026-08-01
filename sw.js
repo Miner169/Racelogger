@@ -1,9 +1,9 @@
-// Race Bib Logger v18.0.4 static-shell and collision-safe BIB identity revision.
+// Race Bib Logger v18.0.6 responsive Director Mode, device-local recent entries and letters-only BIB revision.
 // Keeps the existing IndexedDB/background-sync logic below unchanged while making
 // app-shell caching safe for subdirectory deployments and shared web origins.
 const CACHE_PREFIX = 'race-logger-';
-const STATIC_CACHE = 'race-logger-static-v18-0-4-r1';
-const RUNTIME_CACHE = 'race-logger-runtime-v18-0-4-r1';
+const STATIC_CACHE = 'race-logger-static-v18-0-6-r1';
+const RUNTIME_CACHE = 'race-logger-runtime-v18-0-6-r1';
 const NETWORK_TIMEOUT_MS = 4500;
 const MAX_RUNTIME_ENTRIES = 80;
 
@@ -332,6 +332,7 @@ async function syncPendingLogs() {
             const remakeIds = new Set(result.remakeIds || []);
             const deletedUidsSet = new Set(result.deletedUids || []);
             const duplicateUpdatesByUid = new Map((result.duplicateUpdates || []).filter(Boolean).map(update => [update.uid, update]));
+            const locationUpdatesByUid = new Map((result.locationUpdates || []).filter(Boolean).map(update => [update.uid, update]));
             const writeTx = db.transaction(["logs"], "readwrite");
             const writeStore = writeTx.objectStore("logs");
 
@@ -362,6 +363,13 @@ async function syncPendingLogs() {
                   log.duplicateOfUid = duplicateUpdate.duplicateOfUid || '';
                   log.duplicateDeviceCount = Number(duplicateUpdate.duplicateDeviceCount) || 2;
                 }
+                const locationUpdate = locationUpdatesByUid.get(log.uid);
+                if (locationUpdate) {
+                  log.status = locationUpdate.status || 'Location Spam';
+                  log.gpsValidationStatus = locationUpdate.gpsValidationStatus || 'spam';
+                  log.gpsNearestCheckpoint = locationUpdate.nearestCheckpoint || log.gpsNearestCheckpoint || '';
+                  log.gpsDistanceToNearestM = Number(locationUpdate.distanceM) || log.gpsDistanceToNearestM || null;
+                }
                 writeStore.put(log);
               }
               else { log.syncAttempts = (log.syncAttempts || 0) + 1; writeStore.put(log); }
@@ -376,6 +384,8 @@ async function syncPendingLogs() {
                   type: 'race-log-sync-complete',
                   summary: result.summary,
                   configMeta: result.configMeta,
+                  checkpointGps: result.checkpointGps,
+                  locationUpdates: result.locationUpdates,
                   appRefreshEpoch: result.appRefreshEpoch,
                   dataRevision: result.dataRevision
                 });
