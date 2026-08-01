@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Race Bib Logger",
   "short_name": "Race Log",
-  "description": "Offline-first race logging with responsive Director Mode, device-local recent-entry tracking, numeric, alphanumeric and letters-only BIB support, GPS checkpoint validation, safety tracking, incidents, device health, forecasting and race command views.",
+  "description": "Offline-first race logging with an OLED minimalist on-screen keypad, flexible printable BIB labels, device-local recent-entry tracking, GPS checkpoint validation, a complete safety roster, incidents, device health, forecasting, COT alerts and race command views.",
   "lang": "en",
   "dir": "ltr",
   "start_url": "./index.html",
