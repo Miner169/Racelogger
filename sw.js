@@ -1,9 +1,9 @@
-// Race Bib Logger v18.0.6 responsive Director Mode, device-local recent entries and letters-only BIB revision.
+// Race Bib Logger v18.0.8.1 Last-4 centering hotfix on top of the v18.0.8 OLED minimalist entry revision.
 // Keeps the existing IndexedDB/background-sync logic below unchanged while making
 // app-shell caching safe for subdirectory deployments and shared web origins.
 const CACHE_PREFIX = 'race-logger-';
-const STATIC_CACHE = 'race-logger-static-v18-0-6-r1';
-const RUNTIME_CACHE = 'race-logger-runtime-v18-0-6-r1';
+const STATIC_CACHE = 'race-logger-static-v18-0-8-1-r1';
+const RUNTIME_CACHE = 'race-logger-runtime-v18-0-8-1-r1';
 const NETWORK_TIMEOUT_MS = 4500;
 const MAX_RUNTIME_ENTRIES = 80;
 
