@@ -2815,6 +2815,147 @@
             .minimal-key { min-height: 2.65rem; font-size: 1rem; }
         }
 
+
+        /* ── v18.0.9 entry-space, remark and safety-alert refinement ─────────
+           The spare portrait height now belongs to the BIB preview instead of an
+           empty gap above LOG. The same built-in keypad can target either the BIB or
+           its optional remark, so the minimalist surface keeps the phone keyboard
+           closed. The quick-entry toggle sits beside the normal remark field, while
+           OCR/keyboard tools remain invisible until the BIB field is active. */
+        .remark-input-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 2.85rem;
+            gap: .55rem;
+            align-items: stretch;
+        }
+        .remark-input-row #minimalBibModeToggle {
+            width: 100%;
+            min-width: 0;
+            height: auto;
+            min-height: 2.75rem;
+            border-radius: .72rem;
+        }
+        .minimal-entry-zone {
+            flex: 1 1 auto;
+            min-height: clamp(9.5rem, 23dvh, 22rem);
+            display: flex;
+            flex-direction: column;
+            gap: .58rem;
+        }
+        .minimal-entry-zone .minimal-bib-display-wrap {
+            flex: 1 1 auto;
+            min-height: clamp(7.8rem, 18dvh, 16rem);
+            padding: 1rem 3.8rem 1rem 1rem;
+            cursor: pointer;
+            transition: border-color .14s ease, box-shadow .14s ease, background .14s ease;
+        }
+        .minimal-bib-display-wrap.is-active,
+        .minimal-bib-display-wrap.has-value.is-active {
+            border-color: #3b82f6;
+            background: #040711;
+            box-shadow: 0 0 0 3px rgba(59,130,246,.22), inset 0 0 0 1px rgba(255,255,255,.025);
+        }
+        #minimalBibDisplay {
+            font-size: clamp(3.4rem, 18vw, 9.5rem);
+            letter-spacing: -.045em;
+            font-variant-numeric: tabular-nums;
+            text-wrap: balance;
+            transition: font-size .12s ease;
+        }
+        #minimalBibDisplay.minimal-bib-short { font-size: clamp(4.4rem, 22vw, 11rem); }
+        #minimalBibDisplay.minimal-bib-medium { font-size: clamp(3.25rem, 15vw, 7.5rem); }
+        #minimalBibDisplay.minimal-bib-long { font-size: clamp(2.2rem, 9.5vw, 4.8rem); letter-spacing: -.025em; }
+        #minimalBibDisplay.minimal-bib-xlong { font-size: clamp(1.35rem, 6.2vw, 3.1rem); letter-spacing: 0; line-height: 1.08; }
+        #minimalBibDisplay.is-placeholder {
+            font-size: clamp(1.15rem, 5vw, 1.75rem);
+            letter-spacing: .015em;
+        }
+        .minimal-remark-shell {
+            border: 1px solid #2b2d34;
+            border-radius: .88rem;
+            background: #08090c;
+            padding: .55rem .65rem .62rem;
+            transition: border-color .14s ease, box-shadow .14s ease, background .14s ease;
+        }
+        .minimal-remark-shell.is-active {
+            border-color: #3b82f6;
+            background: #080d1a;
+            box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+        }
+        .minimal-remark-shell label {
+            display: flex;
+            justify-content: space-between;
+            gap: .65rem;
+            margin-bottom: .38rem;
+            color: #d1d5db;
+            font-size: .68rem;
+            font-weight: 900;
+            letter-spacing: .02em;
+        }
+        .minimal-remark-shell label span {
+            color: #777b86;
+            font-size: .58rem;
+            font-weight: 750;
+            text-align: right;
+        }
+        #minimalRemarkInput {
+            width: 100%;
+            min-height: 2.7rem;
+            border: 0;
+            border-radius: .62rem;
+            outline: 0;
+            background: #111216;
+            color: #f5f5f6;
+            padding: .62rem .75rem;
+            font-size: clamp(.85rem, 3.6vw, 1.05rem);
+            font-weight: 750;
+            cursor: pointer;
+            caret-color: transparent;
+            -webkit-text-fill-color: #f5f5f6;
+            opacity: 1;
+        }
+        #minimalRemarkInput::placeholder { color: #656873; opacity: 1; }
+        .minimal-bib-actions { margin-top: 0; }
+        .cot-alert-banner-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .65rem;
+            margin-bottom: .38rem;
+        }
+        .cot-alert-banner-heading { min-width: 0; }
+        .cot-alert-banner-heading strong { display: block; font-size: .75rem; line-height: 1.25; }
+        .cot-alert-banner-heading span { display: block; margin-top: .1rem; color: var(--text-muted); font-size: .58rem; font-weight: 750; }
+        .cot-alert-expand-btn {
+            flex: 0 0 auto;
+            min-height: 2.2rem;
+            border: 1px solid rgba(245,158,11,.48);
+            border-radius: .55rem;
+            background: rgba(245,158,11,.12);
+            color: var(--text-main);
+            padding: .35rem .58rem;
+            font-size: .62rem;
+            font-weight: 900;
+        }
+        .cot-alert-banner.critical .cot-alert-expand-btn {
+            border-color: rgba(239,68,68,.52);
+            background: rgba(239,68,68,.12);
+        }
+        @media (max-width: 430px) {
+            .minimal-entry-zone { min-height: clamp(8.5rem, 21dvh, 16rem); gap: .48rem; }
+            .minimal-entry-zone .minimal-bib-display-wrap { min-height: clamp(7rem, 16dvh, 12rem); }
+            .minimal-remark-shell { padding: .48rem .55rem .55rem; }
+            .minimal-remark-shell label span { display: none; }
+        }
+        @media (orientation: landscape) and (max-height: 600px) {
+            .minimal-entry-zone { grid-column: 2; grid-row: 2; min-height: 0; gap: .42rem; }
+            .minimal-entry-zone .minimal-bib-display-wrap { min-height: 4.4rem; }
+            .minimal-remark-shell { padding: .35rem .48rem .42rem; }
+            .minimal-remark-shell label { margin-bottom: .22rem; font-size: .58rem; }
+            #minimalRemarkInput { min-height: 2.1rem; padding: .38rem .55rem; font-size: .78rem; }
+            .minimal-keyboard-area { grid-column: 2; grid-row: 3; }
+        }
+
     </style>
 </head>
 <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
@@ -3165,9 +3306,15 @@
                 <div id="minimalLastFour" aria-live="polite"><div class="minimal-last4-empty">No local entries yet</div></div>
             </section>
 
-            <div id="minimalBibDisplayWrap" class="minimal-bib-display-wrap">
-                <div id="minimalBibDisplay" class="is-placeholder" role="textbox" aria-label="BIB being entered" aria-live="polite">Tap the keypad</div>
-                <button type="button" class="minimal-backspace-btn" onclick="minimalBibBackspace_()" aria-label="Delete last character" title="Backspace">⌫</button>
+            <div class="minimal-entry-zone">
+                <div id="minimalBibDisplayWrap" class="minimal-bib-display-wrap is-active" onclick="activateMinimalEntryTarget_('bib')">
+                    <div id="minimalBibDisplay" class="is-placeholder" role="textbox" aria-label="BIB being entered" aria-live="polite">Tap the keypad</div>
+                    <button type="button" class="minimal-backspace-btn" onclick="event.stopPropagation(); minimalBibBackspace_('bib')" aria-label="Delete last BIB character" title="Backspace BIB">⌫</button>
+                </div>
+                <div id="minimalRemarkShell" class="minimal-remark-shell">
+                    <label for="minimalRemarkInput">Remark for this BIB <span>Optional · tap to edit with keypad</span></label>
+                    <input type="text" id="minimalRemarkInput" inputmode="none" maxlength="500" readonly onclick="activateMinimalEntryTarget_('remark')" aria-label="Optional remark for this BIB, edited with the on-screen keypad" placeholder="e.g. Missed helper, penalty, etc.">
+                </div>
             </div>
 
             <div class="minimal-keyboard-area">
@@ -3180,7 +3327,7 @@
             </div>
 
             <div class="minimal-bib-actions">
-                <button type="button" class="minimal-clear-btn" onclick="clearMinimalBib_()">CLEAR</button>
+                <button type="button" id="minimalClearButton" class="minimal-clear-btn" onclick="clearMinimalBib_()" aria-label="Clear active entry field">CLEAR</button>
                 <button type="button" id="minimalBibLogButton" onclick="submitMinimalBib_()" disabled>LOG</button>
             </div>
             <div id="minimalBibStatus" role="status" aria-live="polite">Phone keyboard stays closed in this mode.</div>
@@ -3689,16 +3836,13 @@
                 <section id="bibEntrySection" class="theme-panel p-4 rounded-xl border shadow flex flex-col gap-3 setup-required" onclick="focusIncompleteSetup_(event)">
                     <div class="bib-entry-heading-row">
                         <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
-                        <button type="button" id="minimalBibModeToggle" class="minimal-mode-toggle" onclick="toggleMinimalBibMode_(event)" aria-label="Open minimalist on-screen BIB keypad" aria-pressed="false" title="Minimalist on-screen BIB keypad">
-                            <span aria-hidden="true">▦</span>
-                        </button>
                     </div>
                     <div id="bibEntryGateMessage">Complete Checkpoint Name and Volunteer Initials in <strong>1. Setup</strong> before typing or scanning a bib.</div>
                     <form id="bibEntryForm" onsubmit="handleBibEntrySubmit_(event)" class="flex flex-col gap-3" autocomplete="off">
                         <div class="bib-entry-submit-grid">
                             <div class="bib-input-shell">
                                 <input type="text" id="bibInput" inputmode="text" enterkeyhint="go" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" onfocus="warmUpGPS(); showBibInputTools_();" onblur="scheduleHideBibInputTools_();" onkeydown="handleBibInputKeydown_(event)" oninput="warmUpGPS(); sanitizeBibTyping_(this); autoScaleBibFontSize_(); syncMinimalBibInput_();" placeholder="Any BIB: 7, MO1234, SWEEPER, PACER-A" aria-describedby="bibInputToolsHint" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
-                                <div class="bib-input-tools" aria-label="Bib entry tools">
+                                <div id="bibInputTools" class="bib-input-tools" aria-label="Bib entry tools" aria-hidden="true">
                                     <button type="button" id="bibOcrBtn" onpointerdown="event.preventDefault();" onclick="openBibScanner(); event.stopPropagation();" title="Start live OCR" aria-label="Start live OCR" class="bib-entry-tool">
                                         <span class="bib-entry-tool-icon" aria-hidden="true">📷</span>
                                     </button>
@@ -3712,7 +3856,12 @@
                         </div>
                         <div class="mt-1 relative">
                             <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark for next bib (Optional)</label>
-                            <input type="text" id="remarkInput" onfocus="warmUpGPS();" oninput="handleRemarkTyping()" placeholder="e.g. Missed helper, penalty, etc." class="w-full theme-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-900 transition-all duration-200">
+                            <div class="remark-input-row">
+                                <input type="text" id="remarkInput" maxlength="500" onfocus="warmUpGPS();" oninput="handleRemarkTyping(); syncMinimalRemarkInput_('normal');" placeholder="e.g. Missed helper, penalty, etc." class="w-full theme-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-900 transition-all duration-200">
+                                <button type="button" id="minimalBibModeToggle" class="minimal-mode-toggle" onclick="toggleMinimalBibMode_(event)" aria-label="Open minimalist on-screen BIB keypad" aria-pressed="false" title="Open minimalist BIB and remark keypad">
+                                    <span aria-hidden="true">▦</span>
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </section>
@@ -4021,7 +4170,7 @@
     <div id="srAnnouncer" class="sr-only-live" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <script>
-        const APP_VERSION = "18.0.8.1";
+        const APP_VERSION = "18.0.9";
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let db;
         let dbReady_ = false;
@@ -4033,6 +4182,8 @@
         let bibInputToolsHideTimer_ = null;
         let minimalBibModeActive_ = false;
         let minimalBibKeyboardPage_ = localStorage.getItem('minimalBibKeyboardPage_v1') || 'numbers';
+        let minimalEntryTarget_ = 'bib';
+        let safetyCotAlertsExpanded_ = false;
         let monitorSyncPromise_ = null;
         let lastFullMonitorSyncAt_ = parseInt(localStorage.getItem('lastFullMonitorSyncAt_v1') || '0', 10);
         let fullMonitorDatasetResident_ = false;
@@ -4379,16 +4530,23 @@
             }
         }
 
+        function setBibInputToolsVisible_(visible) {
+            const shell = document.querySelector('.bib-input-shell');
+            const tools = document.getElementById('bibInputTools');
+            shell?.classList.toggle('tools-visible', !!visible);
+            tools?.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        }
+
         function showBibInputTools_() {
             if (bibInputToolsHideTimer_) clearTimeout(bibInputToolsHideTimer_);
-            document.querySelector('.bib-input-shell')?.classList.add('tools-visible');
+            setBibInputToolsVisible_(true);
         }
 
         function scheduleHideBibInputTools_() {
             if (bibInputToolsHideTimer_) clearTimeout(bibInputToolsHideTimer_);
             bibInputToolsHideTimer_ = setTimeout(() => {
                 const shell = document.querySelector('.bib-input-shell');
-                if (shell && !shell.contains(document.activeElement)) shell.classList.remove('tools-visible');
+                if (!shell || !shell.contains(document.activeElement)) setBibInputToolsVisible_(false);
             }, 140);
         }
 
@@ -4444,11 +4602,40 @@
             const value = String(input?.value || '');
             const normalized = normalizeBibOriginal_(value);
             if (display) {
+                const length = Array.from(value).length;
                 display.textContent = value || 'Tap the keypad';
                 display.classList.toggle('is-placeholder', !value);
+                display.classList.toggle('minimal-bib-short', !!value && length <= 4);
+                display.classList.toggle('minimal-bib-medium', length >= 5 && length <= 8);
+                display.classList.toggle('minimal-bib-long', length >= 9 && length <= 16);
+                display.classList.toggle('minimal-bib-xlong', length > 16);
             }
             wrap?.classList.toggle('has-value', !!value);
             if (logButton) logButton.disabled = bibLogSubmissionInFlight_ || !isSetupComplete_() || !normalized;
+        }
+
+        function syncMinimalRemarkInput_(source = 'normal') {
+            const normal = document.getElementById('remarkInput');
+            const minimal = document.getElementById('minimalRemarkInput');
+            if (!normal || !minimal) return;
+            if (source === 'minimal') {
+                normal.value = String(minimal.value || '').slice(0, 500);
+                handleRemarkTyping();
+            } else {
+                minimal.value = String(normal.value || '').slice(0, 500);
+            }
+        }
+
+        function activateMinimalEntryTarget_(target) {
+            minimalEntryTarget_ = target === 'remark' ? 'remark' : 'bib';
+            document.getElementById('minimalBibDisplayWrap')?.classList.toggle('is-active', minimalEntryTarget_ === 'bib');
+            document.getElementById('minimalRemarkShell')?.classList.toggle('is-active', minimalEntryTarget_ === 'remark');
+            const clearButton = document.getElementById('minimalClearButton');
+            if (clearButton) clearButton.setAttribute('aria-label', minimalEntryTarget_ === 'remark' ? 'Clear remark' : 'Clear BIB');
+            if (minimalEntryTarget_ === 'remark' && minimalBibKeyboardPage_ === 'numbers') setMinimalBibKeyboardPage_('letters');
+            setMinimalBibStatus_(minimalEntryTarget_ === 'remark'
+                ? 'Remark keypad active. LOG records the BIB and this note together.'
+                : 'BIB keypad active. Phone keyboard stays closed.');
         }
 
         function renderMinimalLastFour_(logs, frequencyMap) {
@@ -4522,9 +4709,22 @@
         }
 
         function appendMinimalBibText_(text) {
+            const incoming = String(text || '');
+            if (minimalEntryTarget_ === 'remark') {
+                const normal = document.getElementById('remarkInput');
+                const minimal = document.getElementById('minimalRemarkInput');
+                if (!normal || !minimal) return;
+                const current = String(normal.value || '');
+                const available = Math.max(0, 500 - current.length);
+                if (!available) { setMinimalBibStatus_('Maximum 500 remark characters reached.', true); return; }
+                normal.value = (current + incoming.slice(0, available)).replace(/[\u0000-\u001F\u007F]/g, '');
+                syncMinimalRemarkInput_('normal');
+                handleRemarkTyping();
+                setMinimalBibStatus_('Remark updated. LOG records it with this BIB.');
+                return;
+            }
             const input = document.getElementById('bibInput');
             if (!input) return;
-            const incoming = String(text || '');
             const available = Math.max(0, MAX_BIB_LABEL_LENGTH_ - input.value.length);
             if (!available) {
                 setMinimalBibStatus_(`Maximum ${MAX_BIB_LABEL_LENGTH_} characters reached.`, true);
@@ -4534,10 +4734,19 @@
             sanitizeBibTyping_(input);
             autoScaleBibFontSize_();
             syncMinimalBibInput_();
-            setMinimalBibStatus_('Phone keyboard stays closed in this mode.');
+            setMinimalBibStatus_('BIB keypad active. Phone keyboard stays closed.');
         }
 
-        function minimalBibBackspace_() {
+        function minimalBibBackspace_(targetOverride = '') {
+            const target = targetOverride || minimalEntryTarget_;
+            if (target === 'remark') {
+                const normal = document.getElementById('remarkInput');
+                if (!normal || !normal.value) return;
+                normal.value = Array.from(normal.value).slice(0, -1).join('');
+                syncMinimalRemarkInput_('normal');
+                handleRemarkTyping();
+                return;
+            }
             const input = document.getElementById('bibInput');
             if (!input || !input.value) return;
             input.value = Array.from(input.value).slice(0, -1).join('');
@@ -4546,11 +4755,19 @@
         }
 
         function clearMinimalBib_() {
+            if (minimalEntryTarget_ === 'remark') {
+                const normal = document.getElementById('remarkInput');
+                if (normal) normal.value = '';
+                syncMinimalRemarkInput_('normal');
+                handleRemarkTyping();
+                setMinimalBibStatus_('Remark cleared.');
+                return;
+            }
             const input = document.getElementById('bibInput');
             if (input) input.value = '';
             autoScaleBibFontSize_();
             syncMinimalBibInput_();
-            setMinimalBibStatus_('Entry cleared.');
+            setMinimalBibStatus_('BIB cleared.');
         }
 
         async function pasteMinimalBibFromClipboard_() {
@@ -4588,8 +4805,9 @@
             updateMinimalBibContext_();
             renderMinimalBibKeyboard_();
             syncMinimalBibInput_();
+            syncMinimalRemarkInput_('normal');
+            activateMinimalEntryTarget_('bib');
             loadHistory();
-            setMinimalBibStatus_('Phone keyboard stays closed in this mode.');
         }
 
         function closeMinimalBibMode_(event) {
@@ -4637,6 +4855,8 @@
         function initMinimalBibMode_() {
             renderMinimalBibKeyboard_();
             syncMinimalBibInput_();
+            syncMinimalRemarkInput_('normal');
+            activateMinimalEntryTarget_('bib');
             document.addEventListener('keydown', handleMinimalBibPhysicalKey_, true);
         }
 
@@ -7231,7 +7451,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             bibInput.value = '';
             autoScaleBibFontSize_();
             syncMinimalBibInput_();
-            remarkInput.value = ''; 
+            remarkInput.value = '';
+            syncMinimalRemarkInput_('normal');
+            if (minimalBibModeActive_) activateMinimalEntryTarget_('bib');
             shutOffGPSHardware();
             if (!logOptions.keepScannerActive && !minimalBibModeActive_) bibInput.focus();
             setTimeout(() => handleViewportResize(), 80);
@@ -14139,7 +14361,21 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
         }
         function acknowledgeCotAlert_(key){const a=localCotAlerts_[decodeURIComponent(key)]||localCotAlerts_[key];if(!a)return;a.acknowledged=true;a.acknowledgedBy=(document.getElementById('volunteer')?.value||'').trim().toUpperCase();a.acknowledgedAt=new Date().toISOString();a.synced=false;db?.transaction(['cotAlerts'],'readwrite').objectStore('cotAlerts').put(a);renderSafetyCotAlerts_();if(syncUrl)fetch(`${syncUrl}${syncUrl.includes('?')?'&':'?'}nocache=${Date.now()}`,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'cot_alert_upsert',alert:a})}).then(r=>r.json()).then(d=>{if(d.status==='success'){a.synced=true;localCotAlerts_[a.key]=a;db?.transaction(['cotAlerts'],'readwrite').objectStore('cotAlerts').put(a);}}).catch(()=>{});}
         function pullCotAlertsFromServer_(){if(!syncUrl)return;fetch(`${syncUrl}${syncUrl.includes('?')?'&':'?'}action=cot_alerts&nocache=${Date.now()}`).then(r=>r.json()).then(d=>{if(d.status==='success')mergeCotAlertsIntoLocal_(d.cotAlerts||[]);}).catch(()=>{});}
-        function renderSafetyCotAlerts_(){const panel=document.getElementById('safetyCotAlertsPanel');if(!panel)return;const alerts=Object.values(localCotAlerts_).filter(a=>!a.acknowledged).sort((a,b)=>String(a.level).localeCompare(String(b.level)));panel.classList.toggle('hidden',!alerts.length);panel.classList.toggle('critical',alerts.some(a=>a.level==='critical'||a.level==='overdue'));if(!alerts.length){panel.innerHTML='';return;}panel.innerHTML=`<div class="font-black text-xs mb-1">⏱️ ${alerts.length} COT alert${alerts.length===1?'':'s'} require acknowledgement</div>${alerts.slice(0,12).map(a=>`<div class="cot-alert-row"><strong>Bib ${escapeHtml_(a.bib)} · ${escapeHtml_(a.level)}</strong><span>${escapeHtml_(a.category||'')} · ${formatLogTime(a.cotTime)}</span><button class="theme-input border rounded px-2 py-1 font-black" onclick="acknowledgeCotAlert_('${encodeURIComponent(a.key)}')">Acknowledge</button></div>`).join('')}`;}
+        function toggleSafetyCotAlertsExpanded_(){safetyCotAlertsExpanded_=!safetyCotAlertsExpanded_;renderSafetyCotAlerts_();}
+        function renderSafetyCotAlerts_(){
+            const panel=document.getElementById('safetyCotAlertsPanel');if(!panel)return;
+            const rank={overdue:0,critical:1,warning:2};
+            const alerts=Object.values(localCotAlerts_).filter(a=>!a.acknowledged).sort((a,b)=>(rank[String(a.level||'').toLowerCase()]??9)-(rank[String(b.level||'').toLowerCase()]??9)||new Date(a.cotTime)-new Date(b.cotTime));
+            panel.classList.toggle('hidden',!alerts.length);
+            panel.classList.toggle('critical',alerts.some(a=>a.level==='critical'||a.level==='overdue'));
+            if(!alerts.length){panel.innerHTML='';safetyCotAlertsExpanded_=false;return;}
+            if(alerts.length<=3)safetyCotAlertsExpanded_=false;
+            const visible=safetyCotAlertsExpanded_?alerts:alerts.slice(0,3);
+            const hiddenCount=Math.max(0,alerts.length-visible.length);
+            const detail=safetyCotAlertsExpanded_?'All alerts shown':hiddenCount?`Showing 3 highest-priority alerts · ${hiddenCount} more collapsed`:'All alerts shown';
+            const toggle=alerts.length>3?`<button type="button" class="cot-alert-expand-btn" onclick="toggleSafetyCotAlertsExpanded_()" aria-expanded="${safetyCotAlertsExpanded_?'true':'false'}">${safetyCotAlertsExpanded_?'Collapse all':`Expand all (${alerts.length})`}</button>`:'';
+            panel.innerHTML=`<div class="cot-alert-banner-header"><div class="cot-alert-banner-heading"><strong>⏱️ ${alerts.length} COT alert${alerts.length===1?'':'s'} require acknowledgement</strong><span>${detail}</span></div>${toggle}</div>${visible.map(a=>`<div class="cot-alert-row"><strong>Bib ${escapeHtml_(a.bib)} · ${escapeHtml_(a.level)}</strong><span>${escapeHtml_(a.category||'')} · ${formatLogTime(a.cotTime)}</span><button class="theme-input border rounded px-2 py-1 font-black" onclick="acknowledgeCotAlert_('${encodeURIComponent(a.key)}')">Acknowledge</button></div>`).join('')}`;
+        }
 
         function collectDeviceHealth_(){return new Promise(resolve=>{const finish=async(logs)=>{let storageUsedMb=null,storageQuotaMb=null;try{if(navigator.storage?.estimate){const e=await navigator.storage.estimate();storageUsedMb=e.usage/1048576;storageQuotaMb=e.quota/1048576;}}catch(_){ }const unsynced=(logs||[]).filter(l=>!l.synced);const oldest=unsynced.length?Math.max(0,(Date.now()-Math.min(...unsynced.map(l=>Number(l.originalDeviceTimeMs)||parseCustomOrIsoDate(l.originalDeviceTime||l.time).getTime())))/60000):0;resolve({deviceId:getOrCreateDeviceId(),device:buildDeviceString(),checkpoint:(document.getElementById('checkpoint')?.value||'').trim().toUpperCase(),volunteer:(document.getElementById('volunteer')?.value||'').trim().toUpperCase(),batteryPercent:latestBatteryState_.level,charging:latestBatteryState_.charging,queueCount:unsynced.length,oldestQueueAgeMinutes:Math.round(oldest),storageUsedMb,storageQuotaMb,appVersion:APP_VERSION,lastSync:lastSyncSuccessAt?new Date(lastSyncSuccessAt).toISOString():'',clockOffsetMs:Math.round(clockOffsetMs_),clockConfidenceMs:Math.round(clockConfidenceMs_)});};if(!db){finish([]);return;}const req=db.transaction(['logs'],'readonly').objectStore('logs').getAll();req.onsuccess=e=>finish(e.target.result||[]);req.onerror=()=>finish([]);});}
         function persistLocalDeviceHealth_(health) { if (!db || !db.objectStoreNames.contains('deviceHealth')) return; try { db.transaction(['deviceHealth'],'readwrite').objectStore('deviceHealth').put(health); } catch (_) {} }
