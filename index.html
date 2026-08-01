@@ -805,11 +805,12 @@
         .bib-input-tools {
             position: absolute;
             top: 50%;
-            right: 0.5rem;
+            left: 0.5rem;
+            right: auto;
             transform: translateY(-50%);
             display: inline-flex;
             align-items: center;
-            gap: 0.3rem;
+            gap: 0.25rem;
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
@@ -824,26 +825,35 @@
         }
         .bib-entry-tool {
             min-height: 2.35rem;
-            min-width: 2.75rem;
-            padding: 0.25rem 0.45rem;
+            min-width: 2.35rem;
+            width: 2.35rem;
+            padding: 0.2rem;
             border-radius: 0.55rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.2rem;
             line-height: 1;
             background: color-mix(in srgb, var(--input-bg) 82%, var(--header-bg));
             border: 1px solid var(--border-color);
             color: var(--input-text);
             box-shadow: 0 1px 4px rgba(0,0,0,0.22);
-            font-size: 0.625rem;
+            font-size: 1rem;
             font-weight: 900;
-            letter-spacing: 0.03em;
         }
         .bib-entry-tool:hover { opacity: 0.88; }
         .bib-entry-tool:disabled { cursor: not-allowed; opacity: 0.4; }
-        .bib-entry-tool-icon { font-size: 0.85rem; }
-        #bibInput { height: 4rem; padding-left: 0.75rem; padding-right: 7.1rem; }
+        .bib-entry-tool-icon { font-size: 1rem; line-height: 1; }
+        #bibInput { height: 4rem; padding-left: 0.75rem; padding-right: 0.75rem; transition: padding 0.12s ease, box-shadow 0.15s ease; }
+        .bib-input-shell:focus-within #bibInput, .bib-input-shell.tools-visible #bibInput { padding-left: 5.75rem; padding-right: 5.75rem; }
+        .bib-entry-submit-grid.keyboard-open { grid-template-columns: minmax(0, 1fr); }
+        .bib-entry-submit-grid.keyboard-open .bib-input-shell { grid-column: 1 / -1; }
+        .metric-inline-indicator {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
 
         /* The bib field takes roughly 85% of the row; LOG uses the remaining
            space while keeping a glove-friendly minimum tap target. */
@@ -861,7 +871,7 @@
             padding-right: 0.25rem;
             font-size: clamp(0.78rem, 3vw, 1rem);
         }
-        #logActionButton .log-button-subtext { font-size: 0.43rem; }
+        #logActionButton .log-button-subtext { display: none; }
 
         /* Keep first-use Setup focused on the two required fields. Event/category
            information stays available as one compact line, while optional checkpoint
@@ -2221,6 +2231,50 @@
             .bib-text-highlight { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
         }
 
+
+
+        /* ── v17 scale, virtual lists, incidents and operational diagnostics ── */
+        body.text-scale-large { font-size: 112.5%; }
+        body.text-scale-xlarge { font-size: 125%; }
+        body.text-scale-large .text-\[9px\] { font-size: 10.5px; }
+        body.text-scale-large .text-\[10px\] { font-size: 11.5px; }
+        body.text-scale-large .text-\[11px\] { font-size: 12.5px; }
+        body.text-scale-large .text-xs { font-size: .84rem; line-height: 1.2rem; }
+        body.text-scale-large .text-sm { font-size: .98rem; line-height: 1.4rem; }
+        body.text-scale-xlarge .text-\[9px\] { font-size: 12px; }
+        body.text-scale-xlarge .text-\[10px\] { font-size: 13px; }
+        body.text-scale-xlarge .text-\[11px\] { font-size: 14px; }
+        body.text-scale-xlarge .text-xs { font-size: .94rem; line-height: 1.35rem; }
+        body.text-scale-xlarge .text-sm { font-size: 1.08rem; line-height: 1.55rem; }
+        body.text-scale-large input, body.text-scale-large select, body.text-scale-large button,
+        body.text-scale-xlarge input, body.text-scale-xlarge select, body.text-scale-xlarge button { font-size: max(1em, 16px); }
+        body.text-scale-large #safetyLogBody tr { height: 4.25rem; }
+        body.text-scale-xlarge #safetyLogBody tr { height: 5rem; }
+        .sr-only-live { position: fixed; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+        #safetyTableViewport { max-height: calc(100vh - 19rem); overflow: auto; contain: strict; }
+        #safetyLogBody tr { height: 3.6rem; }
+        .virtual-spacer-cell { padding: 0 !important; border: 0 !important; height: 0; }
+        .integrity-issue-row, .device-health-row, .forecast-row, .incident-row, .cot-alert-row {
+            display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,.8fr) minmax(0,.8fr);
+            gap: .5rem; align-items: center; padding: .5rem .6rem; border-bottom: 1px solid var(--border-color);
+            font-size: .625rem;
+        }
+        .integrity-issue-row:last-child, .device-health-row:last-child, .forecast-row:last-child,
+        .incident-row:last-child, .cot-alert-row:last-child { border-bottom: 0; }
+        .ops-status-good { color: #10b981; }
+        .ops-status-warn { color: #f59e0b; }
+        .ops-status-bad { color: #ef4444; }
+        .incident-severity-critical { border-left: 4px solid #dc2626; }
+        .incident-severity-high { border-left: 4px solid #f97316; }
+        .incident-severity-medium { border-left: 4px solid #eab308; }
+        .incident-severity-low { border-left: 4px solid #10b981; }
+        .cot-alert-banner { border: 1px solid rgba(245,158,11,.45); background: rgba(245,158,11,.1); border-radius: .65rem; padding: .55rem .65rem; }
+        .cot-alert-banner.critical { border-color: rgba(239,68,68,.55); background: rgba(239,68,68,.12); }
+        .aggregate-fast-stat { font-variant-numeric: tabular-nums; }
+        @media (max-width: 640px) {
+            #safetyTableViewport { max-height: calc(100vh - 16rem); }
+            .integrity-issue-row, .device-health-row, .forecast-row, .incident-row, .cot-alert-row { grid-template-columns: 1fr; gap: .2rem; }
+        }
     </style>
 </head>
 <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
@@ -2344,6 +2398,21 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] theme-text-muted mb-1 font-bold">COT warning window</label>
+                        <div class="relative"><input type="number" id="cotWarningMinutesInput" min="0" max="240" class="w-full theme-input border rounded-lg pl-2 pr-12 py-1.5 text-xs text-center font-bold"><span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] theme-text-muted font-bold">MINS</span></div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] theme-text-muted mb-1 font-bold">COT escalation window</label>
+                        <div class="relative"><input type="number" id="cotEscalationMinutesInput" min="0" max="120" class="w-full theme-input border rounded-lg pl-2 pr-12 py-1.5 text-xs text-center font-bold"><span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] theme-text-muted font-bold">MINS</span></div>
+                    </div>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="cotAlertsEnabledToggle" class="rounded border-neutral-300 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-950 text-amber-600 focus:ring-0 w-4 h-4">
+                    <span class="text-xs font-bold theme-text">Enable COT warning announcements and acknowledgement workflow</span>
+                </label>
+
+                <div class="grid grid-cols-2 gap-3">
                     <div class="theme-input border rounded-lg px-2.5 py-2">
                         <div class="text-[10px] theme-text-muted font-bold">Current CP Scan History</div>
                         <div class="text-xs font-black theme-text mt-0.5">Latest 20 logs</div>
@@ -2362,6 +2431,23 @@
                 <label class="flex items-center gap-2 cursor-pointer select-none pt-1">
                     <input type="checkbox" id="batterySaverManualToggle" class="rounded border-neutral-300 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-950 text-red-600 focus:ring-0 w-4 h-4">
                     <span class="text-xs font-bold text-red-600 dark:text-red-500">Force Low Battery Conservation Plan Instantly</span>
+                </label>
+            </div>
+
+            <!-- v17 Accessibility -->
+            <div class="theme-card flex flex-col gap-3">
+                <h4 class="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">♿ Accessibility</h4>
+                <div>
+                    <label class="block text-[10px] theme-text-muted mb-1 font-bold">App text size</label>
+                    <select id="appTextScaleSelect" class="w-full theme-input border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none">
+                        <option value="normal">Normal</option>
+                        <option value="large">Large (112%)</option>
+                        <option value="xlarge">Extra large (125%)</option>
+                    </select>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="screenReaderAnnouncementsToggle" class="rounded border-neutral-300 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-950 text-purple-600 focus:ring-0 w-4 h-4">
+                    <span class="text-xs font-bold theme-text">Announce logs, sync results, incidents, and COT alerts to screen readers</span>
                 </label>
             </div>
 
@@ -2737,6 +2823,46 @@
                     <div class="widget-resize-handle" onpointerdown="startWidgetResize_(event, 'cot')" title="Drag to resize height"></div>
                 </section>
 
+                <section id="widget-forecast" data-widget="forecast" class="theme-panel rounded-2xl border shadow overflow-hidden flex flex-col">
+                    <div class="px-4 py-3 border-b theme-border bg-neutral-200/50 dark:bg-neutral-900/10 flex items-start gap-2">
+                        <span class="widget-drag-handle icon-tap-target text-neutral-400 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'forecast')">⠿</span>
+                        <div class="min-w-0 flex-1"><h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🌊 Arrival Forecast</h2><p class="text-[10px] theme-text-muted mt-0.5">Estimated runners arriving in the next 15 and 30 minutes, with trend direction.</p></div>
+                        <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="forecast"></div>
+                    </div>
+                    <div id="directorForecastBody" class="p-3"><div class="text-center theme-text-muted text-xs p-4">Waiting for operations summary.</div></div>
+                    <div class="widget-resize-handle" onpointerdown="startWidgetResize_(event, 'forecast')"></div>
+                </section>
+
+                <section id="widget-health" data-widget="health" class="theme-panel rounded-2xl border shadow overflow-hidden flex flex-col">
+                    <div class="px-4 py-3 border-b theme-border bg-neutral-200/50 dark:bg-neutral-900/10 flex items-start gap-2">
+                        <span class="widget-drag-handle icon-tap-target text-neutral-400 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'health')">⠿</span>
+                        <div class="min-w-0 flex-1"><h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🩺 Device Health</h2><p class="text-[10px] theme-text-muted mt-0.5">Battery, queue age, storage, app version, clock drift, and last contact.</p></div>
+                        <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="health"></div>
+                    </div>
+                    <div id="directorHealthBody" class="p-3"><div class="text-center theme-text-muted text-xs p-4">No device reports yet.</div></div>
+                    <div class="widget-resize-handle" onpointerdown="startWidgetResize_(event, 'health')"></div>
+                </section>
+
+                <section id="widget-incidents" data-widget="incidents" class="theme-panel rounded-2xl border shadow overflow-hidden flex flex-col">
+                    <div class="px-4 py-3 border-b theme-border bg-neutral-200/50 dark:bg-neutral-900/10 flex items-start gap-2">
+                        <span class="widget-drag-handle icon-tap-target text-neutral-400 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'incidents')">⠿</span>
+                        <div class="min-w-0 flex-1"><h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🚨 Incident Board</h2><p class="text-[10px] theme-text-muted mt-0.5">Open medical, transport, search, and withdrawal workflows.</p></div>
+                        <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="incidents"></div>
+                    </div>
+                    <div id="directorIncidentsBody" class="p-3"><div class="text-center theme-text-muted text-xs p-4">No open incidents.</div></div>
+                    <div class="widget-resize-handle" onpointerdown="startWidgetResize_(event, 'incidents')"></div>
+                </section>
+
+                <section id="widget-integrity" data-widget="integrity" class="theme-panel rounded-2xl border shadow overflow-hidden flex flex-col">
+                    <div class="px-4 py-3 border-b theme-border bg-neutral-200/50 dark:bg-neutral-900/10 flex items-start gap-2">
+                        <span class="widget-drag-handle icon-tap-target text-neutral-400 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'integrity')">⠿</span>
+                        <div class="min-w-0 flex-1"><h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🧪 Data Integrity</h2><p class="text-[10px] theme-text-muted mt-0.5">Malformed times, invalid bibs, route jumps, stale devices, mapping gaps, and clock drift.</p></div>
+                        <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="integrity"></div>
+                    </div>
+                    <div id="directorIntegrityBody" class="p-3"><div class="text-center theme-text-muted text-xs p-4">Integrity checks have not run.</div></div>
+                    <div class="widget-resize-handle" onpointerdown="startWidgetResize_(event, 'integrity')"></div>
+                </section>
+
             </div>
         </div>
     </div>
@@ -2758,10 +2884,13 @@
                 <div class="flex items-center gap-2 flex-wrap justify-end">
                     <span id="safetySyncBadge" class="text-[10px] sm:text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-2 py-1 rounded-full font-bold whitespace-nowrap">● Local data ready</span>
                     <button id="safetyFullSyncBtn" onclick="syncAllMonitorData_('safety', true)" class="text-[10px] sm:text-xs bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg font-bold transition">↻ Sync all logs</button>
+                    <button onclick="openIncidentModal_()" class="text-[10px] sm:text-xs bg-red-600 dark:bg-red-800 hover:bg-red-500 text-white px-2.5 py-1.5 rounded-lg font-bold transition">＋ New incident</button>
                     <button onclick="closeSafetyLog()" class="text-[10px] sm:text-xs bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 theme-text px-2.5 py-1.5 rounded-lg font-bold border theme-border transition">✕ Exit</button>
                 </div>
             </div>
 
+            <div id="safetyCotAlertsPanel" class="hidden cot-alert-banner" aria-live="polite"></div>
+            <div id="safetyIncidentPanel" class="hidden theme-panel rounded-xl border shadow p-3"></div>
             <div class="theme-panel rounded-xl border shadow p-3 flex flex-col gap-2">
                 <div class="flex flex-wrap gap-1.5 items-center" id="safetyQuickFilters">
                     <span class="text-[10px] font-bold theme-text-muted uppercase tracking-wide mr-1">Quick filters:</span>
@@ -2830,8 +2959,8 @@
             </div>
 
             <div class="theme-panel rounded-xl border shadow overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs">
+                <div id="safetyTableViewport" class="overflow-x-auto" onscroll="renderSafetyVirtualWindow_()">
+                    <table id="safetyLogTable" class="w-full text-left border-collapse text-xs" aria-label="Runner safety roster">
                         <thead>
                             <tr class="text-neutral-500 dark:text-neutral-400 uppercase text-[10px] font-bold border-b theme-border bg-neutral-200/40 dark:bg-neutral-900/40">
                                 <th class="p-2 pl-3">Bib</th>
@@ -2849,6 +2978,25 @@
                 </div>
                 <div id="safetyLogEmptyState" class="hidden text-center theme-text-muted text-sm p-8">No bibs logged yet.</div>
             </div>
+        </div>
+    </div>
+
+    <!-- Structured incident workflow -->
+    <div id="incidentModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100]" onclick="if(event.target===this) closeIncidentModal_()">
+        <div class="theme-panel border rounded-2xl shadow-2xl w-full max-w-lg p-5 flex flex-col gap-3 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between"><h3 class="text-base font-black theme-text">🚨 Incident Record</h3><button type="button" onclick="closeIncidentModal_()" class="theme-input border rounded px-2 py-1 text-xs">✕</button></div>
+            <input type="hidden" id="incidentIdInput">
+            <div class="grid grid-cols-2 gap-2">
+                <div><label class="block text-[10px] font-bold theme-text-muted">Bib</label><input id="incidentBibInput" type="text" class="w-full theme-input border rounded-lg px-2.5 py-2 text-sm font-black uppercase"></div>
+                <div><label class="block text-[10px] font-bold theme-text-muted">Type</label><select id="incidentTypeSelect" class="w-full theme-input border rounded-lg px-2.5 py-2 text-xs"><option value="medical">Medical</option><option value="transport">Transport</option><option value="search">Search / missing</option><option value="withdrawal">Withdrawal</option><option value="other">Other</option></select></div>
+                <div><label class="block text-[10px] font-bold theme-text-muted">Severity</label><select id="incidentSeveritySelect" class="w-full theme-input border rounded-lg px-2.5 py-2 text-xs"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                <div><label class="block text-[10px] font-bold theme-text-muted">Workflow status</label><select id="incidentStatusSelect" class="w-full theme-input border rounded-lg px-2.5 py-2 text-xs"><option value="open">Open</option><option value="dispatched">Dispatched</option><option value="monitoring">Monitoring</option><option value="resolved">Resolved</option><option value="closed">Closed</option></select></div>
+                <div><label class="block text-[10px] font-bold theme-text-muted">Checkpoint / location</label><input id="incidentCheckpointInput" type="text" class="w-full theme-input border rounded-lg px-2.5 py-2 text-xs uppercase"></div>
+                <div><label class="block text-[10px] font-bold theme-text-muted">Transport / resource</label><input id="incidentTransportInput" type="text" placeholder="Ambulance, 4WD, sweep..." class="w-full theme-input border rounded-lg px-2.5 py-2 text-xs"></div>
+                <div class="col-span-2"><label class="block text-[10px] font-bold theme-text-muted">Owner / responder</label><input id="incidentOwnerInput" type="text" class="w-full theme-input border rounded-lg px-2.5 py-2 text-xs"></div>
+                <div class="col-span-2"><label class="block text-[10px] font-bold theme-text-muted">Structured notes and actions</label><textarea id="incidentNotesInput" rows="4" class="w-full theme-input border rounded-lg px-2.5 py-2 text-xs" placeholder="Symptoms, contact attempts, dispatch time, destination, handover..."></textarea></div>
+            </div>
+            <div class="flex gap-2 justify-end"><button type="button" onclick="closeIncidentModal_()" class="theme-input border rounded-lg px-4 py-2 text-xs font-bold">Cancel</button><button type="button" onclick="saveIncident_()" class="bg-red-600 hover:bg-red-500 text-white rounded-lg px-4 py-2 text-xs font-black">Save incident</button></div>
         </div>
     </div>
 
@@ -2937,7 +3085,6 @@
                 <section id="bibEntrySection" class="theme-panel p-4 rounded-xl border shadow flex flex-col gap-3 setup-required" onclick="focusIncompleteSetup_(event)">
                     <div class="bib-entry-heading-row">
                         <h2 class="text-xs font-bold theme-text-muted uppercase tracking-wider">2. Enter Bib</h2>
-                        <span class="text-[9px] theme-text-muted font-semibold">Tap the field for OCR / keyboard tools</span>
                     </div>
                     <div id="bibEntryGateMessage">Complete Checkpoint Name and Volunteer Initials in <strong>1. Setup</strong> before typing or scanning a bib.</div>
                     <form id="bibEntryForm" onsubmit="handleBibEntrySubmit_(event)" class="flex flex-col gap-3" autocomplete="off">
@@ -2945,16 +3092,16 @@
                             <div class="bib-input-shell">
                                 <input type="text" id="bibInput" inputmode="numeric" enterkeyhint="go" autocomplete="off" autocapitalize="characters" onfocus="warmUpGPS(); showBibInputTools_();" onblur="scheduleHideBibInputTools_();" onkeydown="handleBibInputKeydown_(event)" oninput="warmUpGPS(); stripBibSpaces_(this); autoScaleBibFontSize_();" placeholder="0" aria-describedby="bibInputToolsHint" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
                                 <div class="bib-input-tools" aria-label="Bib entry tools">
-                                    <button type="button" id="bibOcrBtn" onpointerdown="event.preventDefault();" onclick="openBibScanner(); event.stopPropagation();" title="Start live OCR auto logging" aria-label="Start live OCR auto logging" class="bib-entry-tool">
-                                        <span class="bib-entry-tool-icon">📹</span><span>OCR</span>
+                                    <button type="button" id="bibOcrBtn" onpointerdown="event.preventDefault();" onclick="openBibScanner(); event.stopPropagation();" title="Start live OCR" aria-label="Start live OCR" class="bib-entry-tool">
+                                        <span class="bib-entry-tool-icon" aria-hidden="true">📷</span>
                                     </button>
-                                    <button type="button" id="bibEntryModeBtn" onpointerdown="event.preventDefault();" onclick="toggleKeyboardMode(); event.stopPropagation();" title="Switch bib keyboard between numbers and letters" aria-label="Switch bib keyboard between numbers and letters" class="bib-entry-tool">
-                                        <span id="bibEntryModeIcon" class="bib-entry-tool-icon">🔢</span><span id="bibEntryModeLabel">123</span>
+                                    <button type="button" id="bibEntryModeBtn" onpointerdown="event.preventDefault();" onclick="toggleKeyboardMode(); event.stopPropagation();" title="Switch bib keyboard" aria-label="Switch bib keyboard between numbers and letters" class="bib-entry-tool">
+                                        <span id="bibEntryModeIcon" class="bib-entry-tool-icon" aria-hidden="true">🔢</span><span id="bibEntryModeLabel" class="sr-only">Numbers</span>
                                     </button>
                                 </div>
                                 <span id="bibInputToolsHint" class="sr-only">OCR and keyboard mode tools appear when this field is focused.</span>
                             </div>
-                            <button type="submit" id="logActionButton" onpointerdown="keepBibInputFocused_(event)" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-90 duration-75 text-white font-extrabold text-lg rounded-xl shadow-lg transition-all flex flex-col items-center justify-center"><span id="logActionButtonLabel">LOG</span><span class="log-button-subtext">tap or press Enter</span></button>
+                            <button type="submit" id="logActionButton" onpointerdown="keepBibInputFocused_(event)" aria-label="Log bib" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-90 duration-75 text-white font-extrabold text-lg rounded-xl shadow-lg transition-all flex items-center justify-center"><span id="logActionButtonLabel">LOG</span></button>
                         </div>
                         <div class="mt-1 relative">
                             <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark for next bib (Optional)</label>
@@ -3264,14 +3411,17 @@
         <span class="text-[10px] text-emerald-700 dark:text-emerald-400 font-black tracking-widest uppercase mt-1 opacity-95">Logged</span>
     </div>
 
+    <div id="srAnnouncer" class="sr-only-live" role="status" aria-live="polite" aria-atomic="true"></div>
+
     <script>
+        const APP_VERSION = "18.0.0";
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let db;
         let dbReady_ = false;
         let dbOpenFailed_ = false;
         const SCAN_HISTORY_MAX_ROWS = 20;
         const RECENT_SYNC_LIMIT = 20;
-        const RACE_DB_VERSION = 4;
+        const RACE_DB_VERSION = 5;
         let recentCloudWindowUids_ = new Set();
         let bibInputToolsHideTimer_ = null;
         let monitorSyncPromise_ = null;
@@ -3306,6 +3456,28 @@
         let safetyMatrixSelection_ = null;
         let lastSafetyRosterForCounts_ = [];
         let lastVisibleSafetyRoster_ = [];
+        let safetyVirtualRoster_ = [];
+        let safetyVirtualRenderToken_ = 0;
+        const SAFETY_VIRTUAL_ROW_HEIGHT_ = 58;
+        const SAFETY_VIRTUAL_OVERSCAN_ = 10;
+        let localIncidents_ = {};
+        let localCotAlerts_ = {};
+        let serverOperationsSummary_ = null;
+        let aggregateRebuildTimer_ = null;
+        let aggregateConfigFingerprint_ = '';
+        let operationalSyncInFlight_ = false;
+        let deviceHealthTimer_ = null;
+        let latestBatteryState_ = { level: null, charging: null };
+        let clockOffsetMs_ = Number(localStorage.getItem('clockOffsetMs_v1') || '0') || 0;
+        let clockConfidenceMs_ = Number(localStorage.getItem('clockConfidenceMs_v1') || '0') || 0;
+        let clockSampleCount_ = Number(localStorage.getItem('clockSampleCount_v1') || '0') || 0;
+        let cotWarningMinutes_ = Number(localStorage.getItem('cotWarningMinutes_v1') || '45') || 45;
+        let cotEscalationMinutes_ = Number(localStorage.getItem('cotEscalationMinutes_v1') || '15') || 15;
+        let cotAlertsEnabled_ = localStorage.getItem('cotAlertsEnabled_v1') !== 'false';
+        let appTextScale_ = localStorage.getItem('appTextScale_v1') || 'normal';
+        let screenReaderAnnouncements_ = localStorage.getItem('screenReaderAnnouncements_v1') !== 'false';
+        const ROUTE_MODELS_STORAGE_KEY_ = 'routeModels_v18';
+        let routeModelsByKey_ = (() => { try { return JSON.parse(localStorage.getItem(ROUTE_MODELS_STORAGE_KEY_) || '{}'); } catch (_) { return {}; } })();
 
         const LOCAL_APP_REFRESH_EPOCH_KEY_ = 'appRefreshEpoch_v1';
         const LOCAL_DATA_REVISION_KEY_ = 'racelogDataRevision_v1';
@@ -3439,20 +3611,27 @@
 
         function handleViewportResize() {
             const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
-            if (!isTouchDevice) return; 
             const btn = document.getElementById("logActionButton");
+            const grid = document.querySelector('.bib-entry-submit-grid');
+            if (!btn) return;
+            if (!isTouchDevice) {
+                grid?.classList.remove('keyboard-open');
+                return;
+            }
             const inputHasFocus = (document.activeElement && (document.activeElement.id === 'bibInput' || document.activeElement.id === 'remarkInput'));
             if (inputHasFocus && window.visualViewport) {
                 const viewportHeight = window.visualViewport.height;
                 const windowHeight = window.innerHeight;
                 if (viewportHeight < windowHeight * 0.9) {
+                    grid?.classList.add('keyboard-open');
                     btn.classList.add("keyboard-docked-btn");
-                    btn.style.height = "5rem"; 
+                    btn.style.height = "5rem";
                     btn.style.fontSize = "1.5rem";
                     btn.style.top = `${window.visualViewport.offsetTop + viewportHeight - btn.offsetHeight}px`;
                     return;
                 }
             }
+            grid?.classList.remove('keyboard-open');
             btn.classList.remove("keyboard-docked-btn");
             btn.style.position = "";
             btn.style.top = "";
@@ -3604,7 +3783,7 @@
             bI.setAttribute('inputmode', normalized);
             localStorage.setItem('bibKeyboardMode', normalized);
             if (icon) icon.textContent = normalized === 'numeric' ? '🔢' : '🔤';
-            if (label) label.textContent = normalized === 'numeric' ? '123' : 'ABC';
+            if (label) label.textContent = normalized === 'numeric' ? 'Numbers' : 'Letters';
             if (btn) {
                 btn.setAttribute('aria-pressed', normalized === 'text' ? 'true' : 'false');
                 btn.title = normalized === 'numeric'
@@ -3628,6 +3807,7 @@
             if ('getBattery' in navigator) {
                 navigator.getBattery().then(battery => {
                     function updateBatteryStatus() {
+                        latestBatteryState_ = { level: Number.isFinite(battery.level) ? battery.level : null, charging: !!battery.charging };
                         if (battery.level <= 0.15 && !battery.charging) {
                             if (!lowBatteryThresholdActive) activateBatterySafeMode(false);
                         } else {
@@ -4270,9 +4450,10 @@
         function downloadCurrentEventConfigCsv_() {
             const rows = categoryConfig || [];
             if (!rows.length) { alert('No event configuration is available to export.'); return; }
-            const header = ['COT','KM','Category','BIB Rule','Colour','Registered Runner','Flagoff','COT Time','Active','Sort Order'];
+            const header = ['COT','KM','Category','BIB Rule','Colour','Registered Runner','Flagoff','COT Time','Active','Sort Order','Checkpoint Sequence','Max Checkpoint Jump','COT Warning Minutes','COT Escalation Minutes'];
             const lines = [header.map(csvCell_).join(',')].concat(rows.map(row => [
-                row.cot, row.km, row.category, row.bibRule, row.color, row.runners, row.flagoff, row.cotTime, 'TRUE', row.sortOrder ?? ''
+                row.cot, row.km, row.category, row.bibRule, row.color, row.runners, row.flagoff, row.cotTime, 'TRUE', row.sortOrder ?? '',
+                (row.checkpointSequence || []).join(' > '), row.maxCheckpointJump ?? 2, row.cotWarningMinutes ?? '', row.cotEscalationMinutes ?? ''
             ].map(csvCell_).join(',')));
             downloadTextFile_(`race-event-config-${new Date().toISOString().slice(0,10)}.csv`, '\uFEFF' + lines.join('\r\n'), 'text/csv;charset=utf-8');
         }
@@ -4280,10 +4461,10 @@
         function downloadFutureEventTemplate_() {
             const nextYear = new Date().getFullYear() + 1;
             const lines = [
-                ['COT','KM','Category','BIB Rule','Colour','Runner','Registered Runner','Flagoff','COT Time','Active','Sort Order'],
-                ['24H','100','Men Open','1001-1199','#3b82f6','','120',`${nextYear}-01-01 05:00`,'05:00','TRUE','10'],
-                ['24H','100','Women Open','1200-1299','#ec4899','','80',`${nextYear}-01-01 05:00`,'05:00','TRUE','20'],
-                ['16H','50','Open','5XXX','#10b981','','150',`${nextYear}-01-01 06:00`,'22:00','TRUE','30']
+                ['COT','KM','Category','BIB Rule','Colour','Runner','Registered Runner','Flagoff','COT Time','Active','Sort Order','Checkpoint Sequence','Max Checkpoint Jump','COT Warning Minutes','COT Escalation Minutes'],
+                ['24H','100','Men Open','1001-1199','#3b82f6','','120',`${nextYear}-01-01 05:00`,'05:00','TRUE','10','START > CP1 > CP2 > FINISH','2','45','15'],
+                ['24H','100','Women Open','1200-1299','#ec4899','','80',`${nextYear}-01-01 05:00`,'05:00','TRUE','20','START > CP1 > CP2 > FINISH','2','45','15'],
+                ['16H','50','Open','5XXX','#10b981','','150',`${nextYear}-01-01 06:00`,'22:00','TRUE','30','START > CP1 > FINISH','1','30','10']
             ].map(row => row.map(csvCell_).join(','));
             downloadTextFile_('race-setup-next-event-template.csv', '\uFEFF' + lines.join('\r\n'), 'text/csv;charset=utf-8');
         }
@@ -4310,6 +4491,9 @@
 
             lastKnownSummaryRows = summaryRows || [];
             categoryConfig = lastKnownSummaryRows; // keep PWA metric calculator in sync
+            const nextAggregateConfigFingerprint = JSON.stringify((categoryConfig || []).map(r => [r.category, r.bibRule]));
+            if (aggregateConfigFingerprint_ && aggregateConfigFingerprint_ !== nextAggregateConfigFingerprint) scheduleAggregateRebuild_();
+            aggregateConfigFingerprint_ = nextAggregateConfigFingerprint;
             applyEventConfigMeta_(lastKnownSummaryRows, serverConfigMeta);
             renderCheckpointKmByRaceInputs_();
             renderSafetyMatrix_();
@@ -4422,8 +4606,8 @@
             }, 150);
         })();
 
-        // Version 4 adds indexes used by the newest-20 operational history and
-        // sync queue, while retaining the v3 safetyNotes store.
+        // Version 5 adds aggregate, incident, COT-alert and device-health stores, plus
+        // category/status indexes, while retaining all v4 scan indexes.
         bootstrapFirstUseUi_();
         let dbRequest = null;
         try {
@@ -4446,13 +4630,15 @@
                 ['byUid', 'uid', false],
                 ['byBib', 'bib', false],
                 ['byCheckpoint', 'checkpoint', false],
-                ['byClientTime', 'clientTimeMs', false]
+                ['byClientTime', 'clientTimeMs', false],
+                ['byCategory', 'category', false],
+                ['byStatus', 'status', false]
             ];
             indexes.forEach(([name, keyPath, unique]) => {
                 if (!logStore.indexNames.contains(name)) logStore.createIndex(name, keyPath, { unique });
             });
 
-            // Backfill the numeric time key once during the v4 upgrade so newest-first
+            // Backfill the numeric time key during upgrades so newest-first
             // cursor reads work for records created by older app versions.
             const cursorRequest = logStore.openCursor();
             cursorRequest.onsuccess = function(event) {
@@ -4471,6 +4657,18 @@
             }
             if (!db.objectStoreNames.contains("safetyNotes")) {
                 db.createObjectStore("safetyNotes", { keyPath: "bib" });
+            }
+            if (!db.objectStoreNames.contains("aggregates")) {
+                db.createObjectStore("aggregates", { keyPath: "key" });
+            }
+            if (!db.objectStoreNames.contains("incidents")) {
+                db.createObjectStore("incidents", { keyPath: "id" });
+            }
+            if (!db.objectStoreNames.contains("cotAlerts")) {
+                db.createObjectStore("cotAlerts", { keyPath: "key" });
+            }
+            if (!db.objectStoreNames.contains("deviceHealth")) {
+                db.createObjectStore("deviceHealth", { keyPath: "deviceId" });
             }
         };
         // Worst case without this: another open tab/window of this same app holding an
@@ -4511,7 +4709,13 @@
             restoreHardRefreshDrafts_();
             updateSearchBoxPlaceholder();
             loadHistory();
+            scheduleAggregateRebuild_(true);
+            loadLocalIncidents_();
+            loadLocalCotAlerts_();
+            setTimeout(syncPendingOperationalRecords_, 2000);
+            applyAppTextScale_();
             initBatteryMonitoring();
+            startDeviceHealthReporting_();
             checkPwaDisplay(); 
             resetSyncTimer();
             registerServiceWorkerAndBackgroundSync();
@@ -4553,6 +4757,7 @@
             if (document.hidden) {
                 if (syncTimerId) { clearInterval(syncTimerId); syncTimerId = null; }
                 if (reconciliationTimerId) { clearInterval(reconciliationTimerId); reconciliationTimerId = null; }
+                if (deviceHealthTimer_) { clearInterval(deviceHealthTimer_); deviceHealthTimer_ = null; }
                 if (isDirectorModeOpen) {
                     if (directorClockIntervalId) { clearInterval(directorClockIntervalId); directorClockIntervalId = null; }
                     if (directorCotIntervalId) { clearInterval(directorCotIntervalId); directorCotIntervalId = null; }
@@ -4561,6 +4766,8 @@
                 if (sharedAudioContext_ && sharedAudioContext_.state === 'running') sharedAudioContext_.suspend().catch(() => {});
             } else {
                 resetSyncTimer();
+                startDeviceHealthReporting_();
+                syncPendingOperationalRecords_();
                 if (syncUrl) { attemptSync(); pullServerRecords(); }
                 if (isDirectorModeOpen) {
                     tickDirectorClock_();
@@ -4596,6 +4803,8 @@
                 if (event.data && event.data.type === 'race-log-sync-complete') {
                     handleDataRevisionFromServer_(event.data.dataRevision, true);
                     if (event.data.appRefreshEpoch && handleAppRefreshEpochFromServer_(event.data.appRefreshEpoch)) return;
+                    scheduleAggregateRebuild_();
+                    scheduleDeviceHealthReport_();
                     loadHistory();
                     if (event.data.summary) renderSummaryDashboard(event.data.summary, event.data.configMeta);
                 }
@@ -4701,6 +4910,11 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             currentCpHistoryLimit = String(SCAN_HISTORY_MAX_ROWS);
             layoutOrientation = document.getElementById("layoutOrientationSelect").value;
             batterySaverManual = document.getElementById("batterySaverManualToggle").checked;
+            cotWarningMinutes_ = Math.max(0, Math.min(240, parseInt(document.getElementById('cotWarningMinutesInput')?.value || '45', 10) || 0));
+            cotEscalationMinutes_ = Math.max(0, Math.min(cotWarningMinutes_, parseInt(document.getElementById('cotEscalationMinutesInput')?.value || '15', 10) || 0));
+            cotAlertsEnabled_ = !!document.getElementById('cotAlertsEnabledToggle')?.checked;
+            appTextScale_ = document.getElementById('appTextScaleSelect')?.value || 'normal';
+            screenReaderAnnouncements_ = !!document.getElementById('screenReaderAnnouncementsToggle')?.checked;
 
             localStorage.setItem("vibrateEnabled", vibrateEnabled);
             localStorage.setItem("soundEnabled", soundEnabled);
@@ -4712,6 +4926,12 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             localStorage.setItem("currentCpHistoryLimit", currentCpHistoryLimit);
             localStorage.setItem("layoutOrientation", layoutOrientation);
             localStorage.setItem("batterySaverManual", batterySaverManual);
+            localStorage.setItem('cotWarningMinutes_v1', String(cotWarningMinutes_));
+            localStorage.setItem('cotEscalationMinutes_v1', String(cotEscalationMinutes_));
+            localStorage.setItem('cotAlertsEnabled_v1', String(cotAlertsEnabled_));
+            localStorage.setItem('appTextScale_v1', appTextScale_);
+            localStorage.setItem('screenReaderAnnouncements_v1', String(screenReaderAnnouncements_));
+            applyAppTextScale_();
 
             document.getElementById("dupWindowInput").value = dupWindowSeconds;
             toggleSettings(); 
@@ -4759,10 +4979,21 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             layoutOrientation = localStorage.getItem("layoutOrientation") || "auto";
             batterySaverManual = localStorage.getItem("batterySaverManual") === "true";
             activeScopeFilter = localStorage.getItem("activeScopeFilter") || "current";
+            cotWarningMinutes_ = Math.max(0, Math.min(240, Number(localStorage.getItem('cotWarningMinutes_v1') || '45') || 45));
+            cotEscalationMinutes_ = Math.max(0, Math.min(cotWarningMinutes_, Number(localStorage.getItem('cotEscalationMinutes_v1') || '15') || 15));
+            cotAlertsEnabled_ = localStorage.getItem('cotAlertsEnabled_v1') !== 'false';
+            appTextScale_ = localStorage.getItem('appTextScale_v1') || 'normal';
+            screenReaderAnnouncements_ = localStorage.getItem('screenReaderAnnouncements_v1') !== 'false';
 
             document.getElementById("vibrateToggle").checked = vibrateEnabled;
             document.getElementById("soundToggle").checked = soundEnabled;
             document.getElementById("gpsQualitySelect").value = gpsQuality;
+            const cotWarningInput = document.getElementById('cotWarningMinutesInput'); if (cotWarningInput) cotWarningInput.value = cotWarningMinutes_;
+            const cotEscInput = document.getElementById('cotEscalationMinutesInput'); if (cotEscInput) cotEscInput.value = cotEscalationMinutes_;
+            const cotEnabled = document.getElementById('cotAlertsEnabledToggle'); if (cotEnabled) cotEnabled.checked = cotAlertsEnabled_;
+            const scaleSelect = document.getElementById('appTextScaleSelect'); if (scaleSelect) scaleSelect.value = appTextScale_;
+            const srToggle = document.getElementById('screenReaderAnnouncementsToggle'); if (srToggle) srToggle.checked = screenReaderAnnouncements_;
+            applyAppTextScale_();
             document.getElementById("syncIntervalSelect").value = String(syncIntervalMs);
             document.getElementById("dupWindowInput").value = dupWindowSeconds;
             document.getElementById("globalHistoryLimitSelect").value = globalHistoryLimit;
@@ -4847,18 +5078,22 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 .finally(() => clearTimeout(timeoutId));
         }
 
-        function recordSyncSuccess() {
+        function recordSyncSuccess(serverTime, requestStartedAt) {
             syncFailureStreak = 0;
             lastSyncError = null;
             lastSyncSuccessAt = Date.now();
             localStorage.setItem("lastSyncSuccessAt", String(lastSyncSuccessAt));
+            if (serverTime) updateClockDriftSample_(serverTime, requestStartedAt || lastSyncSuccessAt, Date.now());
             updateSyncHealthUI();
+            scheduleDeviceHealthReport_(250);
+            syncPendingOperationalRecords_();
         }
 
         function recordSyncFailure(reason) {
             syncFailureStreak++;
             lastSyncError = reason;
             updateSyncHealthUI();
+            if (syncFailureStreak === 3) announceToScreenReader_('Cloud synchronisation has failed three times. Entries remain saved on this device.');
         }
 
         function updateSyncHealthUI() {
@@ -5316,6 +5551,125 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             }
         }
 
+        function normalizeRouteKmKey_(value) {
+            const n = parseFloat(String(value ?? '').replace(/[^0-9.]/g, ''));
+            return Number.isFinite(n) ? String(Number(n.toFixed(3))) : 'UNSPECIFIED';
+        }
+
+        function routeCategoryKeyForConfig_(cfg) {
+            if (!cfg) return '';
+            return `${normalizeRouteKmKey_(cfg.km)}|${String(cfg.category || 'UNCATEGORISED').trim().toUpperCase()}`;
+        }
+
+        function applyRouteModelsFromPayload_(payload) {
+            const models = payload && payload.routeModels;
+            if (!models || typeof models !== 'object' || Array.isArray(models)) return;
+            routeModelsByKey_ = models;
+            try { localStorage.setItem(ROUTE_MODELS_STORAGE_KEY_, JSON.stringify(routeModelsByKey_)); } catch (_) { /* storage optional */ }
+        }
+
+        function routeModelForBib_(bib) {
+            const cfg = findCategoryConfigForBib_(bib, categoryConfig);
+            return routeModelsByKey_[routeCategoryKeyForConfig_(cfg)] || null;
+        }
+
+        function routeTransitionOptions_(model, checkpoint) {
+            const transitions = model && model.transitions;
+            const list = transitions && transitions[String(checkpoint || '').trim().toUpperCase()];
+            return Array.isArray(list) ? list : [];
+        }
+
+        function findRoutePath_(model, from, to, maxHops = 7) {
+            const start = String(from || '').trim().toUpperCase();
+            const target = String(to || '').trim().toUpperCase();
+            if (!start || !target) return null;
+            const queue = [[start]];
+            const bestDepth = new Map([[start, 0]]);
+            while (queue.length) {
+                const path = queue.shift();
+                const node = path[path.length - 1];
+                if (node === target) return path;
+                if (path.length - 1 >= maxHops) continue;
+                for (const edge of routeTransitionOptions_(model, node)) {
+                    const next = String(edge.to || '').trim().toUpperCase();
+                    if (!next) continue;
+                    const depth = path.length;
+                    if (bestDepth.has(next) && bestDepth.get(next) <= depth) continue;
+                    bestDepth.set(next, depth);
+                    queue.push(path.concat(next));
+                }
+            }
+            return null;
+        }
+
+        function alignObservedRouteToSequence_(observed, sequence) {
+            const obs = (observed || []).map(v => String(v || '').trim().toUpperCase()).filter(Boolean);
+            const seq = (sequence || []).map(v => String(v || '').trim().toUpperCase()).filter(Boolean);
+            if (!obs.length || !seq.length) return null;
+            let states = [];
+            seq.forEach((cp, idx) => { if (cp === obs[0]) states.push({ idx, cost: 0, path: [idx] }); });
+            if (!states.length) return null;
+            for (let oi = 1; oi < obs.length; oi++) {
+                const nextStatesByIndex = new Map();
+                for (const state of states) {
+                    for (let idx = state.idx + 1; idx < seq.length; idx++) {
+                        if (seq[idx] !== obs[oi]) continue;
+                        const candidate = { idx, cost: state.cost + Math.max(0, idx - state.idx - 1), path: state.path.concat(idx) };
+                        const prior = nextStatesByIndex.get(idx);
+                        if (!prior || candidate.cost < prior.cost || (candidate.cost === prior.cost && candidate.path[0] > prior.path[0])) nextStatesByIndex.set(idx, candidate);
+                    }
+                }
+                states = Array.from(nextStatesByIndex.values());
+                if (!states.length) return null;
+            }
+            states.sort((a,b) => a.cost - b.cost || b.path[0] - a.path[0] || b.idx - a.idx);
+            return states[0];
+        }
+
+        function routeWarningForCandidate_(bib, currentCheckpoint, runnerLogs) {
+            const model = routeModelForBib_(bib);
+            if (!model || !model.ready) return null;
+            const bibUpper = String(bib || '').trim().toUpperCase();
+            if ((model.pioneers || []).map(v => String(v).toUpperCase()).includes(bibUpper)) return null;
+            const current = String(currentCheckpoint || '').trim().toUpperCase();
+            const ordered = (runnerLogs || []).filter(isCountableLog_).slice().sort((a,b) => parseCustomOrIsoDate(a.time) - parseCustomOrIsoDate(b.time));
+            const checkpoints = [];
+            ordered.forEach(log => {
+                const cp = String(log.checkpoint || '').trim().toUpperCase();
+                if (cp && checkpoints[checkpoints.length - 1] !== cp) checkpoints.push(cp);
+            });
+            const previous = checkpoints[checkpoints.length - 1];
+            if (!previous || previous === current) return null;
+
+            if (Array.isArray(model.sequence) && model.sequence.length) {
+                const before = alignObservedRouteToSequence_(checkpoints, model.sequence);
+                const after = alignObservedRouteToSequence_(checkpoints.concat(current), model.sequence);
+                if (!after) {
+                    return { type: 'abnormal', message: `Last seen ${previous}; ${current} is outside the expected route.` };
+                }
+                if (!before || after.path.length < 2) return null;
+                const fromIndex = after.path[after.path.length - 2];
+                const toIndex = after.path[after.path.length - 1];
+                const jump = toIndex - fromIndex;
+                const maxJump = Math.max(1, Number(model.maxJump) || 1);
+                if (jump > maxJump) {
+                    const missing = model.sequence.slice(fromIndex + 1, toIndex);
+                    return { type: 'skip', missing, message: `Expected ${missing.slice(0,4).join(' → ')} before ${current}.` };
+                }
+                return null;
+            }
+
+            const direct = routeTransitionOptions_(model, previous);
+            if (!direct.length || direct.some(edge => String(edge.to || '').toUpperCase() === current)) return null;
+            const path = findRoutePath_(model, previous, current);
+            if (path && path.length > 2) {
+                const missing = path.slice(1, -1);
+                return { type: 'skip', missing, message: `Expected ${missing.slice(0,4).join(' → ')} before ${current}.` };
+            }
+            const expected = direct.slice(0, 3).map(edge => edge.to).filter(Boolean);
+            return { type: 'abnormal', message: `Last seen ${previous}; expected ${expected.join(' or ')} next.` };
+        }
+
         function requestLogsForBib_(bib) {
             const store = db.transaction(["logs"], "readonly").objectStore("logs");
             if (store.indexNames && store.indexNames.contains('byBib')) {
@@ -5343,7 +5697,8 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 alert('⚠️ Could not read the local runner log. Please try again.');
             };
             request.onsuccess = function(e) {
-                const duplicate = e.target.result.find(log => isRecentSamePassage_(log, bib, cpV));
+                const runnerLogs = e.target.result || [];
+                const duplicate = runnerLogs.find(log => isRecentSamePassage_(log, bib, cpV));
                 if (duplicate && !confirm(`⚠️ Bib ${bib} was recorded at ${cpV.toUpperCase()} within the last ${dupWindowSeconds} seconds. Record another passage anyway?`)) {
                     bI.value = '';
                     autoScaleBibFontSize_();
@@ -5351,8 +5706,18 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                     setTimeout(() => handleViewportResize(), 80);
                     return;
                 }
+                const routeWarning = routeWarningForCandidate_(bib, cpV, runnerLogs);
+                if (routeWarning && !confirm(`⚠️ Route check for Bib ${bib}: ${routeWarning.message}
+
+Clarify the previous checkpoint check-in. Log anyway?`)) {
+                    finishBibSubmission_();
+                    announceToScreenReader_(`Route check for bib ${bib}. ${routeWarning.message}`);
+                    return;
+                }
                 triggerInlineAnimationFlag = true;
                 logEntry(bib, {
+                    routeWarning: routeWarning ? routeWarning.message : '',
+                    routeWarningAcknowledged: !!routeWarning,
                     onLogged: () => finishBibSubmission_(),
                     onError: () => {
                         finishBibSubmission_();
@@ -5400,9 +5765,15 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             
             const bibUpper = bib.toUpperCase();
             const checkpointDistance = configuredCheckpointKmForBib_(bibUpper, checkpoint);
+            const originalDeviceNowMs = Date.now();
+            const correctedNowMs = getCorrectedNowMs_();
             const entry = {
                 bib: bibUpper,
-                time: getFormattedTimestamp(), 
+                time: getFormattedTimestamp(new Date(correctedNowMs)),
+                originalDeviceTime: getFormattedTimestamp(new Date(originalDeviceNowMs)),
+                clockOffsetMs: Math.round(clockOffsetMs_),
+                clockConfidenceMs: Math.round(clockConfidenceMs_),
+                appVersion: APP_VERSION, 
                 checkpoint: checkpoint.toUpperCase(),
                 volunteer: volunteer.toUpperCase(),
                 remark: remarkInput.value.trim(),
@@ -5410,7 +5781,8 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 creatorId: getOrCreateDeviceId(),
                 lapMode: 'multiple',
                 passageMode: 'automatic',
-                clientTimeMs: Date.now(),
+                clientTimeMs: correctedNowMs,
+                originalDeviceTimeMs: originalDeviceNowMs,
                 checkpointKm: checkpointDistance.km,
                 checkpointKmSource: checkpointDistance.source,
                 status: 'Active',
@@ -5424,7 +5796,9 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 syncAttempts: 0,
                 speed: "",     
                 pace: "",      
-                category: ""   
+                category: "",
+                routeWarning: String(logOptions.routeWarning || ''),
+                routeWarningAcknowledged: !!logOptions.routeWarningAcknowledged
             };
 
             lastCreatedUid = entry.uid;
@@ -5439,6 +5813,8 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 triggerSuccessToast();
                 if (syncIntervalMs > 0) attemptSync();
                 requestBackgroundSync_();
+                announceToScreenReader_(`Bib ${entry.bib} logged at ${entry.checkpoint}.`);
+                updateAggregateForMutation_(null, entry);
                 if (typeof logOptions.onLogged === 'function') logOptions.onLogged(entry);
             };
             addRequest.onerror = function() {
@@ -5540,6 +5916,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             if (!syncUrl) return;
             const targetUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`;
             
+            const singleSyncStartedAt = Date.now();
             fetchWithTimeout(targetUrl, {
                 method: "POST",
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -5577,9 +5954,11 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                     tx.objectStore("logs").put(row);
                 }
                 tx.oncomplete = function() { 
-                    recordSyncSuccess(); 
+                    scheduleAggregateRebuild_();
+                    recordSyncSuccess(data.serverTime, singleSyncStartedAt); 
                     loadHistory(); 
                     if (data.summary) renderSummaryDashboard(data.summary, data.configMeta);
+                    applyRouteModelsFromPayload_(data);
                     handleDataRevisionFromServer_(data.dataRevision, false);
                     if (data.appRefreshEpoch) handleAppRefreshEpochFromServer_(data.appRefreshEpoch);
                 };
@@ -5601,6 +5980,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 if (unsynced.length === 0) { isSyncing = false; return; }
                 
                 const liveSyncUrl = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`;
+                const syncRequestStartedAt = Date.now();
 
                 fetchWithTimeout(liveSyncUrl, {
                     method: "POST",
@@ -5646,9 +6026,11 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                         }
                     });
                     tx.oncomplete = function() {
-                        recordSyncSuccess();
+                        scheduleAggregateRebuild_();
+                        recordSyncSuccess(data.serverTime, syncRequestStartedAt);
                         loadHistory();
                         if (data.summary) renderSummaryDashboard(data.summary, data.configMeta);
+                        applyRouteModelsFromPayload_(data);
                         handleDataRevisionFromServer_(data.dataRevision, false);
                         if (data.appRefreshEpoch && handleAppRefreshEpochFromServer_(data.appRefreshEpoch)) return;
                         if (data.eventEpoch) handleEventEpochFromServer_(data.eventEpoch);
@@ -5700,6 +6082,11 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 passageMode: 'automatic',
                 checkpointKm: km === '' ? null : Number(km),
                 checkpointKmSource: serverRecord.checkpointKmSource || existing?.checkpointKmSource || '',
+                originalDeviceTime: serverRecord.originalDeviceTime || existing?.originalDeviceTime || serverRecord.time,
+                originalDeviceTimeMs: parseCustomOrIsoDate(serverRecord.originalDeviceTime || serverRecord.time).getTime(),
+                clockOffsetMs: Number(serverRecord.clockOffsetMs) || 0,
+                clockConfidenceMs: Number(serverRecord.clockConfidenceMs) || 0,
+                appVersion: serverRecord.appVersion || existing?.appVersion || '',
                 synced: true,
                 remake: false,
                 syncAttempts: 0
@@ -5717,14 +6104,17 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 const checkpoint = (document.getElementById('checkpoint')?.value || '').trim().toUpperCase();
                 const sep = syncUrl.includes('?') ? '&' : '?';
                 const targetRequestUrl = `${syncUrl}${sep}action=recent&limit=${RECENT_SYNC_LIMIT}&checkpoint=${encodeURIComponent(checkpoint)}&nocache=${Date.now()}`;
+                const recentRequestStartedAt = Date.now();
                 const response = await fetchWithTimeout(targetRequestUrl, {}, 15000);
                 const result = await response.json();
+                if (result.serverTime) updateClockDriftSample_(result.serverTime, recentRequestStartedAt, Date.now());
                 if (result.status !== "success") {
                     recordSyncFailure(result.message || "Recent history request rejected.");
                     return;
                 }
 
                 if (result.summary) renderSummaryDashboard(result.summary, result.configMeta);
+                applyRouteModelsFromPayload_(result);
                 // Ordinary recording mode intentionally does not run a whole-event
                 // reconciliation. Complete reconciliation is reserved for Safety Log
                 // and Director Mode.
@@ -5816,7 +6206,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
 
                 recordSyncSuccess();
                 if (outcome.prunedRemote) fullMonitorDatasetResident_ = false;
-                if (outcome.changed) loadHistory();
+                if (outcome.changed) { scheduleAggregateRebuild_(); loadHistory(); }
             } catch (err) {
                 recordSyncFailure(err.message || String(err));
             }
@@ -5841,11 +6231,13 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 let useReset = true;
                 let guardIterations = 0;
                 let lastResult = null;
+                let fullReconcileLastRequestStartedAt_ = Date.now();
 
                 while (guardIterations < 200) {
                     guardIterations++;
                     const params = useReset ? `reset=true` : `sinceRow=${sinceRow}`;
                     const url = `${syncUrl}${syncUrl.includes('?') ? '&' : '?'}${params}&nocache=${Date.now()}`;
+                    fullReconcileLastRequestStartedAt_ = Date.now();
                     const response = await fetchWithTimeout(url, {}, 25000);
                     const result = await response.json();
                     lastResult = result;
@@ -5870,6 +6262,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
 
                 if (lastResult) {
                     if (lastResult.summary) renderSummaryDashboard(lastResult.summary, lastResult.configMeta);
+                    applyRouteModelsFromPayload_(lastResult);
                     if (lastResult.appRefreshEpoch && handleAppRefreshEpochFromServer_(lastResult.appRefreshEpoch)) return { success: true, refreshed: true };
                     if (lastResult.eventEpoch) handleEventEpochFromServer_(lastResult.eventEpoch);
                     if (lastResult.bulkDeleteEpoch && (!lastResult.eventEpoch || localStorage.getItem(LOCAL_EVENT_EPOCH_KEY_) === String(lastResult.eventEpoch))) {
@@ -5923,7 +6316,11 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                                     localLog.duplicateOfUid !== incomingDuplicateOf || Number(localLog.duplicateDeviceCount || 0) !== incomingDuplicateCount ||
                                     localLog.lapMode !== (match.lapMode || localLog.lapMode) ||
                                     normalizeCheckpointKmValue_(localLog.checkpointKm) !== nextCheckpointKm ||
-                                    (localLog.checkpointKmSource || '') !== nextCheckpointKmSource;
+                                    (localLog.checkpointKmSource || '') !== nextCheckpointKmSource ||
+                                    (localLog.originalDeviceTime || '') !== (match.originalDeviceTime || localLog.originalDeviceTime || match.time) ||
+                                    Number(localLog.clockOffsetMs || 0) !== Number(match.clockOffsetMs || 0) ||
+                                    Number(localLog.clockConfidenceMs || 0) !== Number(match.clockConfidenceMs || 0) ||
+                                    (localLog.appVersion || '') !== (match.appVersion || localLog.appVersion || '');
                                 if (fieldsChanged || localLog.remake || !localLog.synced) {
                                     Object.assign(localLog, {
                                         bib: match.bib,
@@ -5942,6 +6339,11 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                                         lapMode: match.lapMode || localLog.lapMode || 'multiple',
                                         checkpointKm: nextCheckpointKm === '' ? null : Number(nextCheckpointKm),
                                         checkpointKmSource: nextCheckpointKmSource,
+                                        originalDeviceTime: match.originalDeviceTime || localLog.originalDeviceTime || match.time,
+                                        originalDeviceTimeMs: parseCustomOrIsoDate(match.originalDeviceTime || localLog.originalDeviceTime || match.time).getTime(),
+                                        clockOffsetMs: Number(match.clockOffsetMs ?? localLog.clockOffsetMs) || 0,
+                                        clockConfidenceMs: Number(match.clockConfidenceMs ?? localLog.clockConfidenceMs) || 0,
+                                        appVersion: match.appVersion || localLog.appVersion || '',
                                         synced: true,
                                         remake: false,
                                         syncAttempts: 0
@@ -5977,6 +6379,11 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                                 lapMode: serverRecord.lapMode || 'multiple',
                                 checkpointKm: km === '' ? null : Number(km),
                                 checkpointKmSource: serverRecord.checkpointKmSource || '',
+                                originalDeviceTime: serverRecord.originalDeviceTime || serverRecord.time,
+                                originalDeviceTimeMs: parseCustomOrIsoDate(serverRecord.originalDeviceTime || serverRecord.time).getTime(),
+                                clockOffsetMs: Number(serverRecord.clockOffsetMs) || 0,
+                                clockConfidenceMs: Number(serverRecord.clockConfidenceMs) || 0,
+                                appVersion: serverRecord.appVersion || '',
                                 status: serverRecord.status || 'Active',
                                 duplicateOfUid: serverRecord.duplicateOfUid || '',
                                 duplicateDeviceCount: Number(serverRecord.duplicateDeviceCount) || (status === 'duplicate' ? 2 : 1),
@@ -5997,8 +6404,9 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                     tx.onabort = () => reject(tx.error || new Error('Full reconciliation transaction was aborted.'));
                 });
 
+                if (lastResult?.serverTime) updateClockDriftSample_(lastResult.serverTime, fullReconcileLastRequestStartedAt_, Date.now());
                 recordSyncSuccess();
-                if (outcome.changed) loadHistory();
+                if (outcome.changed) { scheduleAggregateRebuild_(); loadHistory(); }
                 return Object.assign({ success: true }, outcome);
             } catch (e) {
                 recordSyncFailure(e.message || String(e));
@@ -6089,6 +6497,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             const store = tx.objectStore("logs");
             tx.oncomplete = function() {
                 editingRowId = null;
+                scheduleAggregateRebuild_();
                 loadHistory();
                 if (syncIntervalMs > 0) attemptSync();
                 document.getElementById('bibInput')?.focus();
@@ -6386,9 +6795,9 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             }
 
             if (!distanceCoveredKm) {
-                metricWarning = 'No reliable distance estimate is available yet. Enter a category-specific KM in Setup or let more known-distance scans build the estimator.';
+                metricWarning = 'Checkpoint distance unavailable; set KM in Setup.';
             } else if (distanceInfo.estimated) {
-                metricWarning = `Distance is estimated (${distanceInfo.confidence} confidence). Pace and speed are estimates; projected finish uses ${projectionMethod || 'the best available model'}.`;
+                metricWarning = 'Distance estimated; pace and finish may vary.';
             }
 
             let flagoffDisplay = '-';
@@ -6633,6 +7042,10 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             { id: 'devices', label: '📱 Checkpoint Device Activity', explain: 'When each submitting device was last heard from.' },
             { id: 'operations', label: '🧭 Operations Monitor', explain: 'Arrival windows, quiet checkpoints, duplicate rate, safety alerts, and data freshness.' },
             { id: 'cot', label: '⏱️ Cutoff Countdown', explain: 'Time remaining until each category\'s cutoff (COT).' },
+            { id: 'forecast', label: '🌊 Arrival Forecast', explain: 'Forecast arrivals for the next 15 and 30 minutes.' },
+            { id: 'health', label: '🩺 Device Health', explain: 'Battery, queue age, storage, app version, clock drift, and last contact.' },
+            { id: 'incidents', label: '🚨 Incident Board', explain: 'Open medical, transport, search, and withdrawal workflows.' },
+            { id: 'integrity', label: '🧪 Data Integrity', explain: 'Malformed times, invalid bibs, route jumps, stale devices, and mapping gaps.' },
         ];
         const DIRECTOR_WIDGET_PREFS_KEY = 'directorWidgetPrefs_v1';
 
@@ -6808,6 +7221,10 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             devices: 'directorDevicesBody',
             operations: 'directorOperationsBody',
             cot: 'directorCotBody',
+            forecast: 'directorForecastBody',
+            health: 'directorHealthBody',
+            incidents: 'directorIncidentsBody',
+            integrity: 'directorIntegrityBody',
         };
         const WIDGET_MIN_HEIGHT_PX = 100;
         const WIDGET_MAX_HEIGHT_PX = 800;
@@ -7115,6 +7532,8 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             window.addEventListener('resize', directorAutoResizeHandler);
 
             renderDirectorSummaryTable_(lastKnownSummaryRows);
+            renderAggregateFastStats_();
+            fetchOperationsSummary_();
             if (db) loadHistory(); // triggers renderDirectorModeContent_ with fresh data
 
             if (directorClockIntervalId) clearInterval(directorClockIntervalId);
@@ -7357,7 +7776,14 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             renderSafetyMatrix_();
             updateMonitorSyncLabels_('ready');
             loadLocalSafetyNotes_(() => renderSafetyLog_());
-            if (syncUrl) syncAllMonitorData_('safety', false);
+            loadLocalIncidents_();
+            loadLocalCotAlerts_();
+            renderSafetyCotAlerts_();
+            if (syncUrl) {
+                syncAllMonitorData_('safety', false);
+                pullIncidentsFromServer_();
+                pullCotAlertsFromServer_();
+            }
         }
 
         function closeSafetyLog() {
@@ -7433,6 +7859,10 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                         _safetyUpdatedAt: note ? note.updatedAt : ''
                     });
                 });
+                const routeIssueByBib = new Map();
+                buildRouteValidation_(logs).forEach(issue => { if (!routeIssueByBib.has(issue.bib)) routeIssueByBib.set(issue.bib, issue.message); });
+                roster = roster.map(r => Object.assign({}, r, { _routeIssue: routeIssueByBib.get(String(r.bib || '').toUpperCase()) || '' }));
+                evaluateCotAlerts_(logs.filter(isCountableLog_));
 
                 if (query) {
                     roster = roster.filter(r =>
@@ -7532,35 +7962,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 });
 
                 if (emptyState) emptyState.classList.toggle('hidden', roster.length > 0);
-
-                body.innerHTML = roster.map(r => {
-                    const statusOptions = ['', 'ok', 'withdrawn', 'medical', 'missing'].map(s =>
-                        `<option value="${s}" ${r._safetyStatus === s ? 'selected' : ''}>${s ? SAFETY_STATUS_LABELS_[s] : '— set status —'}</option>`
-                    ).join('');
-                    const updatedLabel = r._safetyUpdatedAt
-                        ? `${formatLogTime(r._safetyUpdatedAt)}${r._safetyUpdatedBy ? ' • ' + r._safetyUpdatedBy : ''}`
-                        : '';
-                    const rowFlagClass = r._safetyStatus === 'missing' ? 'bg-red-100/60 dark:bg-red-900/20'
-                        : r._safetyStatus === 'medical' ? 'bg-orange-100/60 dark:bg-orange-900/20'
-                        : r._safetyStatus === 'withdrawn' ? 'bg-neutral-200/60 dark:bg-neutral-800/40' : '';
-                    return `
-                        <tr class="${rowFlagClass}">
-                            <td class="p-2 pl-3 font-black bib-text-highlight whitespace-nowrap">${r.bib}</td>
-                            <td class="p-2 whitespace-nowrap font-black">${formatKmLabel_(r.km)}</td>
-                            <td class="p-2 whitespace-nowrap">${r.category || '-'}</td>
-                            <td class="p-2 whitespace-nowrap">${r.checkpoint || '-'}</td>
-                            <td class="p-2 whitespace-nowrap text-[11px] theme-text-muted">${formatLogTime(r.time)}</td>
-                            <td class="p-2">
-                                <select onchange="setSafetyNote_('${r.bib}', this.value, document.getElementById('remark-${r.bib}').value)" class="theme-input border rounded px-1.5 py-1 text-[11px] focus:outline-none">
-                                    ${statusOptions}
-                                </select>
-                            </td>
-                            <td class="p-2">
-                                <input type="text" id="remark-${r.bib}" value="${escapeHtmlAttr_(r._safetyRemark || '')}" placeholder="e.g. Confirmed OK by phone" onblur="setSafetyNote_('${r.bib}', undefined, this.value)" onkeydown="if(event.key==='Enter') this.blur();" class="w-full theme-input border rounded px-2 py-1 text-[11px] focus:outline-none">
-                            </td>
-                            <td class="p-2 text-[10px] theme-text-muted whitespace-nowrap">${updatedLabel || '-'}</td>
-                        </tr>`;
-                }).join('');
+                setSafetyVirtualRoster_(roster);
             });
         }
 
@@ -7668,6 +8070,10 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
         function renderDirectorOperations_(allLogs) {
             const container = document.getElementById('directorOperationsBody');
             if (!container) return;
+            if ((!allLogs || allLogs.length === 0) && serverOperationsSummary_) {
+                renderServerOperationsCards_();
+                return;
+            }
             if (!allLogs || allLogs.length === 0) {
                 container.innerHTML = `<div class="text-center theme-text-muted text-xs">Waiting for event data.</div>`;
                 setDirectorWidgetEmptyState_('operations', true);
@@ -7759,6 +8165,11 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             renderDirectorDeviceActivity_(activeLogs);
             renderDirectorOperations_(allLogs || []);
             renderDirectorCotCountdown_(lastKnownSummaryRows);
+            renderArrivalForecast_(allLogs || []);
+            renderDeviceHealthWidget_();
+            renderIncidentWidget_();
+            renderDataIntegrityWidget_(allLogs || []);
+            evaluateCotAlerts_(activeLogs);
         }
 
         function renderDirectorStats_(allLogs) {
@@ -8515,7 +8926,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                         }
 
                         if (!basicMetricsHTML && log.metricWarning && !duplicateLog) {
-                            basicMetricsHTML = `<div class="mt-1 text-[9px] text-amber-700 dark:text-amber-400 font-semibold">ℹ️ ${escapeHtml_(log.metricWarning)}</div>`;
+                            basicMetricsHTML = `<div class="metric-inline-indicator mt-1 text-[9px] text-amber-700 dark:text-amber-400 font-semibold" title="${escapeHtmlAttr_(log.metricWarning)}">ℹ️ ${escapeHtml_(log.metricWarning)}</div>`;
                         }
 
                         row.innerHTML = `
@@ -8586,7 +8997,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                     // straight local delete is correct here.
                     const txWrite = db.transaction(["logs"], "readwrite");
                     txWrite.objectStore("logs").delete(id);
-                    txWrite.oncomplete = function() { loadHistory(); updateSettingsWipeCounterFootprint(); };
+                    txWrite.oncomplete = function() { scheduleAggregateRebuild_(); loadHistory(); updateSettingsWipeCounterFootprint(); };
                     return;
                 }
 
@@ -8605,7 +9016,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                     const txWrite = db.transaction(["logs"], "readwrite");
                     txWrite.objectStore("logs").delete(id);
                     txWrite.oncomplete = function() {
-                        loadHistory(); updateSettingsWipeCounterFootprint();
+                        scheduleAggregateRebuild_(); loadHistory(); updateSettingsWipeCounterFootprint();
                         if (data.summary) renderSummaryDashboard(data.summary, data.configMeta);
                     };
                 }).catch(() => {
@@ -8624,6 +9035,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                     const txQueue = db.transaction(["logs"], "readwrite");
                     txQueue.objectStore("logs").put(log);
                     txQueue.oncomplete = function() {
+                        scheduleAggregateRebuild_();
                         loadHistory();
                         updateSettingsWipeCounterFootprint();
                         requestBackgroundSync_();
@@ -8689,7 +9101,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             if (prompt("Type '0000' to clear log history:") !== "0000") return;
             const tx = db.transaction(["logs"], "readwrite");
             tx.objectStore("logs").clear();
-            tx.oncomplete = function() { loadHistory(); alert("Storage wiped."); toggleSettings(); };
+            tx.oncomplete = function() { scheduleAggregateRebuild_(true); loadHistory(); alert("Storage wiped."); toggleSettings(); };
         }
 
         /* ════════════════════════════════════════════════════════════════════
@@ -8716,6 +9128,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             const tx = db.transaction(['logs'], 'readwrite');
             tx.objectStore('logs').clear();
             tx.oncomplete = function() {
+                scheduleAggregateRebuild_(true);
                 localStorage.setItem(LOCAL_BULK_DELETE_EPOCH_KEY_, String(newEpoch));
                 currentLastSyncedRowMarker = 1;
                 localStorage.setItem('lastDataRowMarker', '1');
@@ -10078,12 +10491,16 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                     // display to ##### for a too-narrow column. A UTF-8 BOM is prepended below
                     // so Excel opens the file as UTF-8 instead of guessing a legacy codepage,
                     // which is the other common cause of a CSV looking corrupted on open.
-                    let csvContent = 'BIB,Time,Checkpoint,CheckpointKM,CheckpointKMSource,Volunteer,Remark,Device,Latitude,Longitude,ID,UID,Category,PassageMode,Passage,Status,DuplicateOfUID,DuplicateDeviceCount,TimeSincePriorPassage,TotalTime,Pace,Speed,ProjectedFinish,ProjectionMethod,Flagoff,PaceZone,PaceSecs,SpeedFloat,TrendLabel\r\n';
+                    let csvContent = 'BIB,Time,OriginalDeviceTime,ClockOffsetMs,ClockConfidenceMs,AppVersion,Checkpoint,CheckpointKM,CheckpointKMSource,Volunteer,Remark,Device,Latitude,Longitude,ID,UID,Category,PassageMode,Passage,Status,DuplicateOfUID,DuplicateDeviceCount,TimeSincePriorPassage,TotalTime,Pace,Speed,ProjectedFinish,ProjectionMethod,Flagoff,PaceZone,PaceSecs,SpeedFloat,TrendLabel\r\n';
                     logs.forEach(l => {
                         const enriched = enrichLogForExport_(l, logs);
                         csvContent += [
                             `"${(l.bib||'').replace(/"/g,'""')}"`,
                             `"${(l.time||'').replace(/"/g,'""')}"`,
+                            `"${(l.originalDeviceTime||l.time||'').replace(/"/g,'""')}"`,
+                            Number(l.clockOffsetMs) || 0,
+                            Number(l.clockConfidenceMs) || 0,
+                            `"${(l.appVersion||'').replace(/"/g,'""')}"`,
                             `"${(l.checkpoint||'').replace(/"/g,'""')}"`,
                             (l.checkpointKm !== undefined && l.checkpointKm !== null && l.checkpointKm !== '') ? l.checkpointKm : '',
                             `"${(l.checkpointKmSource||'').replace(/"/g,'""')}"`,
@@ -11564,6 +11981,431 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 swipeStartX = null;
             }, { passive: true });
         })();
+
+
+        /* ════════════════════════════════════════════════════════════════════
+           v17 OPERATIONS, AGGREGATES, CLOCK AUDIT, INCIDENTS AND ACCESSIBILITY
+           ════════════════════════════════════════════════════════════════════ */
+
+        function announceToScreenReader_(message) {
+            if (!screenReaderAnnouncements_ || !message) return;
+            const el = document.getElementById('srAnnouncer');
+            if (!el) return;
+            el.textContent = '';
+            setTimeout(() => { el.textContent = String(message); }, 20);
+        }
+
+        function applyAppTextScale_() {
+            document.body.classList.remove('text-scale-large', 'text-scale-xlarge');
+            if (appTextScale_ === 'large') document.body.classList.add('text-scale-large');
+            if (appTextScale_ === 'xlarge') document.body.classList.add('text-scale-xlarge');
+            requestAnimationFrame(() => renderSafetyVirtualWindow_());
+        }
+
+        function getCorrectedNowMs_() { return Date.now() + (Number(clockOffsetMs_) || 0); }
+        function parseTimeStrictMs_(value) {
+            const raw = String(value || '').trim();
+            if (!raw) return NaN;
+            let m = raw.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)?$/i);
+            if (m) { let h=Number(m[4]); const ap=(m[7]||'').toUpperCase(); if(ap==='PM'&&h<12)h+=12;if(ap==='AM'&&h===12)h=0; const d=new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),h,Number(m[5]),Number(m[6])); return d.getTime(); }
+            if (/^\d{4}-\d{2}-\d{2}[T\s]/.test(raw)) { const t=Date.parse(raw); return Number.isFinite(t)?t:NaN; }
+            return NaN;
+        }
+
+        function updateClockDriftSample_(serverTime, requestStartedAt, responseReceivedAt) {
+            const serverMs = new Date(serverTime).getTime();
+            if (!Number.isFinite(serverMs)) return;
+            const start = Number(requestStartedAt) || Date.now();
+            const end = Number(responseReceivedAt) || Date.now();
+            const midpoint = start + Math.max(0, end - start) / 2;
+            const measuredOffset = serverMs - midpoint;
+            const confidence = Math.max(1, Math.round(Math.max(0, end - start) / 2));
+            if (Math.abs(measuredOffset) > 12 * 60 * 60 * 1000) return;
+            const weight = confidence <= 1500 ? 0.35 : confidence <= 5000 ? 0.2 : 0.08;
+            clockOffsetMs_ = clockSampleCount_ ? Math.round(clockOffsetMs_ * (1 - weight) + measuredOffset * weight) : Math.round(measuredOffset);
+            clockConfidenceMs_ = clockSampleCount_ ? Math.round(clockConfidenceMs_ * 0.7 + confidence * 0.3) : confidence;
+            clockSampleCount_++;
+            localStorage.setItem('clockOffsetMs_v1', String(clockOffsetMs_));
+            localStorage.setItem('clockConfidenceMs_v1', String(clockConfidenceMs_));
+            localStorage.setItem('clockSampleCount_v1', String(clockSampleCount_));
+        }
+
+        function aggregateCategoryForLog_(log) {
+            const cfg = findCategoryConfigForBib_(log?.bib, categoryConfig);
+            return String((cfg && cfg.category) || log?.category || 'UNCLASSIFIED').toUpperCase();
+        }
+
+        function aggregateEligibleLog_(log) { return !!log && !log.pendingDelete && !isAutoRemovedDuplicate_(log); }
+        function adjustAggregateMap_(map, key, delta) {
+            if (!key) return;
+            map[key] = Math.max(0, Number(map[key] || 0) + delta);
+            if (!map[key]) delete map[key];
+        }
+
+        function updateAggregateForMutation_(before, after) {
+            if (!db || !db.objectStoreNames.contains('aggregates')) return;
+            const tx = db.transaction(['aggregates'], 'readwrite');
+            const store = tx.objectStore('aggregates');
+            const req = store.getAll();
+            req.onsuccess = e => {
+                const rows = {}; (e.target.result || []).forEach(r => rows[r.key] = r);
+                if (!rows.global || !rows.checkpoint || !rows.category || !rows.bib || !rows.sync) {
+                    scheduleAggregateRebuild_(true);
+                    return;
+                }
+                const global = rows.global;
+                const checkpoint = rows.checkpoint;
+                const category = rows.category;
+                const bib = rows.bib;
+                const sync = rows.sync;
+                checkpoint.values = Object.assign({}, checkpoint.values || {});
+                category.values = Object.assign({}, category.values || {});
+                bib.values = Object.assign({}, bib.values || {});
+
+                const apply = (log, delta) => {
+                    if (!aggregateEligibleLog_(log)) return;
+                    global.total = Math.max(0, Number(global.total || 0) + delta);
+                    if (isDuplicateLog_(log)) global.duplicate = Math.max(0, Number(global.duplicate || 0) + delta);
+                    else global.active = Math.max(0, Number(global.active || 0) + delta);
+                    if (log.synced) sync.synced = Math.max(0, Number(sync.synced || 0) + delta);
+                    else sync.pending = Math.max(0, Number(sync.pending || 0) + delta);
+                    adjustAggregateMap_(checkpoint.values, String(log.checkpoint || 'UNSPECIFIED').toUpperCase(), delta);
+                    adjustAggregateMap_(category.values, aggregateCategoryForLog_(log), delta);
+                    adjustAggregateMap_(bib.values, String(log.bib || '').toUpperCase(), delta);
+                };
+                apply(before, -1); apply(after, 1);
+                global.uniqueBibs = Object.keys(bib.values).length;
+                sync.coverage = global.total ? Math.round(Number(sync.synced || 0) * 100 / global.total) : 100;
+                const generatedAt = new Date().toISOString();
+                [global, checkpoint, category, bib, sync].forEach(r => { r.generatedAt = generatedAt; store.put(r); });
+            };
+            req.onerror = () => scheduleAggregateRebuild_();
+        }
+
+        function syncPendingOperationalRecords_() {
+            if (operationalSyncInFlight_ || !syncUrl || !db) return;
+            const incidents = Object.values(localIncidents_).filter(i => i && i.synced === false);
+            const alerts = Object.values(localCotAlerts_).filter(a => a && a.synced === false);
+            if (!incidents.length && !alerts.length) return;
+            operationalSyncInFlight_ = true;
+            const jobs = incidents.map(i => fetch(`${syncUrl}${syncUrl.includes('?')?'&':'?'}nocache=${Date.now()}`, {method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'incident_upsert',incident:i})})
+                .then(r=>r.json()).then(d=>{if(d.status==='success'&&d.incident){const saved=Object.assign({},d.incident,{synced:true});localIncidents_[saved.id]=saved;db.transaction(['incidents'],'readwrite').objectStore('incidents').put(saved);}}))
+              .concat(alerts.map(a => fetch(`${syncUrl}${syncUrl.includes('?')?'&':'?'}nocache=${Date.now()}`, {method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'cot_alert_upsert',alert:a})})
+                .then(r=>r.json()).then(d=>{if(d.status==='success'&&d.alert){const saved=Object.assign({},d.alert,{synced:true});localCotAlerts_[saved.key]=saved;db.transaction(['cotAlerts'],'readwrite').objectStore('cotAlerts').put(saved);}})));
+            Promise.allSettled(jobs).finally(()=>{operationalSyncInFlight_=false;renderIncidentWidget_();renderSafetyCotAlerts_();});
+        }
+
+        function scheduleAggregateRebuild_(immediate) {
+            if (!db || !db.objectStoreNames.contains('aggregates')) return;
+            if (aggregateRebuildTimer_) clearTimeout(aggregateRebuildTimer_);
+            aggregateRebuildTimer_ = setTimeout(() => { aggregateRebuildTimer_ = null; rebuildAggregateStore_(); }, immediate ? 0 : 500);
+        }
+
+        function rebuildAggregateStore_() {
+            if (!db || !db.objectStoreNames.contains('aggregates')) return;
+            const byCheckpoint = {}, byCategory = {}, byBib = {};
+            let total = 0, synced = 0, pending = 0, duplicate = 0, active = 0;
+            const tx = db.transaction(['logs'], 'readonly');
+            const cursorReq = tx.objectStore('logs').openCursor();
+            cursorReq.onsuccess = e => {
+                const cursor = e.target.result;
+                if (!cursor) return;
+                const log = cursor.value;
+                if (aggregateEligibleLog_(log)) {
+                    total++;
+                    if (isDuplicateLog_(log)) duplicate++; else active++;
+                    if (log.synced) synced++; else pending++;
+                    const cp = String(log.checkpoint || 'UNSPECIFIED').toUpperCase();
+                    const cat = aggregateCategoryForLog_(log);
+                    const bib = String(log.bib || '').toUpperCase();
+                    byCheckpoint[cp] = (byCheckpoint[cp] || 0) + 1;
+                    byCategory[cat] = (byCategory[cat] || 0) + 1;
+                    if (bib) byBib[bib] = (byBib[bib] || 0) + 1;
+                }
+                cursor.continue();
+            };
+            tx.oncomplete = () => {
+                const writtenAt = new Date().toISOString();
+                const writeTx = db.transaction(['aggregates'], 'readwrite');
+                const store = writeTx.objectStore('aggregates');
+                store.put({ key: 'global', total, active, duplicate, uniqueBibs: Object.keys(byBib).length, generatedAt: writtenAt });
+                store.put({ key: 'checkpoint', values: byCheckpoint, generatedAt: writtenAt });
+                store.put({ key: 'category', values: byCategory, generatedAt: writtenAt });
+                store.put({ key: 'bib', values: byBib, generatedAt: writtenAt });
+                store.put({ key: 'sync', synced, pending, coverage: total ? Math.round(synced * 100 / total) : 100, generatedAt: writtenAt });
+            };
+        }
+
+        function readAggregateSnapshot_(callback) {
+            if (!db || !db.objectStoreNames.contains('aggregates')) { callback({}); return; }
+            const req = db.transaction(['aggregates'], 'readonly').objectStore('aggregates').getAll();
+            req.onsuccess = e => {
+                const out = {};
+                (e.target.result || []).forEach(row => { out[row.key] = row; });
+                callback(out);
+            };
+            req.onerror = () => callback({});
+        }
+
+        function renderAggregateFastStats_() {
+            readAggregateSnapshot_(snapshot => {
+                const container = document.getElementById('directorStatTiles');
+                if (!container || !snapshot.global) return;
+                const g = snapshot.global, sync = snapshot.sync || {};
+                container.innerHTML = [
+                    ['Total Logs', g.active || 0], ['Unique Runners', g.uniqueBibs || 0],
+                    ['Checkpoints', Object.keys((snapshot.checkpoint || {}).values || {}).length],
+                    ['Categories', Object.keys((snapshot.category || {}).values || {}).length],
+                    ['Pending Sync', sync.pending || 0], ['Local Coverage', (sync.coverage ?? 100) + '%']
+                ].map(([label,value]) => `<div class="theme-panel rounded-xl border shadow-sm px-3 py-3"><div class="text-[9px] theme-text-muted font-black uppercase">${escapeHtml_(label)}</div><div class="aggregate-fast-stat text-2xl font-black">${escapeHtml_(String(value))}</div></div>`).join('');
+            });
+        }
+
+        function renderSafetyRowHtml_(r, absoluteIndex) {
+            const statusOptions = ['', 'ok', 'withdrawn', 'medical', 'missing'].map(st => `<option value="${st}" ${r._safetyStatus === st ? 'selected' : ''}>${st ? SAFETY_STATUS_LABELS_[st] : '— set status —'}</option>`).join('');
+            const updatedLabel = r._safetyUpdatedAt ? `${formatLogTime(r._safetyUpdatedAt)}${r._safetyUpdatedBy ? ' • ' + r._safetyUpdatedBy : ''}` : '';
+            const rowFlagClass = r._safetyStatus === 'missing' ? 'bg-red-100/60 dark:bg-red-900/20' : r._safetyStatus === 'medical' ? 'bg-orange-100/60 dark:bg-orange-900/20' : r._safetyStatus === 'withdrawn' ? 'bg-neutral-200/60 dark:bg-neutral-800/40' : '';
+            const routeFlag = r._routeIssue ? `<span class="text-red-600 font-black" title="${escapeHtmlAttr_(r._routeIssue)}">⚠ route</span>` : '';
+            return `<tr class="${rowFlagClass}" aria-rowindex="${Number(absoluteIndex || 0) + 2}">
+                <td class="p-2 pl-3 font-black bib-text-highlight whitespace-nowrap">${escapeHtml_(r.bib)} ${routeFlag}</td>
+                <td class="p-2 whitespace-nowrap font-black">${escapeHtml_(formatKmLabel_(r.km))}</td>
+                <td class="p-2 whitespace-nowrap">${escapeHtml_(r.category || '-')}</td>
+                <td class="p-2 whitespace-nowrap">${escapeHtml_(r.checkpoint || '-')}</td>
+                <td class="p-2 whitespace-nowrap text-[11px] theme-text-muted">${escapeHtml_(formatLogTime(r.time))}</td>
+                <td class="p-2"><select onchange="setSafetyNote_('${encodeInlineArg_(r.bib)}', this.value, document.getElementById('remark-${encodeInlineArg_(r.bib)}')?.value || '')" class="theme-input border rounded px-1.5 py-1 text-[11px]">${statusOptions}</select></td>
+                <td class="p-2"><input type="text" id="remark-${encodeInlineArg_(r.bib)}" value="${escapeHtmlAttr_(r._safetyRemark || '')}" onblur="setSafetyNote_('${encodeInlineArg_(r.bib)}', undefined, this.value)" onkeydown="if(event.key==='Enter') this.blur();" class="w-full theme-input border rounded px-2 py-1 text-[11px]"></td>
+                <td class="p-2 text-[10px] theme-text-muted whitespace-nowrap">${escapeHtml_(updatedLabel || '-')}</td></tr>`;
+        }
+
+        function getSafetyVirtualRowHeight_() {
+            if (document.body.classList.contains('text-scale-xlarge')) return 80;
+            if (document.body.classList.contains('text-scale-large')) return 68;
+            return SAFETY_VIRTUAL_ROW_HEIGHT_;
+        }
+
+        function setSafetyVirtualRoster_(roster) {
+            safetyVirtualRoster_ = roster || [];
+            safetyVirtualRenderToken_++;
+            const viewport = document.getElementById('safetyTableViewport');
+            if (viewport && viewport.scrollTop > safetyVirtualRoster_.length * getSafetyVirtualRowHeight_()) viewport.scrollTop = 0;
+            renderSafetyVirtualWindow_();
+        }
+
+        function renderSafetyVirtualWindow_() {
+            const body = document.getElementById('safetyLogBody');
+            const viewport = document.getElementById('safetyTableViewport');
+            if (!body || !viewport) return;
+            const total = safetyVirtualRoster_.length;
+            if (!total) { body.innerHTML = ''; return; }
+            const rowHeight = getSafetyVirtualRowHeight_();
+            const visibleCount = Math.ceil((viewport.clientHeight || 600) / rowHeight);
+            const start = Math.max(0, Math.floor(viewport.scrollTop / rowHeight) - SAFETY_VIRTUAL_OVERSCAN_);
+            const end = Math.min(total, start + visibleCount + SAFETY_VIRTUAL_OVERSCAN_ * 2);
+            const topHeight = start * rowHeight;
+            const bottomHeight = Math.max(0, (total - end) * rowHeight);
+            const table = document.getElementById('safetyLogTable');
+            if (table) table.setAttribute('aria-rowcount', String(total + 1));
+            const rows = safetyVirtualRoster_.slice(start, end).map((row, i) => renderSafetyRowHtml_(row, start + i)).join('');
+            body.innerHTML = `<tr aria-hidden="true"><td colspan="8" class="virtual-spacer-cell" style="height:${topHeight}px"></td></tr>${rows}<tr aria-hidden="true"><td colspan="8" class="virtual-spacer-cell" style="height:${bottomHeight}px"></td></tr>`;
+        }
+
+        function buildRouteModelsClientFromLogs_(logs) {
+            const grouped = new Map();
+            (logs || []).filter(isCountableLog_).forEach(log => {
+                const cfg = findCategoryConfigForBib_(log.bib, categoryConfig);
+                const key = routeCategoryKeyForConfig_(cfg);
+                if (!key) return;
+                if (!grouped.has(key)) grouped.set(key, { cfg, byBib: new Map() });
+                const group = grouped.get(key);
+                const bib = String(log.bib || '').toUpperCase();
+                if (!group.byBib.has(bib)) group.byBib.set(bib, []);
+                group.byBib.get(bib).push(log);
+            });
+            const models = {};
+            grouped.forEach((group, key) => {
+                const entrants = Array.from(group.byBib.entries()).map(([bib, rows]) => ({ bib, first: Math.min(...rows.map(r => parseCustomOrIsoDate(r.time).getTime()).filter(Number.isFinite)) })).sort((a,b) => a.first-b.first || a.bib.localeCompare(b.bib));
+                const pioneers = entrants.slice(0,30).map(e => e.bib);
+                const cfg = group.cfg || {};
+                const sequence = Array.isArray(cfg.checkpointSequence) ? cfg.checkpointSequence.map(v=>String(v).trim().toUpperCase()).filter(Boolean) : [];
+                const transitions = {};
+                const addEdge = (from,to,count=1,support=1) => {
+                    if (!from || !to) return;
+                    if (!transitions[from]) transitions[from]=[];
+                    if (!transitions[from].some(e=>e.to===to)) transitions[from].push({to,count,support});
+                };
+                if (sequence.length) {
+                    for (let i=0;i<sequence.length-1;i++) addEdge(sequence[i],sequence[i+1],pioneers.length,1);
+                } else {
+                    const fromRunners = {}, edgeRunners = {};
+                    pioneers.forEach(bib => {
+                        const cps=[];
+                        (group.byBib.get(bib)||[]).slice().sort((a,b)=>parseCustomOrIsoDate(a.time)-parseCustomOrIsoDate(b.time)).forEach(r=>{const cp=String(r.checkpoint||'').trim().toUpperCase();if(cp&&cps[cps.length-1]!==cp)cps.push(cp);});
+                        const seenFrom=new Set(), seenEdges=new Set();
+                        for(let i=0;i<cps.length-1;i++){seenFrom.add(cps[i]);seenEdges.add(`${cps[i]}>${cps[i+1]}`);}
+                        seenFrom.forEach(from=>fromRunners[from]=(fromRunners[from]||0)+1);
+                        seenEdges.forEach(edge=>edgeRunners[edge]=(edgeRunners[edge]||0)+1);
+                    });
+                    const byFrom={}; Object.entries(edgeRunners).forEach(([edge,count])=>{const cut=edge.indexOf('>');const from=edge.slice(0,cut),to=edge.slice(cut+1);(byFrom[from]||(byFrom[from]=[])).push({to,count,support:count/Math.max(1,fromRunners[from]||1)});});
+                    Object.entries(byFrom).forEach(([from,edges])=>{const max=Math.max(...edges.map(e=>e.count));transitions[from]=edges.filter(e=>(fromRunners[from]||0)>=3&&(e.count===max||e.support>=0.5)).sort((a,b)=>b.count-a.count||a.to.localeCompare(b.to));});
+                }
+                models[key]={key,km:cfg.km||'',category:cfg.category||'',source:sequence.length?'configured':'pioneer-majority',pioneers,pioneerCount:pioneers.length,ready:pioneers.length>=30,sequence,maxJump:Math.max(1,Number(cfg.maxCheckpointJump)||1),transitions};
+            });
+            return models;
+        }
+
+        function buildRouteValidation_(logs) {
+            const issues = [];
+            const localModels = Object.keys(routeModelsByKey_ || {}).length ? routeModelsByKey_ : buildRouteModelsClientFromLogs_(logs);
+            const byBib = new Map();
+            (logs || []).filter(isCountableLog_).forEach(log => {
+                const bib = String(log.bib || '').toUpperCase();
+                if (!bib) return;
+                if (!byBib.has(bib)) byBib.set(bib, []);
+                byBib.get(bib).push(log);
+            });
+            byBib.forEach((runnerLogs, bib) => {
+                const cfg = findCategoryConfigForBib_(bib, categoryConfig);
+                const model = localModels[routeCategoryKeyForConfig_(cfg)];
+                if (!model || !model.ready || (model.pioneers || []).includes(bib)) return;
+                const cps=[];
+                runnerLogs.slice().sort((a,b)=>parseCustomOrIsoDate(a.time)-parseCustomOrIsoDate(b.time)).forEach(log=>{const cp=String(log.checkpoint||'').trim().toUpperCase();if(cp&&cps[cps.length-1]!==cp)cps.push(cp);});
+                if (Array.isArray(model.sequence) && model.sequence.length) {
+                    const aligned=alignObservedRouteToSequence_(cps,model.sequence);
+                    if (!aligned) { if(cps.length>1)issues.push({bib,type:'abnormal',message:`Route does not match ${model.category||'category'} sequence`}); return; }
+                    const maxJump=Math.max(1,Number(model.maxJump)||1);
+                    for(let i=1;i<aligned.path.length;i++){const a=aligned.path[i-1],b=aligned.path[i];if(b-a>maxJump){const missing=model.sequence.slice(a+1,b);issues.push({bib,type:'skip',from:model.sequence[a],to:model.sequence[b],message:`Skipped ${missing.join(' → ')} (${model.sequence[a]} → ${model.sequence[b]})`});}}
+                    return;
+                }
+                for(let i=1;i<cps.length;i++){
+                    const from=cps[i-1],to=cps[i],direct=routeTransitionOptions_(model,from);
+                    if(!direct.length||direct.some(e=>String(e.to).toUpperCase()===to))continue;
+                    const path=findRoutePath_(model,from,to);
+                    issues.push({bib,type:path&&path.length>2?'skip':'abnormal',from,to,message:path&&path.length>2?`Skipped ${path.slice(1,-1).join(' → ')} (${from} → ${to})`:`Unusual route ${from} → ${to}`});
+                }
+            });
+            return issues;
+        }
+
+        async function fetchOperationsSummary_() {
+            if (!syncUrl) return;
+            const started = Date.now();
+            try {
+                const sep = syncUrl.includes('?') ? '&' : '?';
+                const res = await fetchWithTimeout(`${syncUrl}${sep}action=operations&nocache=${Date.now()}`, {}, 20000);
+                const data = await res.json();
+                if (data.status !== 'success') throw new Error(data.message || 'Operations summary rejected');
+                serverOperationsSummary_ = data;
+                applyRouteModelsFromPayload_(data);
+                if (data.serverTime) updateClockDriftSample_(data.serverTime, started, Date.now());
+                if (Array.isArray(data.incidents)) mergeIncidentsIntoLocal_(data.incidents);
+                if (Array.isArray(data.cotAlerts)) mergeCotAlertsIntoLocal_(data.cotAlerts);
+                renderServerOperationsCards_();
+                renderArrivalForecast_([]);
+                renderDeviceHealthWidget_();
+                renderIncidentWidget_();
+                renderDataIntegrityWidget_([]);
+            } catch (e) { console.warn('Operations summary unavailable', e); }
+        }
+
+        function renderServerOperationsCards_() {
+            const container = document.getElementById('directorOperationsBody');
+            const s = serverOperationsSummary_;
+            if (!container || !s) return;
+            const totals = s.totals || {}, arrivals = s.arrivals || {}, cps = s.checkpoints || {};
+            const activeCps = Object.values(cps).filter(v => v.lastSeen && Date.now() - Number(v.lastSeen) <= 15*60000).length;
+            const cards = [
+                ['Arrivals 5 min', arrivals.last5 || 0, `${arrivals.last15 || 0} in 15 min · ${arrivals.last60 || 0} in 60 min`],
+                ['Active checkpoints', `${activeCps}/${Object.keys(cps).length}`, 'Cached server summary'],
+                ['Unique runners', totals.uniqueBibs || 0, `${totals.activeScans || 0} active scans`],
+                ['Open incidents', totals.openIncidents || 0, `${totals.safetyAttention || 0} safety notes need attention`],
+                ['COT unacknowledged', totals.unacknowledgedCotAlerts || 0, 'Shared acknowledgements'],
+                ['Generated', formatLogTime(s.generatedAt), `Server v${s.appVersion || '?'}`]
+            ];
+            container.innerHTML = `<div class="monitor-stat-grid">${cards.map(c=>`<div class="monitor-stat-card"><div class="monitor-label">${escapeHtml_(c[0])}</div><div class="monitor-value">${escapeHtml_(String(c[1]))}</div><div class="monitor-sub">${escapeHtml_(c[2])}</div></div>`).join('')}</div>`;
+            setDirectorWidgetEmptyState_('operations', false);
+        }
+
+        function renderArrivalForecast_(allLogs) {
+            const el = document.getElementById('directorForecastBody'); if (!el) return;
+            let forecast = serverOperationsSummary_?.forecast || [];
+            if (!forecast.length && allLogs?.length) {
+                const now = Date.now(), cp = {};
+                allLogs.filter(isCountableLog_).forEach(l=>{ const ts=parseCustomOrIsoDate(l.time).getTime(); if(!Number.isFinite(ts)||now-ts>3600000||now<ts)return; const k=l.checkpoint||'Unspecified'; cp[k]=cp[k]||{a15:0,a60:0}; cp[k].a60++; if(now-ts<=900000)cp[k].a15++; });
+                forecast=Object.entries(cp).map(([checkpoint,v])=>{ const recent=v.a15/15, older=Math.max(0,v.a60-v.a15)/45; return {checkpoint,next15:Math.round((recent*.7+older*.3)*15),next30:Math.round(Math.max(0,recent*.8+older*.2)*30),trend:recent>older+.15?'rising':recent<older-.15?'falling':'steady'}; }).sort((a,b)=>b.next15-a.next15);
+            }
+            if (!forecast.length) { el.innerHTML='<div class="text-center theme-text-muted text-xs">Not enough recent arrivals to forecast.</div>'; setDirectorWidgetEmptyState_('forecast',true); return; }
+            el.innerHTML=forecast.slice(0,12).map(f=>`<div class="forecast-row"><strong>${escapeHtml_(f.checkpoint)}</strong><span>${f.next15} next 15m · ${f.next30} next 30m</span><span class="${f.trend==='rising'?'ops-status-warn':f.trend==='falling'?'ops-status-good':''}">${f.trend==='rising'?'↗':f.trend==='falling'?'↘':'→'} ${escapeHtml_(f.trend)}</span></div>`).join(''); setDirectorWidgetEmptyState_('forecast',false);
+        }
+
+        function renderDeviceHealthWidget_() {
+            const el=document.getElementById('directorHealthBody'); if(!el)return;
+            const devices=serverOperationsSummary_?.devices || [];
+            if(!devices.length){el.innerHTML='<div class="text-center theme-text-muted text-xs">No device reports yet.</div>';setDirectorWidgetEmptyState_('health',true);return;}
+            el.innerHTML=devices.sort((a,b)=>new Date(b.lastSeen)-new Date(a.lastSeen)).map(d=>{
+                const battery=d.batteryPercent===null||d.batteryPercent===undefined?'—':Math.round(d.batteryPercent*100)+'%';
+                const stale=!d.lastSeen||Date.now()-new Date(d.lastSeen).getTime()>3*60000;
+                const drift=Math.round((Number(d.clockOffsetMs)||0)/1000);
+                return `<div class="device-health-row"><strong>${escapeHtml_(d.checkpoint||d.deviceId||'Device')}</strong><span class="${stale?'ops-status-bad':'ops-status-good'}">${stale?'stale':'online'} · 🔋 ${battery} · queue ${d.queueCount||0}</span><span>${d.storageUsedMb==null?'storage —':Math.round(d.storageUsedMb)+' MB'} · drift ${drift}s · v${escapeHtml_(d.appVersion||'?')}</span></div>`;
+            }).join(''); setDirectorWidgetEmptyState_('health',false);
+        }
+
+        function loadLocalIncidents_() {
+            if(!db||!db.objectStoreNames.contains('incidents'))return;
+            const req=db.transaction(['incidents'],'readonly').objectStore('incidents').getAll();
+            req.onsuccess=e=>{localIncidents_={};(e.target.result||[]).forEach(i=>localIncidents_[i.id]=i);renderIncidentWidget_();};
+        }
+        function loadLocalCotAlerts_() {
+            if(!db||!db.objectStoreNames.contains('cotAlerts'))return;
+            const req=db.transaction(['cotAlerts'],'readonly').objectStore('cotAlerts').getAll();
+            req.onsuccess=e=>{localCotAlerts_={};(e.target.result||[]).forEach(a=>localCotAlerts_[a.key]=a);renderSafetyCotAlerts_();};
+        }
+        function mergeIncidentsIntoLocal_(items){if(!db||!db.objectStoreNames.contains('incidents'))return;const tx=db.transaction(['incidents'],'readwrite'),store=tx.objectStore('incidents');(items||[]).forEach(i=>{const local=localIncidents_[i.id];if(local&&local.synced===false)return;const m=Object.assign({},i,{synced:true});localIncidents_[m.id]=m;store.put(m);});tx.oncomplete=renderIncidentWidget_;}
+        function mergeCotAlertsIntoLocal_(items){if(!db||!db.objectStoreNames.contains('cotAlerts'))return;const tx=db.transaction(['cotAlerts'],'readwrite'),store=tx.objectStore('cotAlerts');(items||[]).forEach(a=>{const local=localCotAlerts_[a.key];if(local&&local.synced===false)return;const m=Object.assign({},a,{synced:true});localCotAlerts_[m.key]=m;store.put(m);});tx.oncomplete=()=>{renderSafetyCotAlerts_();renderDirectorCotCountdown_(lastKnownSummaryRows);};}
+
+        function openIncidentModal_(incidentId, bib) {
+            const incident=incidentId?localIncidents_[incidentId]:null;
+            document.getElementById('incidentIdInput').value=incident?.id||'';
+            document.getElementById('incidentBibInput').value=incident?.bib||bib||'';
+            document.getElementById('incidentTypeSelect').value=incident?.type||'medical';
+            document.getElementById('incidentSeveritySelect').value=incident?.severity||'medium';
+            document.getElementById('incidentStatusSelect').value=incident?.status||'open';
+            document.getElementById('incidentCheckpointInput').value=incident?.checkpoint||(document.getElementById('checkpoint')?.value||'');
+            document.getElementById('incidentTransportInput').value=incident?.transport||'';
+            document.getElementById('incidentOwnerInput').value=incident?.owner||'';
+            document.getElementById('incidentNotesInput').value=incident?.notes||'';
+            document.getElementById('incidentModal').classList.remove('hidden');
+        }
+        function closeIncidentModal_(){document.getElementById('incidentModal')?.classList.add('hidden');}
+        function saveIncident_(){
+            if(!db||!db.objectStoreNames.contains('incidents'))return;
+            const id=document.getElementById('incidentIdInput').value||generateUID(); const existing=localIncidents_[id]||{}; const now=new Date().toISOString();
+            const incident={id,bib:(document.getElementById('incidentBibInput').value||'').trim().toUpperCase(),type:document.getElementById('incidentTypeSelect').value,severity:document.getElementById('incidentSeveritySelect').value,status:document.getElementById('incidentStatusSelect').value,checkpoint:(document.getElementById('incidentCheckpointInput').value||'').trim().toUpperCase(),transport:(document.getElementById('incidentTransportInput').value||'').trim(),owner:(document.getElementById('incidentOwnerInput').value||'').trim(),notes:(document.getElementById('incidentNotesInput').value||'').trim(),createdAt:existing.createdAt||now,updatedAt:now,updatedBy:(document.getElementById('volunteer')?.value||'').trim().toUpperCase(),deviceId:getOrCreateDeviceId(),synced:false};
+            localIncidents_[id]=incident; const tx=db.transaction(['incidents'],'readwrite'); tx.objectStore('incidents').put(incident); tx.oncomplete=()=>{closeIncidentModal_();renderIncidentWidget_();announceToScreenReader_(`Incident saved for bib ${incident.bib||'unspecified'}.`);pushIncidentToServer_(incident);};
+        }
+        function pushIncidentToServer_(incident){if(!syncUrl)return;fetch(`${syncUrl}${syncUrl.includes('?')?'&':'?'}nocache=${Date.now()}`,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'incident_upsert',incident})}).then(r=>r.json()).then(data=>{if(data.status==='success'&&data.incident){const c=Object.assign({},data.incident,{synced:true});localIncidents_[c.id]=c;db?.transaction(['incidents'],'readwrite').objectStore('incidents').put(c);renderIncidentWidget_();}}).catch(()=>{});}
+        function pullIncidentsFromServer_(){if(!syncUrl)return;fetch(`${syncUrl}${syncUrl.includes('?')?'&':'?'}action=incidents&nocache=${Date.now()}`).then(r=>r.json()).then(d=>{if(d.status==='success')mergeIncidentsIntoLocal_(d.incidents||[]);}).catch(()=>{});}
+        function renderIncidentWidget_(){const el=document.getElementById('directorIncidentsBody');const safety=document.getElementById('safetyIncidentPanel');const items=Object.values(localIncidents_).filter(i=>!['closed','resolved'].includes(String(i.status||'').toLowerCase())).sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));const html=items.slice(0,30).map(i=>`<button type="button" onclick="openIncidentModal_('${encodeInlineArg_(i.id)}')" class="incident-row incident-severity-${escapeHtmlAttr_(i.severity||'medium')} text-left w-full"><strong>${escapeHtml_(i.bib||'No bib')} · ${escapeHtml_(i.type||'incident')}</strong><span>${escapeHtml_(i.status||'open')} · ${escapeHtml_(i.checkpoint||'location pending')}</span><span>${escapeHtml_(i.owner||'unassigned')} · ${formatLogTime(i.updatedAt)}</span></button>`).join('');if(el){if(!items.length){el.innerHTML='<div class="text-center theme-text-muted text-xs">No open incidents.</div>';setDirectorWidgetEmptyState_('incidents',true);}else{el.innerHTML=html;setDirectorWidgetEmptyState_('incidents',false);}}if(safety){safety.classList.toggle('hidden',!items.length);safety.innerHTML=items.length?`<div class="flex items-center justify-between mb-2"><strong class="text-xs">🚨 Open incidents (${items.length})</strong><button onclick="openIncidentModal_()" class="theme-input border rounded px-2 py-1 text-[10px] font-black">＋ Add</button></div>${html}`:'';}}
+
+        function cotAlertKey_(bib,cotTime){return `${String(bib||'').toUpperCase()}|${String(cotTime||'')}`;}
+        function evaluateCotAlerts_(logs){
+            if(!cotAlertsEnabled_||!db||!db.objectStoreNames.contains('cotAlerts'))return;
+            const roster=buildSafetyRosterFromLogs_(logs||[]),now=getCorrectedNowMs_(),updates=[];
+            roster.forEach(r=>{if(isCompletionCheckpoint_(r.checkpoint))return;const cfg=findCategoryConfigForBib_(r.bib,categoryConfig);if(!cfg||!cfg.cotTime)return;const cot=parseCustomOrIsoDate(cfg.cotTime).getTime();if(!Number.isFinite(cot))return;const remain=(cot-now)/60000;const warning=cfg.cotWarningMinutes??cotWarningMinutes_, escalation=cfg.cotEscalationMinutes??cotEscalationMinutes_;let level='';if(remain<=0)level='overdue';else if(remain<=escalation)level='critical';else if(remain<=warning)level='warning';if(!level)return;const key=cotAlertKey_(r.bib,cfg.cotTime),existing=localCotAlerts_[key]||{};const changed=!existing.key||existing.level!==level||existing.escalated!==(level==='critical'||level==='overdue');const alert=Object.assign({},existing,{key,bib:r.bib,category:cfg.category||r.category||'',cotTime:cfg.cotTime,level,escalated:level==='critical'||level==='overdue',updatedAt:new Date().toISOString(),synced:changed?false:existing.synced!==false});localCotAlerts_[key]=alert;if(changed||!existing.key)updates.push(alert);});
+            const completedBibs=new Set(roster.filter(r=>isCompletionCheckpoint_(r.checkpoint)).map(r=>String(r.bib||'').toUpperCase()));
+            Object.values(localCotAlerts_).forEach(a=>{if(!a.acknowledged&&completedBibs.has(String(a.bib||'').toUpperCase())){a.acknowledged=true;a.acknowledgedBy='SYSTEM-FINISH';a.acknowledgedAt=new Date(now).toISOString();a.updatedAt=a.acknowledgedAt;a.synced=false;updates.push(a);}});
+            if(updates.length){const dedup=[...new Map(updates.map(a=>[a.key,a])).values()];const tx=db.transaction(['cotAlerts'],'readwrite'),store=tx.objectStore('cotAlerts');dedup.forEach(a=>store.put(a));tx.oncomplete=()=>{renderSafetyCotAlerts_();syncPendingOperationalRecords_();const unack=dedup.filter(a=>!a.acknowledged);if(unack.length)announceToScreenReader_(`${unack.length} cutoff alert${unack.length===1?'':'s'} require acknowledgement.`);};}
+        }
+        function acknowledgeCotAlert_(key){const a=localCotAlerts_[decodeURIComponent(key)]||localCotAlerts_[key];if(!a)return;a.acknowledged=true;a.acknowledgedBy=(document.getElementById('volunteer')?.value||'').trim().toUpperCase();a.acknowledgedAt=new Date().toISOString();a.synced=false;db?.transaction(['cotAlerts'],'readwrite').objectStore('cotAlerts').put(a);renderSafetyCotAlerts_();if(syncUrl)fetch(`${syncUrl}${syncUrl.includes('?')?'&':'?'}nocache=${Date.now()}`,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'cot_alert_upsert',alert:a})}).then(r=>r.json()).then(d=>{if(d.status==='success'){a.synced=true;localCotAlerts_[a.key]=a;db?.transaction(['cotAlerts'],'readwrite').objectStore('cotAlerts').put(a);}}).catch(()=>{});}
+        function pullCotAlertsFromServer_(){if(!syncUrl)return;fetch(`${syncUrl}${syncUrl.includes('?')?'&':'?'}action=cot_alerts&nocache=${Date.now()}`).then(r=>r.json()).then(d=>{if(d.status==='success')mergeCotAlertsIntoLocal_(d.cotAlerts||[]);}).catch(()=>{});}
+        function renderSafetyCotAlerts_(){const panel=document.getElementById('safetyCotAlertsPanel');if(!panel)return;const alerts=Object.values(localCotAlerts_).filter(a=>!a.acknowledged).sort((a,b)=>String(a.level).localeCompare(String(b.level)));panel.classList.toggle('hidden',!alerts.length);panel.classList.toggle('critical',alerts.some(a=>a.level==='critical'||a.level==='overdue'));if(!alerts.length){panel.innerHTML='';return;}panel.innerHTML=`<div class="font-black text-xs mb-1">⏱️ ${alerts.length} COT alert${alerts.length===1?'':'s'} require acknowledgement</div>${alerts.slice(0,12).map(a=>`<div class="cot-alert-row"><strong>Bib ${escapeHtml_(a.bib)} · ${escapeHtml_(a.level)}</strong><span>${escapeHtml_(a.category||'')} · ${formatLogTime(a.cotTime)}</span><button class="theme-input border rounded px-2 py-1 font-black" onclick="acknowledgeCotAlert_('${encodeURIComponent(a.key)}')">Acknowledge</button></div>`).join('')}`;}
+
+        function collectDeviceHealth_(){return new Promise(resolve=>{const finish=async(logs)=>{let storageUsedMb=null,storageQuotaMb=null;try{if(navigator.storage?.estimate){const e=await navigator.storage.estimate();storageUsedMb=e.usage/1048576;storageQuotaMb=e.quota/1048576;}}catch(_){ }const unsynced=(logs||[]).filter(l=>!l.synced);const oldest=unsynced.length?Math.max(0,(Date.now()-Math.min(...unsynced.map(l=>Number(l.originalDeviceTimeMs)||parseCustomOrIsoDate(l.originalDeviceTime||l.time).getTime())))/60000):0;resolve({deviceId:getOrCreateDeviceId(),device:buildDeviceString(),checkpoint:(document.getElementById('checkpoint')?.value||'').trim().toUpperCase(),volunteer:(document.getElementById('volunteer')?.value||'').trim().toUpperCase(),batteryPercent:latestBatteryState_.level,charging:latestBatteryState_.charging,queueCount:unsynced.length,oldestQueueAgeMinutes:Math.round(oldest),storageUsedMb,storageQuotaMb,appVersion:APP_VERSION,lastSync:lastSyncSuccessAt?new Date(lastSyncSuccessAt).toISOString():'',clockOffsetMs:Math.round(clockOffsetMs_),clockConfidenceMs:Math.round(clockConfidenceMs_)});};if(!db){finish([]);return;}const req=db.transaction(['logs'],'readonly').objectStore('logs').getAll();req.onsuccess=e=>finish(e.target.result||[]);req.onerror=()=>finish([]);});}
+        function persistLocalDeviceHealth_(health) { if (!db || !db.objectStoreNames.contains('deviceHealth')) return; try { db.transaction(['deviceHealth'],'readwrite').objectStore('deviceHealth').put(health); } catch (_) {} }
+        async function reportDeviceHealth_(){const health=await collectDeviceHealth_();persistLocalDeviceHealth_(health);if(!syncUrl)return;try{const started=Date.now();const res=await fetch(`${syncUrl}${syncUrl.includes('?')?'&':'?'}nocache=${Date.now()}`,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'device_health',health})});const data=await res.json();if(data.serverTime)updateClockDriftSample_(data.serverTime,started,Date.now());}catch(_){}}
+        function scheduleDeviceHealthReport_(delay=1000){setTimeout(()=>{if(!document.hidden)reportDeviceHealth_();},delay);}
+        function startDeviceHealthReporting_(){if(deviceHealthTimer_)clearInterval(deviceHealthTimer_);scheduleDeviceHealthReport_(1500);deviceHealthTimer_=setInterval(()=>{if(!document.hidden)reportDeviceHealth_();},120000);}
+
+        function renderDataIntegrityWidget_(logs){const el=document.getElementById('directorIntegrityBody');if(!el)return;const local=logs||[];const malformed=local.filter(l=>!Number.isFinite(parseTimeStrictMs_(l.time))).length;const invalid=new Set(local.filter(l=>l.bib&&!findCategoryConfigForBib_(l.bib,categoryConfig)).map(l=>l.bib)).size;const mapping=local.filter(l=>isCountableLog_(l)&&(l.checkpointKm===''||l.checkpointKm===null||l.checkpointKm===undefined||!Number.isFinite(Number(l.checkpointKm))||Number(l.checkpointKm)<0)).length;const route=buildRouteValidation_(local);const server=serverOperationsSummary_?.integrity||{};const rows=[['Malformed times',Math.max(malformed,server.malformedTimes||0),'Check device locale and source timestamp'],['Invalid bibs',Math.max(invalid,server.invalidBibs||0),'No matching Setup BIB rule'],['Route jumps',Math.max(route.length,server.routeJumps||0),route[0]?.message||server.routeSamples?.[0]?.message||'Expected checkpoint sequence'],['Mapping gaps',Math.max(mapping,server.mappingGaps||0),'Checkpoint KM is missing'],['Stale devices',server.staleDevices||0,'No health report in 3 minutes'],['High clock drift',server.highClockDriftDevices||0,'Absolute offset exceeds 30 seconds']];el.innerHTML=rows.map(([name,count,desc])=>`<div class="integrity-issue-row"><strong>${escapeHtml_(name)}</strong><span class="${count?'ops-status-bad':'ops-status-good'}">${count}</span><span>${escapeHtml_(desc)}</span></div>`).join('');setDirectorWidgetEmptyState_('integrity',false);}
 
         /* ════════════════════════════════════════════════════════════════════
            FINAL EVENT LISTENER REGISTRATIONS
@@ -13393,17 +14235,31 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             const cpV = (document.getElementById('checkpoint')?.value || '').trim().toUpperCase();
             const getAllRequest = requestLogsForBib_(bib);
             getAllRequest.onsuccess = function(e) {
-                const recentDuplicate = (e.target.result || []).some(log => isRecentSamePassage_(log, bib, cpV));
+                const runnerLogs = e.target.result || [];
+                const recentDuplicate = runnerLogs.some(log => isRecentSamePassage_(log, bib, cpV));
                 if (recentDuplicate) {
                     autoLogInFlight_ = false;
                     lastAutoScanReading_ = '';
                     setBibScannerStatus_(`⏭️ Bib ${bib} was logged recently — move to the next runner`);
                     return;
                 }
+                const routeWarning = routeWarningForCandidate_(bib, cpV, runnerLogs);
+                if (routeWarning && !confirm(`⚠️ Route check for Bib ${bib}: ${routeWarning.message}
+
+Clarify the previous checkpoint check-in. Log anyway?`)) {
+                    autoLogInFlight_ = false;
+                    autoLoggedBibLatch_ = '';
+                    lastAutoScanReading_ = '';
+                    setBibScannerStatus_(`⚠️ Bib ${bib}: clarify previous checkpoint`);
+                    announceToScreenReader_(`Route check for bib ${bib}. ${routeWarning.message}`);
+                    return;
+                }
 
                 setBibScannerStatus_(sourceMessage || `✅ Detected ${bib} — recording…`);
                 logEntry(bib, {
                     keepScannerActive: true,
+                    routeWarning: routeWarning ? routeWarning.message : '',
+                    routeWarningAcknowledged: !!routeWarning,
                     onLogged: function() {
                         autoLogInFlight_ = false;
                         lastAutoScanReading_ = '';
@@ -13520,6 +14376,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { const el = document.getElementById('safetyLogView'); if (el && !el.classList.contains('hidden')) closeSafetyLog(); } });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { const el = document.getElementById('bibScannerModal'); if (el && !el.classList.contains('hidden')) closeBibScanner(); } });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { const el = document.getElementById('exportScopeModal'); if (el && !el.classList.contains('hidden')) closeExportScopePrompt_(); } });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { const el = document.getElementById('incidentModal'); if (el && !el.classList.contains('hidden')) closeIncidentModal_(); } });
     </script>
 </body>
 </html>
