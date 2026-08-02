@@ -1,4 +1,4 @@
-        const APP_VERSION = "19.3.1";
+        const APP_VERSION = "19.3.3";
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let db;
         let dbReady_ = false;
@@ -9,8 +9,11 @@
         let recentCloudWindowUids_ = new Set();
         let bibInputToolsHideTimer_ = null;
         let minimalBibModeActive_ = false;
-        let minimalBibKeyboardPage_ = localStorage.getItem('minimalBibKeyboardPage_v1') || 'numbers';
+        let minimalBibKeyboardPage_ = 'numbers';
         let minimalEntryTarget_ = 'bib';
+        let minimalNativeKeyboardActive_ = false;
+        let bibSpaceFeedbackTimer_ = null;
+        let minimalSpaceFeedbackTimer_ = null;
         let minimalDuplicateLookupTimer_ = null;
         let minimalDuplicateLookupToken_ = 0;
         let safetyCotAlertsExpanded_ = false;
@@ -176,8 +179,8 @@
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
 
-        let googleMapsApiKey_ = localStorage.getItem('googleMapsApiKey_v1') || '';
-        let googleMapsMapId_ = localStorage.getItem('googleMapsMapId_v1') || '';
+        let googleMapsApiKey_ = '';
+        let googleMapsMapId_ = '';
         let serverGoogleMapsConfig_ = {};
         let googleMapsLoadPromise_ = null;
         let googleMapsLoadedKey_ = '';
@@ -374,21 +377,22 @@
         function setBibInputToolsVisible_(visible) {
             const shell = document.querySelector('.bib-input-shell');
             const tools = document.getElementById('bibInputTools');
-            shell?.classList.toggle('tools-visible', !!visible);
-            tools?.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            const bibInput = document.getElementById('bibInput');
+            const focusInside = !!shell && shell.contains(document.activeElement);
+            const active = document.activeElement;
+            const actuallyVisible = !!visible && focusInside && (active === bibInput || tools?.contains(active)) && !minimalBibModeActive_;
+            shell?.classList.toggle('tools-visible', actuallyVisible);
+            tools?.setAttribute('aria-hidden', actuallyVisible ? 'false' : 'true');
         }
 
         function showBibInputTools_() {
             if (bibInputToolsHideTimer_) clearTimeout(bibInputToolsHideTimer_);
-            setBibInputToolsVisible_(true);
+            requestAnimationFrame(() => setBibInputToolsVisible_(true));
         }
 
         function scheduleHideBibInputTools_() {
             if (bibInputToolsHideTimer_) clearTimeout(bibInputToolsHideTimer_);
-            bibInputToolsHideTimer_ = setTimeout(() => {
-                const shell = document.querySelector('.bib-input-shell');
-                if (!shell || !shell.contains(document.activeElement)) setBibInputToolsVisible_(false);
-            }, 140);
+            bibInputToolsHideTimer_ = setTimeout(() => setBibInputToolsVisible_(false), 90);
         }
 
         function applyBibKeyboardMode_(mode, focusAfter = false) {
@@ -408,7 +412,7 @@
                     ? 'Number keyboard active — tap to switch to letters'
                     : 'Letter keyboard active — tap to switch to numbers';
             }
-            showBibInputTools_();
+            if (focusAfter) showBibInputTools_();
             if (focusAfter) {
                 bI.blur();
                 setTimeout(() => bI.focus({ preventScroll: true }), 60);
@@ -422,17 +426,36 @@
         }
 
 
-        const MINIMAL_BIB_KEYBOARDS_ = {
-            numbers: ['1','2','3','4','5','6','7','8','9','0'],
-            letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
-            symbols: ['-','/','#','.','_','+','&','@','(',')','[',']',':',';','\'','"','*','!','?','=','%',',']
-        };
+        const MINIMAL_BIB_NUMBERS_ = ['1','2','3','4','5','6','7','8','9','0'];
 
         function setMinimalBibStatus_(message, isError = false) {
             const el = document.getElementById('minimalBibStatus');
             if (!el) return;
             el.textContent = message || '';
             el.style.color = isError ? '#fca5a5' : '#9ca3af';
+        }
+
+        function showBibSpaceBlockedFeedback_(surface = '') {
+            const useMinimal = surface === 'minimal' || minimalBibModeActive_;
+            const id = useMinimal ? 'minimalSpaceFeedback' : 'bibSpaceFeedback';
+            const el = document.getElementById(id);
+            const timerName = useMinimal ? 'minimal' : 'normal';
+            if (el) {
+                el.classList.remove('hidden');
+                el.classList.add('is-visible');
+                if (timerName === 'minimal' && minimalSpaceFeedbackTimer_) clearTimeout(minimalSpaceFeedbackTimer_);
+                if (timerName === 'normal' && bibSpaceFeedbackTimer_) clearTimeout(bibSpaceFeedbackTimer_);
+                const timer = setTimeout(() => {
+                    el.classList.remove('is-visible');
+                    el.classList.add('hidden');
+                }, 2300);
+                if (timerName === 'minimal') minimalSpaceFeedbackTimer_ = timer;
+                else bibSpaceFeedbackTimer_ = timer;
+            }
+            document.getElementById('bibInput')?.classList.add('bib-space-rejected');
+            setTimeout(() => document.getElementById('bibInput')?.classList.remove('bib-space-rejected'), 420);
+            if (useMinimal) setMinimalBibStatus_('Spaces are not allowed in BIB numbers.', true);
+            try { if (navigator.vibrate) navigator.vibrate([18, 35, 18]); } catch (_) {}
         }
 
         function setMinimalBibRepeatedState_(isRepeated, count = 0) {
@@ -519,10 +542,14 @@
             document.getElementById('minimalRemarkShell')?.classList.toggle('is-active', minimalEntryTarget_ === 'remark');
             const clearButton = document.getElementById('minimalClearButton');
             if (clearButton) clearButton.setAttribute('aria-label', minimalEntryTarget_ === 'remark' ? 'Clear remark' : 'Clear BIB');
-            if (minimalEntryTarget_ === 'remark' && minimalBibKeyboardPage_ === 'numbers') setMinimalBibKeyboardPage_('letters');
-            setMinimalBibStatus_(minimalEntryTarget_ === 'remark'
-                ? 'Remark keypad active. LOG records the BIB and this note together.'
-                : 'BIB keypad active. Phone keyboard stays closed.');
+            if (minimalNativeKeyboardActive_) {
+                setTimeout(() => openMinimalNativeKeyboard_(), 0);
+            } else {
+                activateMinimalNumericKeypad_(false);
+                setMinimalBibStatus_(minimalEntryTarget_ === 'remark'
+                    ? '123 keypad active for numbers. Press ABC to type the remark with the phone keyboard.'
+                    : 'Large 123 keypad active. Press ABC only when letters are needed.');
+            }
         }
 
         function renderMinimalLastFour_(logs, frequencyMap) {
@@ -539,7 +566,8 @@
                 const count = Math.max(1, Number(frequencyMap?.get?.(key)) || 1);
                 const time = parseCustomOrIsoDate(item?.time);
                 const timeLabel = Number.isNaN(time.getTime()) ? '' : time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                return `<div class="minimal-last4-card" title="${escapeHtmlAttr_(bib)} · ${count} local record${count === 1 ? '' : 's'}">`+
+                const colourBucket = Math.min(20, count);
+                return `<div class="minimal-last4-card last4-repeat-${colourBucket}" title="${escapeHtmlAttr_(bib)} · ${count} local record${count === 1 ? '' : 's'}">`+
                     `<strong>${escapeHtml_(bib)}</strong><small>${index === 0 ? 'LATEST' : timeLabel}</small></div>`;
             }).join('');
         }
@@ -555,19 +583,21 @@
         }
 
         function renderMinimalBibKeyboard_() {
-            const page = MINIMAL_BIB_KEYBOARDS_[minimalBibKeyboardPage_] ? minimalBibKeyboardPage_ : 'numbers';
-            minimalBibKeyboardPage_ = page;
-            localStorage.setItem('minimalBibKeyboardPage_v1', page);
-            ['numbers','letters','symbols'].forEach(name => {
-                const tab = document.getElementById(`minimalTab${name[0].toUpperCase()}${name.slice(1)}`);
-                tab?.classList.toggle('active', name === page);
-                tab?.setAttribute('aria-selected', name === page ? 'true' : 'false');
-            });
+            minimalBibKeyboardPage_ = 'numbers';
+            localStorage.setItem('minimalBibKeyboardPage_v1', 'numbers');
+            const numbersTab = document.getElementById('minimalTabNumbers');
+            const lettersTab = document.getElementById('minimalTabLetters');
+            numbersTab?.classList.toggle('active', !minimalNativeKeyboardActive_);
+            lettersTab?.classList.toggle('active', minimalNativeKeyboardActive_);
+            numbersTab?.setAttribute('aria-selected', minimalNativeKeyboardActive_ ? 'false' : 'true');
+            lettersTab?.setAttribute('aria-selected', minimalNativeKeyboardActive_ ? 'true' : 'false');
             const root = document.getElementById('minimalBibKeyboard');
+            const hint = document.getElementById('minimalNativeKeyboardHint');
             if (!root) return;
-            root.innerHTML = '';
-            root.classList.toggle('numbers-layout', page === 'numbers');
-
+            root.classList.add('numbers-layout');
+            root.classList.toggle('hidden', minimalNativeKeyboardActive_);
+            hint?.classList.toggle('hidden', !minimalNativeKeyboardActive_);
+            if (root.childElementCount) return;
             const addKey = (char) => {
                 const button = document.createElement('button');
                 button.type = 'button';
@@ -586,26 +616,112 @@
                 button.addEventListener('click', handler);
                 root.appendChild(button);
             };
+            MINIMAL_BIB_NUMBERS_.slice(0, 9).forEach(addKey);
+            addUtility('Paste from clipboard', 'PASTE', pasteMinimalBibFromClipboard_);
+            addKey('0');
+            addUtility('Delete last character', '⌫', () => minimalBibBackspace_(), 'danger');
+        }
 
-            if (page === 'numbers') {
-                // Standard 3 × 4 pad: the primary numeric targets are much larger and
-                // 0 stays in the expected thumb position between paste and backspace.
-                ['1','2','3','4','5','6','7','8','9'].forEach(addKey);
-                addUtility('Paste from clipboard', 'PASTE', pasteMinimalBibFromClipboard_);
-                addKey('0');
-                addUtility('Delete last character', '⌫', () => minimalBibBackspace_(), 'danger');
+        function closeMinimalNativeKeyboard_(returnToNumbers = true) {
+            minimalNativeKeyboardActive_ = false;
+            const nativeBib = document.getElementById('minimalNativeBibInput');
+            const remark = document.getElementById('minimalRemarkInput');
+            if (nativeBib) {
+                nativeBib.classList.remove('is-active');
+                if (document.activeElement === nativeBib) nativeBib.blur();
+            }
+            if (remark) {
+                remark.readOnly = true;
+                remark.setAttribute('inputmode', 'none');
+                if (document.activeElement === remark) remark.blur();
+            }
+            if (returnToNumbers) renderMinimalBibKeyboard_();
+        }
+
+        function activateMinimalNumericKeypad_(announce = true) {
+            closeMinimalNativeKeyboard_(false);
+            minimalBibKeyboardPage_ = 'numbers';
+            renderMinimalBibKeyboard_();
+            if (announce) setMinimalBibStatus_(minimalEntryTarget_ === 'remark'
+                ? 'Large 123 keypad active. Press ABC to type the remark.'
+                : 'Large 123 keypad active. Press ABC only when letters are needed.');
+        }
+
+        function openMinimalNativeKeyboard_() {
+            if (!minimalBibModeActive_) return;
+            minimalNativeKeyboardActive_ = true;
+            renderMinimalBibKeyboard_();
+            if (minimalEntryTarget_ === 'remark') {
+                const remark = document.getElementById('minimalRemarkInput');
+                if (!remark) return;
+                remark.readOnly = false;
+                remark.setAttribute('inputmode', 'text');
+                setMinimalBibStatus_('Phone keyboard active for the remark. Spaces are allowed here.');
+                setTimeout(() => remark.focus({ preventScroll: true }), 30);
                 return;
             }
-
-            MINIMAL_BIB_KEYBOARDS_[page].forEach(addKey);
-            addUtility('Enter a space', 'SPACE', () => appendMinimalBibText_(' '), 'utility wide-2');
-            addUtility('Paste from clipboard', 'PASTE', pasteMinimalBibFromClipboard_, 'utility wide-2');
-            addUtility('Delete last character', '⌫', () => minimalBibBackspace_(), 'danger wide-2');
+            const source = document.getElementById('bibInput');
+            const nativeBib = document.getElementById('minimalNativeBibInput');
+            if (!source || !nativeBib) return;
+            nativeBib.value = source.value;
+            nativeBib.classList.add('is-active');
+            setMinimalBibStatus_('Phone keyboard active for BIB letters. Spaces remain blocked.');
+            setTimeout(() => {
+                nativeBib.focus({ preventScroll: true });
+                try { nativeBib.setSelectionRange(nativeBib.value.length, nativeBib.value.length); } catch (_) {}
+            }, 30);
         }
 
         function setMinimalBibKeyboardPage_(page) {
-            minimalBibKeyboardPage_ = page;
-            renderMinimalBibKeyboard_();
+            if (page === 'numbers') activateMinimalNumericKeypad_();
+            else openMinimalNativeKeyboard_();
+        }
+
+        function handleMinimalNativeBibInput_(el) {
+            const source = document.getElementById('bibInput');
+            if (!source || !el) return;
+            source.value = String(el.value || '');
+            sanitizeBibTyping_(source);
+            el.value = source.value;
+            autoScaleBibFontSize_();
+            syncMinimalBibInput_();
+        }
+
+        function handleMinimalNativeBibKeydown_(event) {
+            if (event.key === ' ') {
+                event.preventDefault();
+                showBibSpaceBlockedFeedback_('minimal');
+                return;
+            }
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                document.getElementById('minimalNativeBibInput')?.blur();
+                submitMinimalBib_();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                activateMinimalNumericKeypad_();
+            }
+        }
+
+        function handleMinimalRemarkNativeKeydown_(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                document.getElementById('minimalRemarkInput')?.blur();
+                submitMinimalBib_();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                activateMinimalNumericKeypad_();
+            }
+        }
+
+        function handleMinimalNativeKeyboardBlur_() {
+            setTimeout(() => {
+                const nativeBib = document.getElementById('minimalNativeBibInput');
+                const remark = document.getElementById('minimalRemarkInput');
+                if (document.activeElement !== nativeBib && document.activeElement !== remark && minimalNativeKeyboardActive_) {
+                    activateMinimalNumericKeypad_(false);
+                }
+            }, 100);
         }
 
         function appendMinimalBibText_(text) {
@@ -625,16 +741,20 @@
             }
             const input = document.getElementById('bibInput');
             if (!input) return;
+            const hadSpace = /\s/.test(incoming);
+            const withoutSpaces = incoming.replace(/\s+/g, '');
+            if (hadSpace) showBibSpaceBlockedFeedback_('minimal');
+            if (!withoutSpaces) return;
             const available = Math.max(0, MAX_BIB_LABEL_LENGTH_ - input.value.length);
             if (!available) {
                 setMinimalBibStatus_(`Maximum ${MAX_BIB_LABEL_LENGTH_} characters reached.`, true);
                 return;
             }
-            input.value += incoming.slice(0, available);
+            input.value += withoutSpaces.slice(0, available);
             sanitizeBibTyping_(input);
             autoScaleBibFontSize_();
             syncMinimalBibInput_();
-            setMinimalBibStatus_('BIB keypad active. Phone keyboard stays closed.');
+            setMinimalBibStatus_('Large 123 keypad active. Press ABC only when letters are needed.');
         }
 
         function minimalBibBackspace_(targetOverride = '') {
@@ -695,6 +815,8 @@
             if (!view || !input) return;
             document.activeElement?.blur?.();
             minimalBibModeActive_ = true;
+            minimalNativeKeyboardActive_ = false;
+            setBibInputToolsVisible_(false);
             input.dataset.previousInputmode = input.getAttribute('inputmode') || 'text';
             input.setAttribute('inputmode', 'none');
             input.readOnly = true;
@@ -716,6 +838,7 @@
             event?.stopPropagation?.();
             if (!minimalBibModeActive_) return;
             minimalBibModeActive_ = false;
+            closeMinimalNativeKeyboard_(false);
             const view = document.getElementById('minimalBibModeView');
             const input = document.getElementById('bibInput');
             view?.classList.add('hidden');
@@ -726,6 +849,7 @@
                 delete input.dataset.previousInputmode;
             }
             document.getElementById('minimalBibModeToggle')?.setAttribute('aria-pressed', 'false');
+            setBibInputToolsVisible_(false);
         }
 
         function toggleMinimalBibMode_(event) {
@@ -743,12 +867,17 @@
 
         function handleMinimalBibPhysicalKey_(event) {
             if (!minimalBibModeActive_ || event.defaultPrevented) return;
+            if (event.target?.id === 'minimalNativeBibInput' || event.target?.id === 'minimalRemarkInput') return;
             if (event.key === 'Escape') { event.preventDefault(); closeMinimalBibMode_(event); return; }
             if (event.key === 'Enter') { event.preventDefault(); submitMinimalBib_(); return; }
             if (event.key === 'Backspace') { event.preventDefault(); minimalBibBackspace_(); return; }
             if (event.ctrlKey || event.metaKey || event.altKey) return;
             if (event.key && event.key.length === 1) {
                 event.preventDefault();
+                if (minimalEntryTarget_ === 'bib' && /\s/.test(event.key)) {
+                    showBibSpaceBlockedFeedback_('minimal');
+                    return;
+                }
                 appendMinimalBibText_(event.key);
             }
         }
@@ -873,19 +1002,21 @@
             }
         }
 
-        /** Manual BIB entry accepts any printable label. We remove only control
-         * characters that cannot be represented safely in the PWA/Sheet, preserve
-         * spaces and punctuation, and cap the label at 64 characters. */
+        /** Manual BIB entry accepts printable labels and punctuation, but never
+         * whitespace. This avoids visually identical BIBs differing only by spaces. */
         function sanitizeBibTyping_(el) {
             if (!el) return;
             const before = String(el.value || '');
             const pos = Number.isFinite(el.selectionStart) ? el.selectionStart : before.length;
             let cleaned = before;
             try { cleaned = cleaned.normalize('NFKC'); } catch (_) { /* old WebView */ }
-            cleaned = cleaned.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, MAX_BIB_LABEL_LENGTH_);
+            const hadWhitespace = /\s/.test(cleaned);
+            const whitespaceBeforeCursor = (cleaned.slice(0, pos).match(/\s/g) || []).length;
+            cleaned = cleaned.replace(/[\u0000-\u001F\u007F]/g, '').replace(/\s+/g, '').slice(0, MAX_BIB_LABEL_LENGTH_);
+            if (hadWhitespace) showBibSpaceBlockedFeedback_(minimalBibModeActive_ ? 'minimal' : 'normal');
             if (cleaned !== before) {
                 el.value = cleaned;
-                const newPos = Math.min(cleaned.length, pos);
+                const newPos = Math.max(0, Math.min(cleaned.length, pos - whitespaceBeforeCursor));
                 try { el.setSelectionRange(newPos, newPos); } catch (_) { /* unsupported */ }
             }
         }
@@ -2243,12 +2374,6 @@
             modal.setAttribute('aria-hidden', 'false');
             document.body.classList.add('overflow-hidden');
             document.getElementById("syncUrlInput").value = syncUrl;
-            const mapsKeyInput = document.getElementById('googleMapsApiKeyInput');
-            const mapsIdInput = document.getElementById('googleMapsMapIdInput');
-            if (mapsKeyInput) mapsKeyInput.value = googleMapsApiKey_;
-            if (mapsIdInput) mapsIdInput.value = googleMapsMapId_;
-            const mapsFeedback = document.getElementById('googleMapsTestFeedback');
-            if (mapsFeedback) mapsFeedback.className = 'hidden';
             updateGoogleMapsSettingsState_();
             document.getElementById("testConnectionStatusFeedback").className = "hidden";
             const saveBtn = document.getElementById('settingsSaveBtn');
@@ -2345,10 +2470,6 @@
             if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
             syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; 
             localStorage.setItem("syncUrl", syncUrl); 
-            googleMapsApiKey_ = (document.getElementById('googleMapsApiKeyInput')?.value || '').trim();
-            googleMapsMapId_ = (document.getElementById('googleMapsMapIdInput')?.value || '').trim();
-            localStorage.setItem('googleMapsApiKey_v1', googleMapsApiKey_);
-            localStorage.setItem('googleMapsMapId_v1', googleMapsMapId_);
             syncMetaToDb_();
             let requestedDupWindow = parseInt(document.getElementById("dupWindowInput").value, 10) || 20;
             requestedDupWindow = Math.min(120, Math.max(3, requestedDupWindow));
@@ -2437,8 +2558,10 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             cotAlertsEnabled_ = localStorage.getItem('cotAlertsEnabled_v1') !== 'false';
             appTextScale_ = localStorage.getItem('appTextScale_v1') || 'normal';
             screenReaderAnnouncements_ = localStorage.getItem('screenReaderAnnouncements_v1') !== 'false';
-            googleMapsApiKey_ = localStorage.getItem('googleMapsApiKey_v1') || '';
-            googleMapsMapId_ = localStorage.getItem('googleMapsMapId_v1') || '';
+            googleMapsApiKey_ = '';
+            googleMapsMapId_ = '';
+            localStorage.removeItem('googleMapsApiKey_v1');
+            localStorage.removeItem('googleMapsMapId_v1');
             updateGoogleMapsSettingsState_();
 
             document.getElementById("vibrateToggle").checked = vibrateEnabled;
@@ -3003,6 +3126,11 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
         }
 
         function handleBibInputKeydown_(event) {
+            if (event.key === ' ') {
+                event.preventDefault();
+                showBibSpaceBlockedFeedback_('normal');
+                return;
+            }
             if (event.key === 'Enter') {
                 event.preventDefault();
                 handleBibEntrySubmit_(event);
@@ -3381,7 +3509,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             remarkInput.value = '';
             syncMinimalRemarkInput_('normal');
             if (minimalBibModeActive_) {
-                setMinimalBibKeyboardPage_('numbers');
+                activateMinimalNumericKeypad_(false);
                 activateMinimalEntryTarget_('bib');
             }
             shutOffGPSHardware();
@@ -5008,8 +5136,6 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             'route-anomalies': 'director-route-anomalies-body',
             'finish-projection': 'director-finish-projection-body',
             outcomes: 'director-outcomes-body',
-            handover: 'director-handover-body',
-            'post-race-report': 'director-post-race-report-body',
         };
         const WIDGET_MIN_HEIGHT_PX = 100;
         const WIDGET_MAX_HEIGHT_PX = 800;
@@ -6640,8 +6766,8 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
         function getEffectiveGoogleMapsConfig_() {
             return {
-                apiKey: String(googleMapsApiKey_ || serverGoogleMapsConfig_.apiKey || '').trim(),
-                mapId: String(googleMapsMapId_ || serverGoogleMapsConfig_.mapId || '').trim()
+                apiKey: String(serverGoogleMapsConfig_.apiKey || '').trim(),
+                mapId: String(serverGoogleMapsConfig_.mapId || '').trim()
             };
         }
 
@@ -6649,9 +6775,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const state = document.getElementById('googleMapsSettingsState');
             if (!state) return;
             const cfg = getEffectiveGoogleMapsConfig_();
-            if (googleMapsApiKey_) state.textContent = 'Local key ready';
-            else if (cfg.apiKey) state.textContent = 'Server key ready';
-            else state.textContent = 'Key required';
+            state.textContent = cfg.apiKey ? 'Ready' : 'Deployment setup required';
+            state.classList.toggle('text-emerald-600', !!cfg.apiKey);
+            state.classList.toggle('text-amber-500', !cfg.apiKey);
         }
 
         function applyGoogleMapsConfigFromPayload_(payload) {
@@ -6701,31 +6827,6 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 setTimeout(() => finishError('Google Maps loading timed out after 20 seconds.'), 20000);
             });
             return googleMapsLoadPromise_;
-        }
-
-        async function testGoogleMapsConnection_() {
-            const key = (document.getElementById('googleMapsApiKeyInput')?.value || '').trim() || String(serverGoogleMapsConfig_.apiKey || '').trim();
-            const feedback = document.getElementById('googleMapsTestFeedback');
-            const button = document.getElementById('googleMapsTesterBtn');
-            if (button) button.disabled = true;
-            if (feedback) {
-                feedback.textContent = '⏳ Loading Google Maps JavaScript API…';
-                feedback.className = 'text-[10px] text-neutral-600 dark:text-neutral-400 font-bold block leading-tight';
-            }
-            try {
-                await ensureGoogleMapsApi_(key);
-                if (feedback) {
-                    feedback.textContent = '✅ Google Maps loaded. The Director GPS map can pan and zoom.';
-                    feedback.className = 'text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block leading-tight';
-                }
-            } catch (error) {
-                if (feedback) {
-                    feedback.textContent = '❌ ' + (error?.message || 'Google Maps test failed.');
-                    feedback.className = 'text-[10px] text-red-600 dark:text-red-400 font-bold block leading-tight';
-                }
-            } finally {
-                if (button) button.disabled = false;
-            }
         }
 
         function clearDirectorGoogleMapOverlays_() {
@@ -6799,7 +6900,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             const cfg = getEffectiveGoogleMapsConfig_();
             if (!cfg.apiKey) {
                 const canvas = document.getElementById('directorGoogleMapCanvas');
-                if (canvas) canvas.innerHTML = '<div class="director-map-message"><div><strong class="theme-text">Google Maps key required</strong><p class="mt-1">Add a restricted Maps JavaScript API browser key in Settings, or configure GOOGLE_MAPS_BROWSER_API_KEY in Apps Script properties.</p><button type="button" onclick="openSettings()">Open Settings</button></div></div>';
+                if (canvas) canvas.innerHTML = '<div class="director-map-message"><div><strong class="theme-text">Google Maps deployment configuration required</strong><p class="mt-1">Set GOOGLE_MAPS_BROWSER_API_KEY in Apps Script properties. Checkpoint devices do not enter map credentials.</p></div></div>';
                 return;
             }
             try {

@@ -1,0 +1,3011 @@
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/Code.gs /mnt/data/race-bib-logger-v19.3.3/Code.gs
+--- /mnt/data/race-bib-logger-v19.3.2/Code.gs	2026-08-02 07:36:50.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/Code.gs	2026-08-02 12:08:59.669739740 +0000
+@@ -14,7 +14,7 @@
+ const CHECKPOINT_GPS_HEADERS = ["Checkpoint", "Race KM", "Category", "Latitude", "Longitude", "Checkpoint KM", "Radius M", "Active", "Aliases", "Notes"];
+ const CHECKPOINT_GPS_DEFAULT_RADIUS_M = 250;
+ const CHECKPOINT_GPS_SPAM_DISTANCE_M = 25000;
+-const APP_VERSION = "19.3.1";
++const APP_VERSION = "19.3.3";
+ const LOCK_TIMEOUT_MS = 30000;
+ const HEADERS = ["BIB", "Time", "Checkpoint", "Volunteer", "Remark", "Device", "Latitude", "Longitude", "UID", "Server Received At", "Status", "Status Changed At", "Passage Mode", "Creator ID", "Duplicate Of UID", "Duplicate Device Count", "Checkpoint KM", "Checkpoint KM Source", "Original Device Time", "Clock Offset Ms", "Clock Confidence Ms", "App Version", "Reason Code", "Reconciliation Flags", "Route Exception Reason", "Unknown BIB", "Record Checksum", "Edited At", "Edited By"];
+ const LAST_ROW_CACHE_KEY = 'lastDataRow';
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/DEPLOY.txt /mnt/data/race-bib-logger-v19.3.3/DEPLOY.txt
+--- /mnt/data/race-bib-logger-v19.3.2/DEPLOY.txt	2026-08-02 07:40:46.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/DEPLOY.txt	2026-08-02 12:13:45.809732581 +0000
+@@ -1,36 +1,23 @@
+-RACE BIB LOGGER v19.3.1 — COMPACT MOBILE MONITORING
++RACE BIB LOGGER v19.3.3 — DEPLOYMENT
++===================================
+ 
+-PURPOSE
+-This release fixes the mobile Runner Safety Log spacing, prevents Director Mode from jumping back upward, aligns the Setup action button, and normalizes Director toolbar icons. The Racelog A:AC schema and synchronization contracts are unchanged from v19.3.0.
++1. Upload the package contents to the same web root. Preserve the app/ and icons/ folders.
++2. Replace Code.gs in the bound Google Apps Script project, save, and deploy a new Web App version.
++3. Keep the Web App execution/access settings appropriate for the event deployment.
++4. In Apps Script Project Settings > Script Properties, configure once for the deployment:
++     GOOGLE_MAPS_BROWSER_API_KEY = your browser-restricted Maps JavaScript API key
++     GOOGLE_MAPS_MAP_ID = optional Google Cloud Map ID
++   Checkpoint users do not enter or store a Maps key on their device.
++5. Restrict the browser key in Google Cloud to the deployed website origin and the Maps JavaScript API.
++6. Confirm manifest.json, sw.js, app/ux-v1933.js, and app/ux-v1933.css are served from the same root.
++7. On installed PWAs, close all app windows, reopen online once, and allow the service worker to update.
++8. Validate on a real event device:
++   - Quick Entry shows the large 123 keypad only.
++   - ABC opens the phone keyboard and 123 returns to the large keypad.
++   - Space input is rejected with red feedback.
++   - Duplicate warning appears inside Quick Entry without scrolling.
++   - Last 4 repeated BIB colours match the main Last 4 strip.
++   - Race Command View scroll position remains stable.
++   - Google map pans and zooms and displays PWA/checkpoint markers.
+ 
+-DEPLOYMENT
+-1) Replace Code.gs with the supplied v19.3.1 Code.gs.
+-2) Deploy a new Google Apps Script web-app version.
+-3) Upload the complete PWA package, including app/ux-v1931.js and app/ux-v1931.css.
+-4) Keep the same manifest and icon paths.
+-5) Open the PWA online once after deployment so the new service worker can install.
+-6) Confirm the connection test reports server version 19.3.1.
+-7) Close and reopen installed PWAs before race use.
+-
+-SERVICE-WORKER CACHE NAMES
+-- race-logger-static-v19-3-1-r1
+-- race-logger-runtime-v19-3-1-r1
+-
+-UI ACCEPTANCE CHECKS
+-- Runner Safety Log header stays on one compact row at 390 px width.
+-- Safety status, full sync, new incident, and exit use four fixed-size icon controls.
+-- The event-roster loading message occupies only the text height it needs.
+-- Director Mode can be scrolled down and remains at the chosen position during refresh/render updates.
+-- The broken Categories/Standings/At a glance section-chip strip is absent.
+-- One floating up-arrow appears on the right after scrolling and returns Director Mode to the top.
+-- Exit, sync, customize, and refresh icons are visually consistent and not oversized.
+-- Edit Setup matches the height of the readiness/summary controls and does not wrap.
+-
+-GOOGLE MAPS
+-The Director GPS map still requires a configured Google Maps JavaScript API browser key. No key is embedded. Follow docs/GOOGLE-MAPS-SETUP-v19.3.1.md.
+-
+-DATA AND SHEETS
+-No spreadsheet migration is required. Racelog remains A:AC. Existing CommandOps, WeatherRisk, Incidents, DeviceHealth, COTAlerts, and SafetyNotes data are not modified by this UI release.
+-
+-PRE-RACE VALIDATION
+-Use docs/DEVICE-TEST-MATRIX-v19.3.1.md. Test an installed recent iPhone, an older iPhone, Android Chrome/PWA, a low-memory Android device, tablet/landscape, large text, reduced motion, offline/reconnection, weak network, and real GPS.
++No Racelog sheet migration is required for v19.3.3.
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/RELEASE-NOTES-v19.3.3.md /mnt/data/race-bib-logger-v19.3.3/RELEASE-NOTES-v19.3.3.md
+--- /mnt/data/race-bib-logger-v19.3.2/RELEASE-NOTES-v19.3.3.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/RELEASE-NOTES-v19.3.3.md	2026-08-02 12:13:45.809732581 +0000
+@@ -0,0 +1,27 @@
++# Race Bib Logger v19.3.3
++
++## Entry workflow
++
++- Quick BIB Entry always presents the large numeric keypad. The ABC control now opens the device's native keyboard instead of replacing the keypad with a small on-screen alphabet or symbol layout.
++- Spaces are rejected from BIB values in normal entry, Quick Entry, pasted content, and physical-keyboard input. A local red feedback message appears for 2.3 seconds.
++- Duplicate-passage confirmation is compact, appears above Quick Entry, and no longer asks for a structured duplicate reason. The stored audit code remains `DUPLICATE_CONFIRMED`.
++- Quick Entry's Last 4 cards now use the same repeat-frequency colour tokens as the main screen.
++- OCR and keyboard-mode controls in normal BIB entry remain hidden until the BIB field or one of those controls has focus.
++
++## Layout refinements
++
++- Scan History Current CP / Global controls and the fixed 20-row limit indicator are slimmer.
++- The Setup event-distance summary strip is removed.
++- Edit Setup / Lock Setup is vertically aligned with its adjacent readiness and checkpoint summary controls.
++- Race Command View uses a lower-profile title and icon rail to preserve vertical space.
++
++## Director Mode
++
++- Shift Handover and Post-Race Command Report widgets and exports are removed.
++- Google Maps credentials are no longer accepted from checkpoint-user settings. The client receives the browser key and optional Map ID from the Apps Script deployment configuration.
++- The interactive map retains pan, zoom, map-type, checkpoint, PWA, and recent-trail support when the deployment key is configured.
++
++## Compatibility
++
++- No Racelog spreadsheet migration is required.
++- Existing record, checksum, synchronization, GPS, safety, reconciliation, COT, and route-exception formats are unchanged.
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/TEST-RESULTS-v19.3.3.txt /mnt/data/race-bib-logger-v19.3.3/TEST-RESULTS-v19.3.3.txt
+--- /mnt/data/race-bib-logger-v19.3.2/TEST-RESULTS-v19.3.3.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/TEST-RESULTS-v19.3.3.txt	2026-08-02 12:16:41.341728189 +0000
+@@ -0,0 +1,47 @@
++Race Bib Logger v19.3.3 — Validation Results
++=============================================
++
++PASSED
++------
++1. JavaScript syntax checks
++   - app/main.js
++   - app/operations-v19.js
++   - app/director-ops-v192.js
++   - app/ux-v1933.js
++
++2. Deployment asset validation
++   - 16 core files present
++   - manifest icons present
++   - local HTML script/stylesheet references resolve
++   - service-worker app-shell references resolve
++   - v19.3.3 cache version detected
++
++3. Integrity unit tests
++   - canonical record checksum generation
++   - SHA-256 checksum parity
++   - FNV-1a 64-bit fallback parity
++
++4. Static integration checks
++   - large numeric Quick Entry keypad and native ABC handoff present
++   - symbol/custom alphabet Quick keyboard absent
++   - normal and Quick BIB space rejection present
++   - compact duplicate modal is above Quick Entry and has no duplicate reason selector
++   - Quick Last 4 uses the main repeat-frequency colour classes
++   - camera/keyboard tools are focus-bound
++   - Setup event-distance strip absent
++   - compact Scan History controls present
++   - Shift Handover and Post-Race Command Report widgets/exports absent
++   - Google Maps credential inputs absent; server configuration path present
++   - Google Maps pan/zoom implementation retained
++   - service-worker includes v19.3.3 UX assets
++
++NOT EXECUTED IN THIS ENVIRONMENT
++--------------------------------
++- Installed iPhone and Android PWA keyboard transitions
++- Physical touch, haptic, safe-area, and large-text checks
++- Production Google Maps key/origin restrictions and live marker rendering
++- Real GPS movement and trail rendering
++- Live Apps Script synchronization and multi-device reconciliation
++- Weak-network, background-sync, and long-duration soak tests
++
++Conclusion: all available syntax, asset, checksum, unit, and static integration tests passed. Physical-device and production-service validation remains required before race-day deployment.
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/V19.3.3-ENTRY-DIRECTOR-REFINEMENT.patch /mnt/data/race-bib-logger-v19.3.3/V19.3.3-ENTRY-DIRECTOR-REFINEMENT.patch
+--- /mnt/data/race-bib-logger-v19.3.2/V19.3.3-ENTRY-DIRECTOR-REFINEMENT.patch	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/V19.3.3-ENTRY-DIRECTOR-REFINEMENT.patch	2026-08-02 12:16:41.341728189 +0000
+@@ -0,0 +1,155 @@
++diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/Code.gs /mnt/data/race-bib-logger-v19.3.3/Code.gs
++--- /mnt/data/race-bib-logger-v19.3.2/Code.gs	2026-08-02 07:36:50.000000000 +0000
+++++ /mnt/data/race-bib-logger-v19.3.3/Code.gs	2026-08-02 12:08:59.669739740 +0000
++@@ -14,7 +14,7 @@
++ const CHECKPOINT_GPS_HEADERS = ["Checkpoint", "Race KM", "Category", "Latitude", "Longitude", "Checkpoint KM", "Radius M", "Active", "Aliases", "Notes"];
++ const CHECKPOINT_GPS_DEFAULT_RADIUS_M = 250;
++ const CHECKPOINT_GPS_SPAM_DISTANCE_M = 25000;
++-const APP_VERSION = "19.3.1";
+++const APP_VERSION = "19.3.3";
++ const LOCK_TIMEOUT_MS = 30000;
++ const HEADERS = ["BIB", "Time", "Checkpoint", "Volunteer", "Remark", "Device", "Latitude", "Longitude", "UID", "Server Received At", "Status", "Status Changed At", "Passage Mode", "Creator ID", "Duplicate Of UID", "Duplicate Device Count", "Checkpoint KM", "Checkpoint KM Source", "Original Device Time", "Clock Offset Ms", "Clock Confidence Ms", "App Version", "Reason Code", "Reconciliation Flags", "Route Exception Reason", "Unknown BIB", "Record Checksum", "Edited At", "Edited By"];
++ const LAST_ROW_CACHE_KEY = 'lastDataRow';
++diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/DEPLOY.txt /mnt/data/race-bib-logger-v19.3.3/DEPLOY.txt
++--- /mnt/data/race-bib-logger-v19.3.2/DEPLOY.txt	2026-08-02 07:40:46.000000000 +0000
+++++ /mnt/data/race-bib-logger-v19.3.3/DEPLOY.txt	2026-08-02 12:13:45.809732581 +0000
++@@ -1,36 +1,23 @@
++-RACE BIB LOGGER v19.3.1 — COMPACT MOBILE MONITORING
+++RACE BIB LOGGER v19.3.3 — DEPLOYMENT
+++===================================
++ 
++-PURPOSE
++-This release fixes the mobile Runner Safety Log spacing, prevents Director Mode from jumping back upward, aligns the Setup action button, and normalizes Director toolbar icons. The Racelog A:AC schema and synchronization contracts are unchanged from v19.3.0.
+++1. Upload the package contents to the same web root. Preserve the app/ and icons/ folders.
+++2. Replace Code.gs in the bound Google Apps Script project, save, and deploy a new Web App version.
+++3. Keep the Web App execution/access settings appropriate for the event deployment.
+++4. In Apps Script Project Settings > Script Properties, configure once for the deployment:
+++     GOOGLE_MAPS_BROWSER_API_KEY = your browser-restricted Maps JavaScript API key
+++     GOOGLE_MAPS_MAP_ID = optional Google Cloud Map ID
+++   Checkpoint users do not enter or store a Maps key on their device.
+++5. Restrict the browser key in Google Cloud to the deployed website origin and the Maps JavaScript API.
+++6. Confirm manifest.json, sw.js, app/ux-v1933.js, and app/ux-v1933.css are served from the same root.
+++7. On installed PWAs, close all app windows, reopen online once, and allow the service worker to update.
+++8. Validate on a real event device:
+++   - Quick Entry shows the large 123 keypad only.
+++   - ABC opens the phone keyboard and 123 returns to the large keypad.
+++   - Space input is rejected with red feedback.
+++   - Duplicate warning appears inside Quick Entry without scrolling.
+++   - Last 4 repeated BIB colours match the main Last 4 strip.
+++   - Race Command View scroll position remains stable.
+++   - Google map pans and zooms and displays PWA/checkpoint markers.
++ 
++-DEPLOYMENT
++-1) Replace Code.gs with the supplied v19.3.1 Code.gs.
++-2) Deploy a new Google Apps Script web-app version.
++-3) Upload the complete PWA package, including app/ux-v1931.js and app/ux-v1931.css.
++-4) Keep the same manifest and icon paths.
++-5) Open the PWA online once after deployment so the new service worker can install.
++-6) Confirm the connection test reports server version 19.3.1.
++-7) Close and reopen installed PWAs before race use.
++-
++-SERVICE-WORKER CACHE NAMES
++-- race-logger-static-v19-3-1-r1
++-- race-logger-runtime-v19-3-1-r1
++-
++-UI ACCEPTANCE CHECKS
++-- Runner Safety Log header stays on one compact row at 390 px width.
++-- Safety status, full sync, new incident, and exit use four fixed-size icon controls.
++-- The event-roster loading message occupies only the text height it needs.
++-- Director Mode can be scrolled down and remains at the chosen position during refresh/render updates.
++-- The broken Categories/Standings/At a glance section-chip strip is absent.
++-- One floating up-arrow appears on the right after scrolling and returns Director Mode to the top.
++-- Exit, sync, customize, and refresh icons are visually consistent and not oversized.
++-- Edit Setup matches the height of the readiness/summary controls and does not wrap.
++-
++-GOOGLE MAPS
++-The Director GPS map still requires a configured Google Maps JavaScript API browser key. No key is embedded. Follow docs/GOOGLE-MAPS-SETUP-v19.3.1.md.
++-
++-DATA AND SHEETS
++-No spreadsheet migration is required. Racelog remains A:AC. Existing CommandOps, WeatherRisk, Incidents, DeviceHealth, COTAlerts, and SafetyNotes data are not modified by this UI release.
++-
++-PRE-RACE VALIDATION
++-Use docs/DEVICE-TEST-MATRIX-v19.3.1.md. Test an installed recent iPhone, an older iPhone, Android Chrome/PWA, a low-memory Android device, tablet/landscape, large text, reduced motion, offline/reconnection, weak network, and real GPS.
+++No Racelog sheet migration is required for v19.3.3.
++diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/RELEASE-NOTES-v19.3.3.md /mnt/data/race-bib-logger-v19.3.3/RELEASE-NOTES-v19.3.3.md
++--- /mnt/data/race-bib-logger-v19.3.2/RELEASE-NOTES-v19.3.3.md	1970-01-01 00:00:00.000000000 +0000
+++++ /mnt/data/race-bib-logger-v19.3.3/RELEASE-NOTES-v19.3.3.md	2026-08-02 12:13:45.809732581 +0000
++@@ -0,0 +1,27 @@
+++# Race Bib Logger v19.3.3
+++
+++## Entry workflow
+++
+++- Quick BIB Entry always presents the large numeric keypad. The ABC control now opens the device's native keyboard instead of replacing the keypad with a small on-screen alphabet or symbol layout.
+++- Spaces are rejected from BIB values in normal entry, Quick Entry, pasted content, and physical-keyboard input. A local red feedback message appears for 2.3 seconds.
+++- Duplicate-passage confirmation is compact, appears above Quick Entry, and no longer asks for a structured duplicate reason. The stored audit code remains `DUPLICATE_CONFIRMED`.
+++- Quick Entry's Last 4 cards now use the same repeat-frequency colour tokens as the main screen.
+++- OCR and keyboard-mode controls in normal BIB entry remain hidden until the BIB field or one of those controls has focus.
+++
+++## Layout refinements
+++
+++- Scan History Current CP / Global controls and the fixed 20-row limit indicator are slimmer.
+++- The Setup event-distance summary strip is removed.
+++- Edit Setup / Lock Setup is vertically aligned with its adjacent readiness and checkpoint summary controls.
+++- Race Command View uses a lower-profile title and icon rail to preserve vertical space.
+++
+++## Director Mode
+++
+++- Shift Handover and Post-Race Command Report widgets and exports are removed.
+++- Google Maps credentials are no longer accepted from checkpoint-user settings. The client receives the browser key and optional Map ID from the Apps Script deployment configuration.
+++- The interactive map retains pan, zoom, map-type, checkpoint, PWA, and recent-trail support when the deployment key is configured.
+++
+++## Compatibility
+++
+++- No Racelog spreadsheet migration is required.
+++- Existing record, checksum, synchronization, GPS, safety, reconciliation, COT, and route-exception formats are unchanged.
++diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/TEST-RESULTS-v19.3.3.txt /mnt/data/race-bib-logger-v19.3.3/TEST-RESULTS-v19.3.3.txt
++--- /mnt/data/race-bib-logger-v19.3.2/TEST-RESULTS-v19.3.3.txt	1970-01-01 00:00:00.000000000 +0000
+++++ /mnt/data/race-bib-logger-v19.3.3/TEST-RESULTS-v19.3.3.txt	2026-08-02 12:16:41.341728189 +0000
++@@ -0,0 +1,47 @@
+++Race Bib Logger v19.3.3 — Validation Results
+++=============================================
+++
+++PASSED
+++------
+++1. JavaScript syntax checks
+++   - app/main.js
+++   - app/operations-v19.js
+++   - app/director-ops-v192.js
+++   - app/ux-v1933.js
+++
+++2. Deployment asset validation
+++   - 16 core files present
+++   - manifest icons present
+++   - local HTML script/stylesheet references resolve
+++   - service-worker app-shell references resolve
+++   - v19.3.3 cache version detected
+++
+++3. Integrity unit tests
+++   - canonical record checksum generation
+++   - SHA-256 checksum parity
+++   - FNV-1a 64-bit fallback parity
+++
+++4. Static integration checks
+++   - large numeric Quick Entry keypad and native ABC handoff present
+++   - symbol/custom alphabet Quick keyboard absent
+++   - normal and Quick BIB space rejection present
+++   - compact duplicate modal is above Quick Entry and has no duplicate reason selector
+++   - Quick Last 4 uses the main repeat-frequency colour classes
+++   - camera/keyboard tools are focus-bound
+++   - Setup event-distance strip absent
+++   - compact Scan History controls present
+++   - Shift Handover and Post-Race Command Report widgets/exports absent
+++   - Google Maps credential inputs absent; server configuration path present
+++   - Google Maps pan/zoom implementation retained
+++   - service-worker includes v19.3.3 UX assets
+++
+++NOT EXECUTED IN THIS ENVIRONMENT
+++--------------------------------
+++- Installed iPhone and Android PWA keyboard transitions
+++- Physical touch, haptic, safe-area, and large-text checks
+++- Production Google Maps key/origin restrictions and live marker rendering
+++- Real GPS movement and trail rendering
+++- Live Apps Script synchronization and multi-device reconciliation
+++- Weak-network, background-sync, and long-duration soak tests
+++
+++Conclusion: all available syntax, asset, checksum, unit, and static integration tests passed. Physical-device and production-service validation remains required before race-day deployment.
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/app/constants.js /mnt/data/race-bib-logger-v19.3.3/app/constants.js
+--- /mnt/data/race-bib-logger-v19.3.2/app/constants.js	2026-08-02 07:36:50.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/app/constants.js	2026-08-02 12:08:59.669739740 +0000
+@@ -2,7 +2,7 @@
+ (function (global) {
+   'use strict';
+   global.RaceConfig = Object.freeze({
+-    appVersion: '19.3.1',
++    appVersion: '19.3.3',
+     dbName: 'RaceLoggerDB',
+     queueBatchSize: 50,
+     operationalBatchSize: 25,
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/app/director-ops-v192.js /mnt/data/race-bib-logger-v19.3.3/app/director-ops-v192.js
+--- /mnt/data/race-bib-logger-v19.3.2/app/director-ops-v192.js	2026-08-02 07:36:50.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/app/director-ops-v192.js	2026-08-02 12:08:59.637739741 +0000
+@@ -1,11 +1,11 @@
+-/* Race Bib Logger v19.3.1 director analytics suite.
++/* Race Bib Logger v19.3.3 director analytics suite.
+  * Keeps high-value forecasting, safety analysis and reporting while removing
+  * the operational boards requested for a cleaner command view.
+  */
+ (function (global) {
+   'use strict';
+ 
+-  const VERSION = '19.3.1';
++  const VERSION = '19.3.3';
+   const STORE_KEY = 'raceCommandOps_v19_2';
+   const HEATMAP_WINDOW_KEY = 'directorHeatmapWindow_v19_2';
+   const OPS_EPOCH_KEY = 'raceCommandOpsEventEpoch_v19_2';
+@@ -16,20 +16,17 @@
+   let pullInFlight_ = null;
+   let activeOpId_ = '';
+   let heatmapWindowMinutes_ = Number(localStorage.getItem(HEATMAP_WINDOW_KEY) || 60) || 60;
+-  let handoverSnapshot_ = null;
+ 
+   const WIDGETS = [
+     ['heatmap', '🔥 Checkpoint Load Heatmap', 'Scans per minute by checkpoint and rolling time block.'],
+     ['cot-funnel', '⏳ COT Risk Funnel', 'Safe, approaching, critical, overdue, acknowledged, and resolved runners.'],
+     ['route-anomalies', '🧭 Route Anomaly Diagram', 'Skipped checkpoints, reverse movement, impossible travel, and approved exceptions.'],
+     ['finish-projection', '🏁 Finish Projection', 'Estimated finish windows and runner counts by KM and category.'],
+-    ['outcomes', '📋 DNS / DNF / Withdrawal / Medical', 'Operational totals and unresolved runner outcomes.'],
+-    ['handover', '🤝 Shift Handover', 'Quiet devices, pending BIB queue, checkpoint activity, and upcoming cutoffs.'],
+-    ['post-race-report', '🧾 Post-Race Command Report', 'Export COT outcomes, device health, checkpoint performance, integrity, and reconciliation.']
++    ['outcomes', '📋 DNS / DNF / Withdrawal / Medical', 'Operational totals and unresolved runner outcomes.']
+   ];
+   const REMOVED_WIDGET_IDS = Object.freeze([
+     'incidents', 'timeline', 'missing-runners', 'medical-capacity',
+-    'transport-sweep', 'weather-risk', 'supplies'
++    'transport-sweep', 'weather-risk', 'supplies', 'handover', 'post-race-report'
+   ]);
+ 
+   const TYPE_CONFIG = {
+@@ -78,7 +75,6 @@
+     if (stored && stored !== epoch) {
+       commandOps_ = {};
+       saveJson_(STORE_KEY, commandOps_);
+-      handoverSnapshot_ = null;
+     }
+     localStorage.setItem(OPS_EPOCH_KEY, epoch);
+     return stored !== epoch;
+@@ -612,140 +608,6 @@
+   global.v192AcknowledgeIncident_=function(encodedId){const id=decodeURIComponent(encodedId),i=global.localIncidents_?.[id];if(!i)return;i.acknowledgedAt=i.acknowledgedAt||nowIso_();i.status=i.status==='open'?'responding':i.status;i.updatedAt=nowIso_();i.updatedBy=currentVolunteer_();i.synced=false;persistIncident_(i);};
+   global.v192ResolveIncident_=function(encodedId){const id=decodeURIComponent(encodedId),i=global.localIncidents_?.[id];if(!i)return;const resolution=prompt('Resolution / handover note:',i.resolution||'');if(resolution===null||!resolution.trim())return;i.resolution=resolution.trim();i.resolvedAt=nowIso_();i.status='resolved';i.updatedAt=i.resolvedAt;i.updatedBy=currentVolunteer_();i.synced=false;persistIncident_(i);};
+ 
+-  function handoverData_() {
+-    const devices = global.serverOperationsSummary_?.devices || [];
+-    const quiet = devices.filter(d => !d.lastSeen || Date.now() - parseMs_(d.lastSeen) > 5 * 60000);
+-    const deviceQueue = devices.reduce((sum, d) => sum + (Number(d.queueCount) || 0), 0);
+-    const localBibQueue = Number(global.RaceState?.getState?.().queueSummary?.logs || 0);
+-    const alerts = Object.values(global.localCotAlerts_ || {})
+-      .filter(a => !a.resolved && !a.acknowledged)
+-      .sort((a, b) => parseMs_(a.cotTime) - parseMs_(b.cotTime));
+-    const checkpoints = Object.entries(global.serverOperationsSummary_?.checkpoints || {})
+-      .map(([checkpoint, data]) => ({
+-        checkpoint,
+-        total: Number(data?.total) || 0,
+-        last15: Number(data?.last15) || 0,
+-        lastSeen: data?.lastSeen || ''
+-      }))
+-      .sort((a, b) => b.last15 - a.last15 || b.total - a.total);
+-    return {
+-      generatedAt: nowIso_(),
+-      generatedBy: currentVolunteer_(),
+-      quietDevices: quiet,
+-      pendingQueue: Math.max(deviceQueue, localBibQueue),
+-      localBibQueue,
+-      upcomingCot: alerts.slice(0, 15),
+-      checkpoints: checkpoints.slice(0, 20),
+-      integrity: global.serverOperationsSummary_?.integrity || {}
+-    };
+-  }
+-  function handoverText_(h) {
+-    const integrity = h.integrity || {};
+-    return `SHIFT HANDOVER — ${new Date(h.generatedAt).toLocaleString()}
+-Prepared by: ${h.generatedBy || 'Unspecified'}
+-
+-QUIET / STALE DEVICES (${h.quietDevices.length})
+-${h.quietDevices.map(d => `- ${d.checkpoint || d.deviceId}: last seen ${ageLabel_(d.lastSeen)}, queue ${Number(d.queueCount) || 0}, battery ${d.batteryPercent == null ? '—' : Math.round(Number(d.batteryPercent) * 100) + '%'}`).join('\n') || '- None'}
+-
+-PENDING BIB QUEUE
+-- Local device: ${h.localBibQueue}
+-- Highest reported operational queue: ${h.pendingQueue}
+-
+-UPCOMING / ACTIVE COT (${h.upcomingCot.length})
+-${h.upcomingCot.map(a => `- BIB ${a.bib} ${a.level} — COT ${formatTime_(a.cotTime)} — needs acknowledgement`).join('\n') || '- None'}
+-
+-CHECKPOINT ACTIVITY
+-${h.checkpoints.map(c => `- ${c.checkpoint}: ${c.last15} scans in 15m, ${c.total} total, last seen ${ageLabel_(c.lastSeen)}`).join('\n') || '- No checkpoint data'}
+-
+-INTEGRITY
+-- Route anomalies: ${Number(integrity.routeJumps) || 0}
+-- Stale devices: ${Number(integrity.staleDevices) || 0}
+-- High clock drift devices: ${Number(integrity.highClockDriftDevices) || 0}
+-- Uncategorized BIBs: ${Number(integrity.uncategorizedBibs) || 0}`;
+-  }
+-  function renderHandover_() {
+-    const el=document.getElementById('director-handover-body');if(!el)return;
+-    const h=handoverSnapshot_||handoverData_(),text=handoverText_(h);
+-    el.innerHTML=`<div class="v192-toolbar"><span class="text-[10px] theme-text-muted">Snapshot generated ${ageLabel_(h.generatedAt)}</span><div class="flex gap-1"><button class="v192-btn" onclick="generateV192Handover_()">↻ Generate</button><button class="v192-btn" onclick="copyV192Handover_()">Copy</button><button class="v192-btn v192-btn-primary" onclick="downloadV192Handover_()">Download</button></div></div><div class="v192-pre">${esc_(text)}</div>`;
+-    setEmpty_('handover',false);
+-  }
+-  global.generateV192Handover_=function(){handoverSnapshot_=handoverData_();renderHandover_();};
+-  global.copyV192Handover_=async function(){const text=handoverText_(handoverSnapshot_||handoverData_());try{await navigator.clipboard.writeText(text);alert('Handover copied.');}catch(_){prompt('Copy handover:',text);}};
+-  function downloadText_(name,text,type){const blob=new Blob([text],{type:type||'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+-  global.downloadV192Handover_=function(){const h=handoverSnapshot_||handoverData_();downloadText_(`race-handover-${new Date().toISOString().replace(/[:.]/g,'-')}.txt`,handoverText_(h));};
+-
+-  function buildCommandTimeline_(logs, incidents, alerts, notes, ops) {
+-    const events = [];
+-    (logs || []).forEach(log => {
+-      const base = { at: log.time || log.timestamp || '', bib: log.bib || '', checkpoint: log.checkpoint || '', source: 'Passage' };
+-      events.push(Object.assign({}, base, { type: 'checkpoint_passage', summary: `BIB ${log.bib || 'unknown'} recorded at ${log.checkpoint || 'Unspecified'}` }));
+-      if (log.editedAt) events.push({ at: log.editedAt, bib: log.bib || '', checkpoint: log.checkpoint || '', source: 'Audit', type: 'record_edited', summary: `Passage edited by ${log.editedBy || log.editor || 'unknown'}` });
+-    });
+-    (incidents || []).forEach(i => {
+-      events.push({ at: i.createdAt, bib: i.bib || '', checkpoint: i.checkpoint || '', source: 'Incident', type: 'incident_opened', summary: `${i.type || 'Incident'} opened${i.owner ? ' · owner ' + i.owner : ''}` });
+-      if (i.acknowledgedAt) events.push({ at: i.acknowledgedAt, bib: i.bib || '', checkpoint: i.checkpoint || '', source: 'Incident', type: 'incident_acknowledged', summary: `Incident acknowledged${i.owner ? ' by ' + i.owner : ''}` });
+-      if (i.resolvedAt) events.push({ at: i.resolvedAt, bib: i.bib || '', checkpoint: i.checkpoint || '', source: 'Incident', type: 'incident_resolved', summary: `Incident resolved${i.resolution ? ' · ' + i.resolution : ''}` });
+-    });
+-    (alerts || []).forEach(a => {
+-      events.push({ at: a.firstSeenAt || a.createdAt || a.updatedAt || a.cotTime, bib: a.bib || '', checkpoint: '', source: 'COT', type: 'cot_alert', summary: `${a.level || 'COT'} alert · cutoff ${formatTime_(a.cotTime)}` });
+-      if (a.acknowledgedAt) events.push({ at: a.acknowledgedAt, bib: a.bib || '', checkpoint: '', source: 'COT', type: 'cot_acknowledged', summary: `COT acknowledged by ${a.acknowledgedBy || 'unknown'}` });
+-      if (a.resolvedAt) events.push({ at: a.resolvedAt, bib: a.bib || '', checkpoint: '', source: 'COT', type: 'cot_resolved', summary: `COT resolved by ${a.resolvedBy || 'unknown'}${a.resolution ? ' · ' + a.resolution : ''}` });
+-    });
+-    (notes || []).forEach(n => events.push({ at: n.updatedAt || n.time, bib: n.bib || '', checkpoint: n.checkpoint || '', source: 'Safety', type: 'safety_note', summary: `${n.status || 'Safety note'}${n.remark ? ' · ' + n.remark : ''}` }));
+-    (ops || []).forEach(o => events.push({ at: o.updatedAt || o.createdAt, bib: o.bib || '', checkpoint: o.checkpoint || '', source: 'Command', type: o.type || 'command_op', summary: `${o.name || o.type || 'Command operation'} · ${o.status || 'open'}${o.owner ? ' · owner ' + o.owner : ''}` }));
+-    return events.filter(e => Number.isFinite(parseMs_(e.at))).sort((a,b) => parseMs_(a.at) - parseMs_(b.at));
+-  }
+-
+-  function buildReport_() {
+-    const logs = (lastLogs_ || []).filter(countable_);
+-    const summary = global.serverOperationsSummary_ || {};
+-    const alerts = Object.values(global.localCotAlerts_ || {});
+-    const cp = {};
+-    logs.forEach(log => {
+-      const key = log.checkpoint || 'Unspecified';
+-      cp[key] = cp[key] || { logs: 0, unique: new Set(), lastSeen: 0 };
+-      cp[key].logs++;
+-      cp[key].unique.add(bibKey_(log));
+-      cp[key].lastSeen = Math.max(cp[key].lastSeen, parseMs_(log.time) || 0);
+-    });
+-    const reconciliation = loadJson_(global.RaceConfig?.serverReconciliationKey || 'serverReconciliationSnapshot_v19', {});
+-    return {
+-      version: VERSION,
+-      generatedAt: nowIso_(),
+-      generatedBy: currentVolunteer_(),
+-      totals: {
+-        logs: logs.length,
+-        uniqueRunners: new Set(logs.map(bibKey_).filter(Boolean)).size,
+-        cotAlerts: alerts.length,
+-        unresolvedCot: alerts.filter(a => !a.resolved).length,
+-        devices: (summary.devices || []).length
+-      },
+-      checkpointPerformance: Object.entries(cp).map(([checkpoint, value]) => ({
+-        checkpoint,
+-        logs: value.logs,
+-        uniqueRunners: value.unique.size,
+-        lastSeen: value.lastSeen ? new Date(value.lastSeen).toISOString() : ''
+-      })),
+-      cotAlerts: alerts,
+-      devices: summary.devices || [],
+-      routeAnomalies: summary.integrity?.routeSamples || [],
+-      integrity: summary.integrity || {},
+-      reconciliation
+-    };
+-  }
+-  function reportHtml_(r) {
+-    const table = (headers, rows) => `<table><thead><tr>${headers.map(h => `<th>${esc_(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+-    return `<!doctype html><html><head><meta charset="utf-8"><title>Post-Race Command Report</title><style>body{font-family:Arial,sans-serif;margin:32px;color:#111}h1,h2{margin:.6em 0}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.card{border:1px solid #ccc;padding:12px;border-radius:8px}.card b{font-size:24px;display:block}table{border-collapse:collapse;width:100%;margin:12px 0 24px;font-size:12px}th,td{border:1px solid #ccc;padding:6px;text-align:left}th{background:#eee}pre{white-space:pre-wrap;background:#f5f5f5;padding:12px}</style></head><body><h1>Race Command Post-Race Report</h1><p>Generated ${esc_(new Date(r.generatedAt).toLocaleString())} by ${esc_(r.generatedBy || 'Unspecified')} · App v${VERSION}</p><div class="cards">${Object.entries(r.totals).map(([key, value]) => `<div class="card"><b>${value}</b>${esc_(key)}</div>`).join('')}</div><h2>Checkpoint performance</h2>${table(['Checkpoint','Logs','Unique runners','Last seen'], r.checkpointPerformance.map(x => `<tr><td>${esc_(x.checkpoint)}</td><td>${x.logs}</td><td>${x.uniqueRunners}</td><td>${esc_(formatTime_(x.lastSeen))}</td></tr>`))}<h2>COT outcomes</h2>${table(['BIB','Category','Level','Acknowledged','Resolved','COT'], r.cotAlerts.map(a => `<tr><td>${esc_(a.bib)}</td><td>${esc_(a.category)}</td><td>${esc_(a.level)}</td><td>${a.acknowledged ? 'Yes' : 'No'}</td><td>${a.resolved ? 'Yes' : 'No'}</td><td>${esc_(formatTime_(a.cotTime))}</td></tr>`))}<h2>Device health</h2>${table(['Device','Checkpoint','Battery','Queue','Connection','Last seen','GPS'], r.devices.map(d => `<tr><td>${esc_(d.device || d.deviceId)}</td><td>${esc_(d.checkpoint)}</td><td>${d.batteryPercent == null ? '—' : Math.round(Number(d.batteryPercent) * 100) + '%'}</td><td>${Number(d.queueCount) || 0}</td><td>${esc_(d.connectivity || '')}</td><td>${esc_(formatTime_(d.lastSeen))}</td><td>${d.latitude == null ? '—' : esc_(Number(d.latitude).toFixed(5) + ', ' + Number(d.longitude).toFixed(5))}</td></tr>`))}<h2>Integrity, route anomalies and reconciliation</h2><pre>${esc_(JSON.stringify({integrity:r.integrity,routeAnomalies:r.routeAnomalies,reconciliation:r.reconciliation}, null, 2))}</pre></body></html>`;
+-  }
+-  function renderPostRaceReport_() {
+-    const el = document.getElementById('director-post-race-report-body');
+-    if (!el) return;
+-    const report = buildReport_();
+-    el.innerHTML = `<div class="v192-grid"><div class="v192-stat"><strong>${report.totals.logs}</strong><span>Logs</span></div><div class="v192-stat"><strong>${report.totals.uniqueRunners}</strong><span>Unique runners</span></div><div class="v192-stat"><strong>${report.totals.unresolvedCot}</strong><span>Unresolved COT</span></div><div class="v192-stat"><strong>${report.devices.length}</strong><span>Devices</span></div></div><div class="v192-toolbar"><p class="text-[10px] theme-text-muted flex-1">The report contains checkpoint performance, COT outcomes, device health, route anomalies, integrity, and reconciliation. JSON preserves machine-readable detail.</p><button class="v192-btn" onclick="downloadV192Report_('json')">Download JSON</button><button class="v192-btn v192-btn-primary" onclick="downloadV192Report_('html')">Download HTML report</button></div>`;
+-    setEmpty_('post-race-report', false);
+-  }
+-  global.downloadV192Report_=function(format){const r=buildReport_(),stamp=new Date().toISOString().replace(/[:.]/g,'-');if(format==='json')downloadText_(`post-race-command-report-${stamp}.json`,JSON.stringify(r,null,2),'application/json');else downloadText_(`post-race-command-report-${stamp}.html`,reportHtml_(r),'text/html;charset=utf-8');};
+-
+   function renderAll_(logs) {
+     if (Array.isArray(logs)) lastLogs_ = logs;
+     renderHeatmap_(lastLogs_);
+@@ -753,8 +615,6 @@
+     renderRouteAnomalies_(lastLogs_);
+     renderFinishProjection_(lastLogs_);
+     renderOutcomes_();
+-    renderHandover_();
+-    renderPostRaceReport_();
+     redrawMapWithHealth_(lastLogs_);
+   }
+ 
+@@ -797,6 +657,6 @@
+     renderAll_([]);
+   }
+ 
+-  global.RaceDirectorOpsV192 = Object.freeze({ render: renderAll_, buildReport: buildReport_ });
++  global.RaceDirectorOpsV192 = Object.freeze({ render: renderAll_ });
+   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialise_,{once:true});else initialise_();
+ })(window);
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/app/main.js /mnt/data/race-bib-logger-v19.3.3/app/main.js
+--- /mnt/data/race-bib-logger-v19.3.2/app/main.js	2026-08-02 07:36:50.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/app/main.js	2026-08-02 12:08:59.669739740 +0000
+@@ -1,4 +1,4 @@
+-        const APP_VERSION = "19.3.1";
++        const APP_VERSION = "19.3.3";
+         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
+         let db;
+         let dbReady_ = false;
+@@ -9,8 +9,11 @@
+         let recentCloudWindowUids_ = new Set();
+         let bibInputToolsHideTimer_ = null;
+         let minimalBibModeActive_ = false;
+-        let minimalBibKeyboardPage_ = localStorage.getItem('minimalBibKeyboardPage_v1') || 'numbers';
++        let minimalBibKeyboardPage_ = 'numbers';
+         let minimalEntryTarget_ = 'bib';
++        let minimalNativeKeyboardActive_ = false;
++        let bibSpaceFeedbackTimer_ = null;
++        let minimalSpaceFeedbackTimer_ = null;
+         let minimalDuplicateLookupTimer_ = null;
+         let minimalDuplicateLookupToken_ = 0;
+         let safetyCotAlertsExpanded_ = false;
+@@ -176,8 +179,8 @@
+             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
+         }
+ 
+-        let googleMapsApiKey_ = localStorage.getItem('googleMapsApiKey_v1') || '';
+-        let googleMapsMapId_ = localStorage.getItem('googleMapsMapId_v1') || '';
++        let googleMapsApiKey_ = '';
++        let googleMapsMapId_ = '';
+         let serverGoogleMapsConfig_ = {};
+         let googleMapsLoadPromise_ = null;
+         let googleMapsLoadedKey_ = '';
+@@ -374,21 +377,22 @@
+         function setBibInputToolsVisible_(visible) {
+             const shell = document.querySelector('.bib-input-shell');
+             const tools = document.getElementById('bibInputTools');
+-            shell?.classList.toggle('tools-visible', !!visible);
+-            tools?.setAttribute('aria-hidden', visible ? 'false' : 'true');
++            const bibInput = document.getElementById('bibInput');
++            const focusInside = !!shell && shell.contains(document.activeElement);
++            const active = document.activeElement;
++            const actuallyVisible = !!visible && focusInside && (active === bibInput || tools?.contains(active)) && !minimalBibModeActive_;
++            shell?.classList.toggle('tools-visible', actuallyVisible);
++            tools?.setAttribute('aria-hidden', actuallyVisible ? 'false' : 'true');
+         }
+ 
+         function showBibInputTools_() {
+             if (bibInputToolsHideTimer_) clearTimeout(bibInputToolsHideTimer_);
+-            setBibInputToolsVisible_(true);
++            requestAnimationFrame(() => setBibInputToolsVisible_(true));
+         }
+ 
+         function scheduleHideBibInputTools_() {
+             if (bibInputToolsHideTimer_) clearTimeout(bibInputToolsHideTimer_);
+-            bibInputToolsHideTimer_ = setTimeout(() => {
+-                const shell = document.querySelector('.bib-input-shell');
+-                if (!shell || !shell.contains(document.activeElement)) setBibInputToolsVisible_(false);
+-            }, 140);
++            bibInputToolsHideTimer_ = setTimeout(() => setBibInputToolsVisible_(false), 90);
+         }
+ 
+         function applyBibKeyboardMode_(mode, focusAfter = false) {
+@@ -408,7 +412,7 @@
+                     ? 'Number keyboard active — tap to switch to letters'
+                     : 'Letter keyboard active — tap to switch to numbers';
+             }
+-            showBibInputTools_();
++            if (focusAfter) showBibInputTools_();
+             if (focusAfter) {
+                 bI.blur();
+                 setTimeout(() => bI.focus({ preventScroll: true }), 60);
+@@ -422,11 +426,7 @@
+         }
+ 
+ 
+-        const MINIMAL_BIB_KEYBOARDS_ = {
+-            numbers: ['1','2','3','4','5','6','7','8','9','0'],
+-            letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
+-            symbols: ['-','/','#','.','_','+','&','@','(',')','[',']',':',';','\'','"','*','!','?','=','%',',']
+-        };
++        const MINIMAL_BIB_NUMBERS_ = ['1','2','3','4','5','6','7','8','9','0'];
+ 
+         function setMinimalBibStatus_(message, isError = false) {
+             const el = document.getElementById('minimalBibStatus');
+@@ -435,6 +435,29 @@
+             el.style.color = isError ? '#fca5a5' : '#9ca3af';
+         }
+ 
++        function showBibSpaceBlockedFeedback_(surface = '') {
++            const useMinimal = surface === 'minimal' || minimalBibModeActive_;
++            const id = useMinimal ? 'minimalSpaceFeedback' : 'bibSpaceFeedback';
++            const el = document.getElementById(id);
++            const timerName = useMinimal ? 'minimal' : 'normal';
++            if (el) {
++                el.classList.remove('hidden');
++                el.classList.add('is-visible');
++                if (timerName === 'minimal' && minimalSpaceFeedbackTimer_) clearTimeout(minimalSpaceFeedbackTimer_);
++                if (timerName === 'normal' && bibSpaceFeedbackTimer_) clearTimeout(bibSpaceFeedbackTimer_);
++                const timer = setTimeout(() => {
++                    el.classList.remove('is-visible');
++                    el.classList.add('hidden');
++                }, 2300);
++                if (timerName === 'minimal') minimalSpaceFeedbackTimer_ = timer;
++                else bibSpaceFeedbackTimer_ = timer;
++            }
++            document.getElementById('bibInput')?.classList.add('bib-space-rejected');
++            setTimeout(() => document.getElementById('bibInput')?.classList.remove('bib-space-rejected'), 420);
++            if (useMinimal) setMinimalBibStatus_('Spaces are not allowed in BIB numbers.', true);
++            try { if (navigator.vibrate) navigator.vibrate([18, 35, 18]); } catch (_) {}
++        }
++
+         function setMinimalBibRepeatedState_(isRepeated, count = 0) {
+             const display = document.getElementById('minimalBibDisplay');
+             const wrap = document.getElementById('minimalBibDisplayWrap');
+@@ -519,10 +542,14 @@
+             document.getElementById('minimalRemarkShell')?.classList.toggle('is-active', minimalEntryTarget_ === 'remark');
+             const clearButton = document.getElementById('minimalClearButton');
+             if (clearButton) clearButton.setAttribute('aria-label', minimalEntryTarget_ === 'remark' ? 'Clear remark' : 'Clear BIB');
+-            if (minimalEntryTarget_ === 'remark' && minimalBibKeyboardPage_ === 'numbers') setMinimalBibKeyboardPage_('letters');
+-            setMinimalBibStatus_(minimalEntryTarget_ === 'remark'
+-                ? 'Remark keypad active. LOG records the BIB and this note together.'
+-                : 'BIB keypad active. Phone keyboard stays closed.');
++            if (minimalNativeKeyboardActive_) {
++                setTimeout(() => openMinimalNativeKeyboard_(), 0);
++            } else {
++                activateMinimalNumericKeypad_(false);
++                setMinimalBibStatus_(minimalEntryTarget_ === 'remark'
++                    ? '123 keypad active for numbers. Press ABC to type the remark with the phone keyboard.'
++                    : 'Large 123 keypad active. Press ABC only when letters are needed.');
++            }
+         }
+ 
+         function renderMinimalLastFour_(logs, frequencyMap) {
+@@ -539,7 +566,8 @@
+                 const count = Math.max(1, Number(frequencyMap?.get?.(key)) || 1);
+                 const time = parseCustomOrIsoDate(item?.time);
+                 const timeLabel = Number.isNaN(time.getTime()) ? '' : time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+-                return `<div class="minimal-last4-card" title="${escapeHtmlAttr_(bib)} · ${count} local record${count === 1 ? '' : 's'}">`+
++                const colourBucket = Math.min(20, count);
++                return `<div class="minimal-last4-card last4-repeat-${colourBucket}" title="${escapeHtmlAttr_(bib)} · ${count} local record${count === 1 ? '' : 's'}">`+
+                     `<strong>${escapeHtml_(bib)}</strong><small>${index === 0 ? 'LATEST' : timeLabel}</small></div>`;
+             }).join('');
+         }
+@@ -555,19 +583,21 @@
+         }
+ 
+         function renderMinimalBibKeyboard_() {
+-            const page = MINIMAL_BIB_KEYBOARDS_[minimalBibKeyboardPage_] ? minimalBibKeyboardPage_ : 'numbers';
+-            minimalBibKeyboardPage_ = page;
+-            localStorage.setItem('minimalBibKeyboardPage_v1', page);
+-            ['numbers','letters','symbols'].forEach(name => {
+-                const tab = document.getElementById(`minimalTab${name[0].toUpperCase()}${name.slice(1)}`);
+-                tab?.classList.toggle('active', name === page);
+-                tab?.setAttribute('aria-selected', name === page ? 'true' : 'false');
+-            });
++            minimalBibKeyboardPage_ = 'numbers';
++            localStorage.setItem('minimalBibKeyboardPage_v1', 'numbers');
++            const numbersTab = document.getElementById('minimalTabNumbers');
++            const lettersTab = document.getElementById('minimalTabLetters');
++            numbersTab?.classList.toggle('active', !minimalNativeKeyboardActive_);
++            lettersTab?.classList.toggle('active', minimalNativeKeyboardActive_);
++            numbersTab?.setAttribute('aria-selected', minimalNativeKeyboardActive_ ? 'false' : 'true');
++            lettersTab?.setAttribute('aria-selected', minimalNativeKeyboardActive_ ? 'true' : 'false');
+             const root = document.getElementById('minimalBibKeyboard');
++            const hint = document.getElementById('minimalNativeKeyboardHint');
+             if (!root) return;
+-            root.innerHTML = '';
+-            root.classList.toggle('numbers-layout', page === 'numbers');
+-
++            root.classList.add('numbers-layout');
++            root.classList.toggle('hidden', minimalNativeKeyboardActive_);
++            hint?.classList.toggle('hidden', !minimalNativeKeyboardActive_);
++            if (root.childElementCount) return;
+             const addKey = (char) => {
+                 const button = document.createElement('button');
+                 button.type = 'button';
+@@ -586,26 +616,112 @@
+                 button.addEventListener('click', handler);
+                 root.appendChild(button);
+             };
++            MINIMAL_BIB_NUMBERS_.slice(0, 9).forEach(addKey);
++            addUtility('Paste from clipboard', 'PASTE', pasteMinimalBibFromClipboard_);
++            addKey('0');
++            addUtility('Delete last character', '⌫', () => minimalBibBackspace_(), 'danger');
++        }
++
++        function closeMinimalNativeKeyboard_(returnToNumbers = true) {
++            minimalNativeKeyboardActive_ = false;
++            const nativeBib = document.getElementById('minimalNativeBibInput');
++            const remark = document.getElementById('minimalRemarkInput');
++            if (nativeBib) {
++                nativeBib.classList.remove('is-active');
++                if (document.activeElement === nativeBib) nativeBib.blur();
++            }
++            if (remark) {
++                remark.readOnly = true;
++                remark.setAttribute('inputmode', 'none');
++                if (document.activeElement === remark) remark.blur();
++            }
++            if (returnToNumbers) renderMinimalBibKeyboard_();
++        }
++
++        function activateMinimalNumericKeypad_(announce = true) {
++            closeMinimalNativeKeyboard_(false);
++            minimalBibKeyboardPage_ = 'numbers';
++            renderMinimalBibKeyboard_();
++            if (announce) setMinimalBibStatus_(minimalEntryTarget_ === 'remark'
++                ? 'Large 123 keypad active. Press ABC to type the remark.'
++                : 'Large 123 keypad active. Press ABC only when letters are needed.');
++        }
+ 
+-            if (page === 'numbers') {
+-                // Standard 3 × 4 pad: the primary numeric targets are much larger and
+-                // 0 stays in the expected thumb position between paste and backspace.
+-                ['1','2','3','4','5','6','7','8','9'].forEach(addKey);
+-                addUtility('Paste from clipboard', 'PASTE', pasteMinimalBibFromClipboard_);
+-                addKey('0');
+-                addUtility('Delete last character', '⌫', () => minimalBibBackspace_(), 'danger');
++        function openMinimalNativeKeyboard_() {
++            if (!minimalBibModeActive_) return;
++            minimalNativeKeyboardActive_ = true;
++            renderMinimalBibKeyboard_();
++            if (minimalEntryTarget_ === 'remark') {
++                const remark = document.getElementById('minimalRemarkInput');
++                if (!remark) return;
++                remark.readOnly = false;
++                remark.setAttribute('inputmode', 'text');
++                setMinimalBibStatus_('Phone keyboard active for the remark. Spaces are allowed here.');
++                setTimeout(() => remark.focus({ preventScroll: true }), 30);
+                 return;
+             }
+-
+-            MINIMAL_BIB_KEYBOARDS_[page].forEach(addKey);
+-            addUtility('Enter a space', 'SPACE', () => appendMinimalBibText_(' '), 'utility wide-2');
+-            addUtility('Paste from clipboard', 'PASTE', pasteMinimalBibFromClipboard_, 'utility wide-2');
+-            addUtility('Delete last character', '⌫', () => minimalBibBackspace_(), 'danger wide-2');
++            const source = document.getElementById('bibInput');
++            const nativeBib = document.getElementById('minimalNativeBibInput');
++            if (!source || !nativeBib) return;
++            nativeBib.value = source.value;
++            nativeBib.classList.add('is-active');
++            setMinimalBibStatus_('Phone keyboard active for BIB letters. Spaces remain blocked.');
++            setTimeout(() => {
++                nativeBib.focus({ preventScroll: true });
++                try { nativeBib.setSelectionRange(nativeBib.value.length, nativeBib.value.length); } catch (_) {}
++            }, 30);
+         }
+ 
+         function setMinimalBibKeyboardPage_(page) {
+-            minimalBibKeyboardPage_ = page;
+-            renderMinimalBibKeyboard_();
++            if (page === 'numbers') activateMinimalNumericKeypad_();
++            else openMinimalNativeKeyboard_();
++        }
++
++        function handleMinimalNativeBibInput_(el) {
++            const source = document.getElementById('bibInput');
++            if (!source || !el) return;
++            source.value = String(el.value || '');
++            sanitizeBibTyping_(source);
++            el.value = source.value;
++            autoScaleBibFontSize_();
++            syncMinimalBibInput_();
++        }
++
++        function handleMinimalNativeBibKeydown_(event) {
++            if (event.key === ' ') {
++                event.preventDefault();
++                showBibSpaceBlockedFeedback_('minimal');
++                return;
++            }
++            if (event.key === 'Enter') {
++                event.preventDefault();
++                document.getElementById('minimalNativeBibInput')?.blur();
++                submitMinimalBib_();
++            } else if (event.key === 'Escape') {
++                event.preventDefault();
++                activateMinimalNumericKeypad_();
++            }
++        }
++
++        function handleMinimalRemarkNativeKeydown_(event) {
++            if (event.key === 'Enter') {
++                event.preventDefault();
++                document.getElementById('minimalRemarkInput')?.blur();
++                submitMinimalBib_();
++            } else if (event.key === 'Escape') {
++                event.preventDefault();
++                activateMinimalNumericKeypad_();
++            }
++        }
++
++        function handleMinimalNativeKeyboardBlur_() {
++            setTimeout(() => {
++                const nativeBib = document.getElementById('minimalNativeBibInput');
++                const remark = document.getElementById('minimalRemarkInput');
++                if (document.activeElement !== nativeBib && document.activeElement !== remark && minimalNativeKeyboardActive_) {
++                    activateMinimalNumericKeypad_(false);
++                }
++            }, 100);
+         }
+ 
+         function appendMinimalBibText_(text) {
+@@ -625,16 +741,20 @@
+             }
+             const input = document.getElementById('bibInput');
+             if (!input) return;
++            const hadSpace = /\s/.test(incoming);
++            const withoutSpaces = incoming.replace(/\s+/g, '');
++            if (hadSpace) showBibSpaceBlockedFeedback_('minimal');
++            if (!withoutSpaces) return;
+             const available = Math.max(0, MAX_BIB_LABEL_LENGTH_ - input.value.length);
+             if (!available) {
+                 setMinimalBibStatus_(`Maximum ${MAX_BIB_LABEL_LENGTH_} characters reached.`, true);
+                 return;
+             }
+-            input.value += incoming.slice(0, available);
++            input.value += withoutSpaces.slice(0, available);
+             sanitizeBibTyping_(input);
+             autoScaleBibFontSize_();
+             syncMinimalBibInput_();
+-            setMinimalBibStatus_('BIB keypad active. Phone keyboard stays closed.');
++            setMinimalBibStatus_('Large 123 keypad active. Press ABC only when letters are needed.');
+         }
+ 
+         function minimalBibBackspace_(targetOverride = '') {
+@@ -695,6 +815,8 @@
+             if (!view || !input) return;
+             document.activeElement?.blur?.();
+             minimalBibModeActive_ = true;
++            minimalNativeKeyboardActive_ = false;
++            setBibInputToolsVisible_(false);
+             input.dataset.previousInputmode = input.getAttribute('inputmode') || 'text';
+             input.setAttribute('inputmode', 'none');
+             input.readOnly = true;
+@@ -716,6 +838,7 @@
+             event?.stopPropagation?.();
+             if (!minimalBibModeActive_) return;
+             minimalBibModeActive_ = false;
++            closeMinimalNativeKeyboard_(false);
+             const view = document.getElementById('minimalBibModeView');
+             const input = document.getElementById('bibInput');
+             view?.classList.add('hidden');
+@@ -726,6 +849,7 @@
+                 delete input.dataset.previousInputmode;
+             }
+             document.getElementById('minimalBibModeToggle')?.setAttribute('aria-pressed', 'false');
++            setBibInputToolsVisible_(false);
+         }
+ 
+         function toggleMinimalBibMode_(event) {
+@@ -743,12 +867,17 @@
+ 
+         function handleMinimalBibPhysicalKey_(event) {
+             if (!minimalBibModeActive_ || event.defaultPrevented) return;
++            if (event.target?.id === 'minimalNativeBibInput' || event.target?.id === 'minimalRemarkInput') return;
+             if (event.key === 'Escape') { event.preventDefault(); closeMinimalBibMode_(event); return; }
+             if (event.key === 'Enter') { event.preventDefault(); submitMinimalBib_(); return; }
+             if (event.key === 'Backspace') { event.preventDefault(); minimalBibBackspace_(); return; }
+             if (event.ctrlKey || event.metaKey || event.altKey) return;
+             if (event.key && event.key.length === 1) {
+                 event.preventDefault();
++                if (minimalEntryTarget_ === 'bib' && /\s/.test(event.key)) {
++                    showBibSpaceBlockedFeedback_('minimal');
++                    return;
++                }
+                 appendMinimalBibText_(event.key);
+             }
+         }
+@@ -873,19 +1002,21 @@
+             }
+         }
+ 
+-        /** Manual BIB entry accepts any printable label. We remove only control
+-         * characters that cannot be represented safely in the PWA/Sheet, preserve
+-         * spaces and punctuation, and cap the label at 64 characters. */
++        /** Manual BIB entry accepts printable labels and punctuation, but never
++         * whitespace. This avoids visually identical BIBs differing only by spaces. */
+         function sanitizeBibTyping_(el) {
+             if (!el) return;
+             const before = String(el.value || '');
+             const pos = Number.isFinite(el.selectionStart) ? el.selectionStart : before.length;
+             let cleaned = before;
+             try { cleaned = cleaned.normalize('NFKC'); } catch (_) { /* old WebView */ }
+-            cleaned = cleaned.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, MAX_BIB_LABEL_LENGTH_);
++            const hadWhitespace = /\s/.test(cleaned);
++            const whitespaceBeforeCursor = (cleaned.slice(0, pos).match(/\s/g) || []).length;
++            cleaned = cleaned.replace(/[\u0000-\u001F\u007F]/g, '').replace(/\s+/g, '').slice(0, MAX_BIB_LABEL_LENGTH_);
++            if (hadWhitespace) showBibSpaceBlockedFeedback_(minimalBibModeActive_ ? 'minimal' : 'normal');
+             if (cleaned !== before) {
+                 el.value = cleaned;
+-                const newPos = Math.min(cleaned.length, pos);
++                const newPos = Math.max(0, Math.min(cleaned.length, pos - whitespaceBeforeCursor));
+                 try { el.setSelectionRange(newPos, newPos); } catch (_) { /* unsupported */ }
+             }
+         }
+@@ -2243,12 +2374,6 @@
+             modal.setAttribute('aria-hidden', 'false');
+             document.body.classList.add('overflow-hidden');
+             document.getElementById("syncUrlInput").value = syncUrl;
+-            const mapsKeyInput = document.getElementById('googleMapsApiKeyInput');
+-            const mapsIdInput = document.getElementById('googleMapsMapIdInput');
+-            if (mapsKeyInput) mapsKeyInput.value = googleMapsApiKey_;
+-            if (mapsIdInput) mapsIdInput.value = googleMapsMapId_;
+-            const mapsFeedback = document.getElementById('googleMapsTestFeedback');
+-            if (mapsFeedback) mapsFeedback.className = 'hidden';
+             updateGoogleMapsSettingsState_();
+             document.getElementById("testConnectionStatusFeedback").className = "hidden";
+             const saveBtn = document.getElementById('settingsSaveBtn');
+@@ -2345,10 +2470,6 @@
+             if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+             syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; 
+             localStorage.setItem("syncUrl", syncUrl); 
+-            googleMapsApiKey_ = (document.getElementById('googleMapsApiKeyInput')?.value || '').trim();
+-            googleMapsMapId_ = (document.getElementById('googleMapsMapIdInput')?.value || '').trim();
+-            localStorage.setItem('googleMapsApiKey_v1', googleMapsApiKey_);
+-            localStorage.setItem('googleMapsMapId_v1', googleMapsMapId_);
+             syncMetaToDb_();
+             let requestedDupWindow = parseInt(document.getElementById("dupWindowInput").value, 10) || 20;
+             requestedDupWindow = Math.min(120, Math.max(3, requestedDupWindow));
+@@ -2437,8 +2558,10 @@
+             cotAlertsEnabled_ = localStorage.getItem('cotAlertsEnabled_v1') !== 'false';
+             appTextScale_ = localStorage.getItem('appTextScale_v1') || 'normal';
+             screenReaderAnnouncements_ = localStorage.getItem('screenReaderAnnouncements_v1') !== 'false';
+-            googleMapsApiKey_ = localStorage.getItem('googleMapsApiKey_v1') || '';
+-            googleMapsMapId_ = localStorage.getItem('googleMapsMapId_v1') || '';
++            googleMapsApiKey_ = '';
++            googleMapsMapId_ = '';
++            localStorage.removeItem('googleMapsApiKey_v1');
++            localStorage.removeItem('googleMapsMapId_v1');
+             updateGoogleMapsSettingsState_();
+ 
+             document.getElementById("vibrateToggle").checked = vibrateEnabled;
+@@ -3003,6 +3126,11 @@
+         }
+ 
+         function handleBibInputKeydown_(event) {
++            if (event.key === ' ') {
++                event.preventDefault();
++                showBibSpaceBlockedFeedback_('normal');
++                return;
++            }
+             if (event.key === 'Enter') {
+                 event.preventDefault();
+                 handleBibEntrySubmit_(event);
+@@ -3381,7 +3509,7 @@
+             remarkInput.value = '';
+             syncMinimalRemarkInput_('normal');
+             if (minimalBibModeActive_) {
+-                setMinimalBibKeyboardPage_('numbers');
++                activateMinimalNumericKeypad_(false);
+                 activateMinimalEntryTarget_('bib');
+             }
+             shutOffGPSHardware();
+@@ -5008,8 +5136,6 @@
+             'route-anomalies': 'director-route-anomalies-body',
+             'finish-projection': 'director-finish-projection-body',
+             outcomes: 'director-outcomes-body',
+-            handover: 'director-handover-body',
+-            'post-race-report': 'director-post-race-report-body',
+         };
+         const WIDGET_MIN_HEIGHT_PX = 100;
+         const WIDGET_MAX_HEIGHT_PX = 800;
+@@ -6640,8 +6766,8 @@
+ 
+         function getEffectiveGoogleMapsConfig_() {
+             return {
+-                apiKey: String(googleMapsApiKey_ || serverGoogleMapsConfig_.apiKey || '').trim(),
+-                mapId: String(googleMapsMapId_ || serverGoogleMapsConfig_.mapId || '').trim()
++                apiKey: String(serverGoogleMapsConfig_.apiKey || '').trim(),
++                mapId: String(serverGoogleMapsConfig_.mapId || '').trim()
+             };
+         }
+ 
+@@ -6649,9 +6775,9 @@
+             const state = document.getElementById('googleMapsSettingsState');
+             if (!state) return;
+             const cfg = getEffectiveGoogleMapsConfig_();
+-            if (googleMapsApiKey_) state.textContent = 'Local key ready';
+-            else if (cfg.apiKey) state.textContent = 'Server key ready';
+-            else state.textContent = 'Key required';
++            state.textContent = cfg.apiKey ? 'Ready' : 'Deployment setup required';
++            state.classList.toggle('text-emerald-600', !!cfg.apiKey);
++            state.classList.toggle('text-amber-500', !cfg.apiKey);
+         }
+ 
+         function applyGoogleMapsConfigFromPayload_(payload) {
+@@ -6703,31 +6829,6 @@
+             return googleMapsLoadPromise_;
+         }
+ 
+-        async function testGoogleMapsConnection_() {
+-            const key = (document.getElementById('googleMapsApiKeyInput')?.value || '').trim() || String(serverGoogleMapsConfig_.apiKey || '').trim();
+-            const feedback = document.getElementById('googleMapsTestFeedback');
+-            const button = document.getElementById('googleMapsTesterBtn');
+-            if (button) button.disabled = true;
+-            if (feedback) {
+-                feedback.textContent = '⏳ Loading Google Maps JavaScript API…';
+-                feedback.className = 'text-[10px] text-neutral-600 dark:text-neutral-400 font-bold block leading-tight';
+-            }
+-            try {
+-                await ensureGoogleMapsApi_(key);
+-                if (feedback) {
+-                    feedback.textContent = '✅ Google Maps loaded. The Director GPS map can pan and zoom.';
+-                    feedback.className = 'text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block leading-tight';
+-                }
+-            } catch (error) {
+-                if (feedback) {
+-                    feedback.textContent = '❌ ' + (error?.message || 'Google Maps test failed.');
+-                    feedback.className = 'text-[10px] text-red-600 dark:text-red-400 font-bold block leading-tight';
+-                }
+-            } finally {
+-                if (button) button.disabled = false;
+-            }
+-        }
+-
+         function clearDirectorGoogleMapOverlays_() {
+             directorGoogleMapOverlays_.forEach(item => {
+                 try { item.setMap?.(null); } catch (_) { /* no-op */ }
+@@ -6799,7 +6900,7 @@
+             const cfg = getEffectiveGoogleMapsConfig_();
+             if (!cfg.apiKey) {
+                 const canvas = document.getElementById('directorGoogleMapCanvas');
+-                if (canvas) canvas.innerHTML = '<div class="director-map-message"><div><strong class="theme-text">Google Maps key required</strong><p class="mt-1">Add a restricted Maps JavaScript API browser key in Settings, or configure GOOGLE_MAPS_BROWSER_API_KEY in Apps Script properties.</p><button type="button" onclick="openSettings()">Open Settings</button></div></div>';
++                if (canvas) canvas.innerHTML = '<div class="director-map-message"><div><strong class="theme-text">Google Maps deployment configuration required</strong><p class="mt-1">Set GOOGLE_MAPS_BROWSER_API_KEY in Apps Script properties. Checkpoint devices do not enter map credentials.</p></div></div>';
+                 return;
+             }
+             try {
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/app/operations-v19.js /mnt/data/race-bib-logger-v19.3.3/app/operations-v19.js
+--- /mnt/data/race-bib-logger-v19.3.2/app/operations-v19.js	2026-08-02 06:48:13.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/app/operations-v19.js	2026-08-02 12:06:33.825743389 +0000
+@@ -56,8 +56,13 @@
+     }
+     UI.setText('v19DecisionConfirm', options.confirmLabel || 'Continue');
+     UI.setText('v19DecisionCancel', options.cancelLabel || 'Cancel');
++    modal.dataset.kind = options.kind || '';
++    if (options.kind === 'duplicate' && global.minimalBibModeActive_ && typeof global.closeMinimalNativeKeyboard_ === 'function') {
++      global.closeMinimalNativeKeyboard_(false);
++    }
+     modal.classList.remove('hidden');
+     modal.setAttribute('aria-hidden', 'false');
++    window.setTimeout(function () { document.getElementById('v19DecisionConfirm')?.focus({ preventScroll: true }); }, 30);
+     return new Promise(function (resolve) { decisionResolver_ = { resolve: resolve, requireReason: !!(options.reasons && options.reasons.length) }; });
+   }
+ 
+@@ -73,6 +78,7 @@
+     if (modal) {
+       modal.classList.add('hidden');
+       modal.setAttribute('aria-hidden', 'true');
++      modal.dataset.kind = '';
+     }
+     const pending = decisionResolver_;
+     decisionResolver_ = null;
+@@ -134,15 +140,14 @@
+     const previousTime = typeof global.parseCustomOrIsoDate === 'function' ? global.parseCustomOrIsoDate(previous.time).getTime() : Date.parse(previous.time);
+     const elapsed = Number.isFinite(previousTime) ? formatElapsed_(Date.now() - previousTime) : 'time unavailable';
+     const device = typeof global.getDeviceLabel === 'function' ? global.getDeviceLabel(previous.device) : (previous.device || 'Unknown device');
+-    return '<div class="v19-warning-hero"><strong>BIB ' + UI.escapeHtml(bib) + ' was already recorded</strong><span>Review the previous passage before submitting another.</span></div>' +
+-      '<dl class="v19-detail-grid">' +
+-      '<div><dt>Previous checkpoint</dt><dd>' + UI.escapeHtml(previous.checkpoint || 'Unknown') + '</dd></div>' +
+-      '<div><dt>Current checkpoint</dt><dd>' + UI.escapeHtml(currentCheckpoint || 'Unknown') + '</dd></div>' +
+-      '<div><dt>Device</dt><dd>' + UI.escapeHtml(device) + '</dd></div>' +
+-      '<div><dt>Volunteer</dt><dd>' + UI.escapeHtml(previous.volunteer || 'Unknown') + '</dd></div>' +
+-      '<div><dt>Elapsed</dt><dd>' + UI.escapeHtml(elapsed) + '</dd></div>' +
+-      '<div><dt>Recorded time</dt><dd>' + UI.escapeHtml(typeof global.formatLogTime === 'function' ? global.formatLogTime(previous.time) : previous.time) + '</dd></div>' +
+-      '</dl>';
++    const previousCheckpoint = previous.checkpoint || 'Unknown checkpoint';
++    const current = currentCheckpoint || 'Unknown checkpoint';
++    const passage = previousCheckpoint === current ? previousCheckpoint : previousCheckpoint + ' → ' + current;
++    return '<div class="v19-duplicate-compact">' +
++      '<strong>BIB ' + UI.escapeHtml(bib) + ' is already recorded</strong>' +
++      '<span>' + UI.escapeHtml(passage) + ' · ' + UI.escapeHtml(device) + ' · ' + UI.escapeHtml(previous.volunteer || 'Unknown volunteer') + '</span>' +
++      '<small>' + UI.escapeHtml(elapsed) + ' · ' + UI.escapeHtml(typeof global.formatLogTime === 'function' ? global.formatLogTime(previous.time) : previous.time) + '</small>' +
++      '</div>';
+   }
+ 
+   async function checkDuplicateAndLogV19_() {
+@@ -201,9 +206,9 @@
+       .sort(function (a, b) { return global.parseCustomOrIsoDate(b.time) - global.parseCustomOrIsoDate(a.time); })[0];
+     if (recentDuplicate) {
+       const decision = await openDecision_({
+-        title: 'Duplicate passage warning',
++        kind: 'duplicate',
++        title: 'Duplicate BIB',
+         bodyHtml: duplicateBodyHtml_(bib, recentDuplicate, checkpoint),
+-        reasons: RC.reasonCodes.duplicate,
+         confirmLabel: 'Log anyway',
+         cancelLabel: 'Cancel'
+       });
+@@ -212,7 +217,7 @@
+         global.announceToScreenReader_('Duplicate entry cancelled.');
+         return;
+       }
+-      reasonCodes.push(decision.reasonCode);
++      reasonCodes.push('DUPLICATE_CONFIRMED');
+       flags.push('duplicate-override');
+     }
+ 
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/app/ux-v1932.css /mnt/data/race-bib-logger-v19.3.3/app/ux-v1932.css
+--- /mnt/data/race-bib-logger-v19.3.2/app/ux-v1932.css	2026-08-02 07:41:10.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/app/ux-v1932.css	1970-01-01 00:00:00.000000000 +0000
+@@ -1,173 +0,0 @@
+-/* ── v19.3.1 compact mobile monitoring and stable scrolling ───────── */
+-/* Director section chips and their scroll observer were removed from markup and JavaScript. */
+-
+-.director-action-icon svg {
+-    width: 1.12rem;
+-    height: 1.12rem;
+-    display: block;
+-    fill: none;
+-    stroke: currentColor;
+-    stroke-width: 2;
+-    stroke-linecap: round;
+-    stroke-linejoin: round;
+-}
+-#directorSyncIcon.director-status-glyph {
+-    font-size: .68rem !important;
+-    line-height: 1;
+-}
+-#directorSyncBadge[data-state="syncing"] #directorSyncIcon { font-size: 1rem !important; }
+-#directorSyncBadge[data-state="error"] #directorSyncIcon { font-size: .82rem !important; font-weight: 950; }
+-.director-icon-action { box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+-
+-.director-back-to-top {
+-    right: max(.7rem, env(safe-area-inset-right, 0px));
+-    bottom: max(.8rem, env(safe-area-inset-bottom, 0px));
+-    width: 2.65rem;
+-    min-width: 2.65rem;
+-    height: 2.65rem;
+-    font-size: 1.18rem;
+-    font-weight: 950;
+-}
+-
+-/* Safety Log: compact, one-row command bar with icon controls. The available
+-   width is used without making buttons or text abnormally large. */
+-#safetyLogView > .max-w-\[1400px\] {
+-    padding: .72rem !important;
+-    gap: .65rem !important;
+-}
+-.safety-log-topbar {
+-    display: grid;
+-    grid-template-columns: minmax(0, 1fr) auto;
+-    align-items: center;
+-    gap: .65rem;
+-    min-height: 2.65rem;
+-}
+-.safety-log-title {
+-    min-width: 0;
+-    display: flex;
+-    align-items: center;
+-    gap: .48rem;
+-    margin: 0;
+-    font-size: clamp(1rem, 4.2vw, 1.32rem);
+-    line-height: 1.05;
+-    font-weight: 950;
+-    letter-spacing: -.02em;
+-    white-space: nowrap;
+-    overflow: hidden;
+-    text-overflow: ellipsis;
+-}
+-.safety-log-title > span:first-child { font-size: 1.15em; flex: 0 0 auto; }
+-.safety-log-actions {
+-    display: grid;
+-    grid-template-columns: repeat(4, 2.45rem);
+-    gap: .34rem;
+-    align-items: center;
+-}
+-.safety-icon-action {
+-    width: 2.45rem;
+-    min-width: 2.45rem;
+-    height: 2.45rem;
+-    min-height: 2.45rem;
+-    display: inline-flex;
+-    align-items: center;
+-    justify-content: center;
+-    padding: 0 !important;
+-    border: 1px solid var(--border-color);
+-    border-radius: .72rem;
+-    background: var(--input-bg);
+-    color: var(--text-main);
+-    font-size: 1rem !important;
+-    font-weight: 950;
+-    line-height: 1;
+-    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 4px 12px rgba(0,0,0,.16);
+-    transition: transform .08s ease, filter .12s ease, border-color .12s ease;
+-}
+-.safety-icon-action:active { transform: scale(.94); filter: brightness(1.12); }
+-.safety-icon-action:disabled { opacity: .58; cursor: wait; }
+-.safety-icon-primary { color: #bfdbfe; border-color: rgba(59,130,246,.5); background: rgba(37,99,235,.34); }
+-.safety-icon-danger { color: #fecaca; border-color: rgba(239,68,68,.48); background: rgba(127,29,29,.34); }
+-.safety-icon-neutral { color: var(--text-muted); }
+-.safety-icon-status { border-radius: 999px; font-size: .66rem !important; }
+-.safety-icon-status[data-state="ready"] { color: #34d399; border-color: rgba(16,185,129,.46); background: rgba(6,95,70,.26); }
+-.safety-icon-status[data-state="syncing"] { color: #60a5fa; border-color: rgba(59,130,246,.48); background: rgba(30,64,175,.25); font-size: .95rem !important; }
+-.safety-icon-status[data-state="error"] { color: #fbbf24; border-color: rgba(245,158,11,.5); background: rgba(120,53,15,.28); font-size: .82rem !important; }
+-.safety-toolbar-hint {
+-    min-height: 0;
+-    max-height: 0;
+-    opacity: 0;
+-    overflow: hidden;
+-    margin: 0;
+-    padding: 0 .65rem;
+-    border: 0 solid var(--border-color);
+-    border-radius: .65rem;
+-    background: var(--card-tint);
+-    color: var(--text-muted);
+-    font-size: .67rem;
+-    font-weight: 850;
+-    line-height: 1.3;
+-    transition: opacity .15s ease, max-height .18s ease, padding .18s ease, border-width .18s ease;
+-}
+-.safety-toolbar-hint.is-visible {
+-    max-height: 3rem;
+-    opacity: 1;
+-    padding: .42rem .65rem;
+-    border-width: 1px;
+-}
+-#safetyRosterLoadState {
+-    margin: 0;
+-    min-height: 0;
+-    padding: .42rem .62rem;
+-    border-radius: .58rem;
+-    font-size: .66rem;
+-    line-height: 1.32;
+-}
+-
+-/* Keep Setup's action aligned with the readiness and checkpoint summary badges.
+-   ID selectors intentionally survive applyLockState() replacing className. */
+-#setupHeaderRow { gap: .48rem; align-items: center; }
+-#setupHeaderRow > h2 {
+-    min-width: 0;
+-    flex: 1 1 auto;
+-    flex-wrap: nowrap !important;
+-    overflow: hidden;
+-}
+-#setupHeaderRow #setupSummary {
+-    min-width: 0;
+-    max-width: 100%;
+-    height: 2.05rem;
+-    display: inline-flex;
+-    align-items: center;
+-    overflow: hidden;
+-    text-overflow: ellipsis;
+-    white-space: nowrap;
+-    padding: .35rem .58rem !important;
+-    border-radius: .58rem !important;
+-}
+-#setupHeaderRow #setupSummary.hidden { display: none !important; }
+-#lockBtn {
+-    flex: 0 0 auto;
+-    height: 2.05rem;
+-    min-height: 2.05rem !important;
+-    max-height: 2.05rem;
+-    padding: .35rem .62rem !important;
+-    border-radius: .58rem !important;
+-    font-size: .66rem !important;
+-    line-height: 1 !important;
+-    white-space: nowrap;
+-    overflow: hidden;
+-    text-overflow: ellipsis;
+-}
+-
+-@media (max-width: 430px) {
+-    .director-mode-actions { gap: .38rem !important; }
+-    .director-icon-action,
+-    .director-icon-action.is-expanded { height: 2.55rem !important; min-height: 2.55rem !important; border-radius: .7rem !important; }
+-    .director-action-icon svg { width: 1.02rem; height: 1.02rem; }
+-    .safety-log-actions { grid-template-columns: repeat(4, 2.25rem); gap: .28rem; }
+-    .safety-icon-action { width: 2.25rem; min-width: 2.25rem; height: 2.25rem; min-height: 2.25rem; border-radius: .65rem; }
+-    .safety-log-title { font-size: .98rem; }
+-    #setupHeaderRow > h2 { gap: .32rem; }
+-    #setupReadinessBadge { flex: 0 0 auto; }
+-    #setupHeaderRow #setupSummary { font-size: .58rem !important; }
+-    #lockBtn { max-width: 5.6rem; }
+-}
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/app/ux-v1932.js /mnt/data/race-bib-logger-v19.3.3/app/ux-v1932.js
+--- /mnt/data/race-bib-logger-v19.3.2/app/ux-v1932.js	2026-08-02 07:36:50.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/app/ux-v1932.js	1970-01-01 00:00:00.000000000 +0000
+@@ -1,317 +0,0 @@
+-/* Race Bib Logger v19.3.1 — non-invasive UI/UX enhancement layer.
+- * Loaded after the operational modules so it can improve presentation without
+- * changing record formats, sync contracts, or race calculations.
+- */
+-(() => {
+-  'use strict';
+-
+-  const VERSION = '19.3.1';
+-  const DIRECTOR_LABEL_MS = 5000;
+-  let directorHintTimer = 0;
+-  let directorExitArmedUntil = 0;
+-  let minimalWakeLock = null;
+-
+-  function byId(id) { return document.getElementById(id); }
+-  function storageGet(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
+-  function storageSet(key, value) { try { localStorage.setItem(key, value); } catch (_) { /* storage unavailable */ } }
+-  function isTextEntry(element) {
+-    return !!element && /^(INPUT|TEXTAREA|SELECT)$/.test(element.tagName) || !!element?.isContentEditable;
+-  }
+-
+-  function vibrate(pattern) {
+-    try {
+-      if (navigator.vibrate && storageGet('vibrateEnabled') !== 'false') navigator.vibrate(pattern);
+-    } catch (_) { /* unsupported or blocked */ }
+-  }
+-
+-  function showDirectorToolbarHint(label, durationMs = DIRECTOR_LABEL_MS) {
+-    const hint = byId('directorToolbarHint');
+-    if (!hint) return;
+-    const clean = String(label || '').trim();
+-    if (!clean) return;
+-    hint.textContent = clean;
+-    hint.classList.add('is-visible');
+-    clearTimeout(directorHintTimer);
+-    directorHintTimer = window.setTimeout(() => hint.classList.remove('is-visible'), Math.max(1200, Number(durationMs) || DIRECTOR_LABEL_MS));
+-  }
+-
+-  function showSafetyToolbarHint(label, durationMs = 2400) {
+-    const hint = byId('safetyToolbarHint');
+-    const clean = String(label || '').trim();
+-    if (!hint || !clean) return;
+-    hint.textContent = clean;
+-    hint.classList.add('is-visible');
+-    clearTimeout(showSafetyToolbarHint.timer);
+-    showSafetyToolbarHint.timer = window.setTimeout(() => hint.classList.remove('is-visible'), Math.max(1000, Number(durationMs) || 2400));
+-  }
+-  showSafetyToolbarHint.timer = 0;
+-  window.showSafetyToolbarHint_ = showSafetyToolbarHint;
+-
+-  function toolbarLabel(elementId, temporaryLabel) {
+-    const element = byId(elementId);
+-    if (!element) return '';
+-    return String(temporaryLabel || element.dataset.fullLabel || element.getAttribute('aria-label') || '').trim();
+-  }
+-
+-  function installStableDirectorToolbar() {
+-    // Preserve the earlier five-second label requirement without changing button width.
+-    // The label appears as an overlay, so the command bar never pushes off-screen.
+-    window.revealDirectorToolbarLabel_ = function revealDirectorToolbarLabelV193(elementId, temporaryLabel, durationMs = DIRECTOR_LABEL_MS) {
+-      showDirectorToolbarHint(toolbarLabel(elementId, temporaryLabel), durationMs);
+-    };
+-
+-    window.directorCustomizeAction_ = function directorCustomizeActionV193(event) {
+-      event?.preventDefault?.();
+-      showDirectorToolbarHint('Customize command view');
+-      if (typeof window.openDirectorCustomize === 'function') window.openDirectorCustomize(event);
+-    };
+-
+-    window.directorRefreshAction_ = function directorRefreshActionV193(event) {
+-      event?.preventDefault?.();
+-      showDirectorToolbarHint('Refreshing race data…');
+-      vibrate(12);
+-      if (typeof window.pullServerRecords === 'function') window.pullServerRecords();
+-      if (typeof window.attemptSync === 'function') window.attemptSync();
+-    };
+-
+-    window.directorExitAction_ = function directorExitActionV193(event) {
+-      event?.preventDefault?.();
+-      const button = byId('directorExitButton');
+-      const now = Date.now();
+-      if (now < directorExitArmedUntil) {
+-        directorExitArmedUntil = 0;
+-        button?.classList.remove('is-armed');
+-        showDirectorToolbarHint('Leaving Race Command View', 1200);
+-        if (typeof window.closeDirectorMode === 'function') window.closeDirectorMode();
+-        return;
+-      }
+-      directorExitArmedUntil = now + DIRECTOR_LABEL_MS;
+-      button?.classList.add('is-armed');
+-      button?.setAttribute('aria-label', 'Exit armed. Tap again within five seconds to leave Race Command View.');
+-      showDirectorToolbarHint('Tap Exit again to leave', DIRECTOR_LABEL_MS);
+-      window.setTimeout(() => {
+-        if (Date.now() >= directorExitArmedUntil) {
+-          button?.classList.remove('is-armed');
+-          button?.setAttribute('aria-label', 'Exit Director Mode. Tap once to arm, tap again to exit.');
+-        }
+-      }, DIRECTOR_LABEL_MS + 50);
+-    };
+-  }
+-
+-  function installDirectorNavigation() {
+-    const root = byId('directorModeView');
+-    const backToTop = byId('directorBackToTop');
+-    if (!root || !backToTop) return;
+-
+-    backToTop.addEventListener('click', () => {
+-      root.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+-      showDirectorToolbarHint('Top of command view', 1400);
+-    });
+-    root.addEventListener('scroll', () => backToTop.classList.toggle('is-visible', root.scrollTop > 520), { passive: true });
+-  }
+-
+-  function installWidgetHelpToggles() {
+-    document.querySelectorAll('#directorWidgetsGrid [data-widget]').forEach(section => {
+-      const header = section.firstElementChild;
+-      const description = header?.querySelector('p');
+-      if (!header || !description || header.querySelector('.widget-help-button')) return;
+-      description.classList.add('widget-help-text');
+-      const button = document.createElement('button');
+-      button.type = 'button';
+-      button.className = 'widget-help-button';
+-      button.textContent = 'i';
+-      button.setAttribute('aria-label', 'Show or hide widget explanation');
+-      button.setAttribute('aria-expanded', 'false');
+-      button.addEventListener('click', event => {
+-        event.stopPropagation();
+-        const open = section.classList.toggle('show-widget-help');
+-        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+-      });
+-      const controls = header.querySelector('.widget-width-controls');
+-      header.insertBefore(button, controls || null);
+-    });
+-  }
+-
+-  function installMapFullscreen() {
+-    const widget = byId('widget-map');
+-    const header = widget?.firstElementChild;
+-    if (!widget || !header || header.querySelector('.map-fullscreen-button')) return;
+-    const button = document.createElement('button');
+-    button.type = 'button';
+-    button.className = 'widget-help-button map-fullscreen-button';
+-    button.textContent = '⛶';
+-    button.setAttribute('aria-label', 'Open GPS map full screen');
+-    button.setAttribute('aria-pressed', 'false');
+-    button.addEventListener('click', event => {
+-      event.stopPropagation();
+-      const full = widget.classList.toggle('map-is-fullscreen');
+-      if (full) document.body.classList.add('overflow-hidden');
+-      else if (byId('directorModeView')?.classList.contains('hidden')) document.body.classList.remove('overflow-hidden');
+-      button.textContent = full ? '✕' : '⛶';
+-      button.setAttribute('aria-pressed', full ? 'true' : 'false');
+-      button.setAttribute('aria-label', full ? 'Close full-screen GPS map' : 'Open GPS map full screen');
+-      showDirectorToolbarHint(full ? 'GPS map full screen' : 'GPS map restored', 1600);
+-      window.setTimeout(() => window.dispatchEvent(new Event('resize')), 180);
+-    });
+-    const controls = header.querySelector('.widget-width-controls');
+-    header.insertBefore(button, controls || null);
+-  }
+-
+-  function updateMinimalActiveTarget() {
+-    const pill = byId('minimalActiveTargetPill');
+-    const wrap = byId('minimalBibDisplayWrap');
+-    const wakeStatus = byId('minimalWakeStatus');
+-    if (pill) pill.textContent = wrap?.classList.contains('is-active') ? 'BIB' : 'REMARK';
+-    if (wakeStatus && !('wakeLock' in navigator)) wakeStatus.textContent = 'Keep screen awake manually';
+-  }
+-
+-  async function requestMinimalWakeLock() {
+-    if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') {
+-      updateMinimalActiveTarget();
+-      return;
+-    }
+-    try {
+-      if (minimalWakeLock) return;
+-      minimalWakeLock = await navigator.wakeLock.request('screen');
+-      const status = byId('minimalWakeStatus');
+-      if (status) status.textContent = 'Screen kept awake';
+-      minimalWakeLock.addEventListener('release', () => {
+-        minimalWakeLock = null;
+-        const current = byId('minimalWakeStatus');
+-        if (current) current.textContent = 'Screen awake';
+-      });
+-    } catch (_) {
+-      const status = byId('minimalWakeStatus');
+-      if (status) status.textContent = 'Keep screen awake manually';
+-    }
+-  }
+-
+-  async function releaseMinimalWakeLock() {
+-    try { await minimalWakeLock?.release?.(); } catch (_) { /* already released */ }
+-    minimalWakeLock = null;
+-  }
+-
+-  function minimalViewIsOpen() {
+-    const view = byId('minimalBibModeView');
+-    return !!view && !view.classList.contains('hidden');
+-  }
+-
+-  function installMinimalModeEnhancements() {
+-    const view = byId('minimalBibModeView');
+-    const bibWrap = byId('minimalBibDisplayWrap');
+-    const remarkShell = byId('minimalRemarkShell');
+-    if (!view) return;
+-
+-    view.addEventListener('pointerdown', event => {
+-      const target = event.target.closest('.minimal-key, .minimal-bib-actions button, .minimal-backspace-btn, .minimal-keyboard-tab');
+-      if (!target) return;
+-      vibrate(target.id === 'minimalBibLogButton' ? 24 : 8);
+-    }, { passive: true });
+-
+-    const observer = new MutationObserver(() => {
+-      updateMinimalActiveTarget();
+-      if (minimalViewIsOpen()) requestMinimalWakeLock();
+-      else releaseMinimalWakeLock();
+-    });
+-    observer.observe(view, { attributes: true, attributeFilter: ['class'] });
+-    if (bibWrap) observer.observe(bibWrap, { attributes: true, attributeFilter: ['class'] });
+-    if (remarkShell) observer.observe(remarkShell, { attributes: true, attributeFilter: ['class'] });
+-
+-    document.addEventListener('visibilitychange', () => {
+-      if (document.visibilityState === 'visible' && minimalViewIsOpen()) requestMinimalWakeLock();
+-      else if (document.visibilityState !== 'visible') releaseMinimalWakeLock();
+-    });
+-    updateMinimalActiveTarget();
+-  }
+-
+-  function installSafetyToolbar() {
+-    const view = byId('safetyLogView');
+-    if (!view) return;
+-    view.addEventListener('pointerdown', event => {
+-      const control = event.target.closest('.safety-icon-action');
+-      if (control) vibrate(8);
+-    }, { passive: true });
+-    if ('MutationObserver' in window) {
+-      new MutationObserver(() => {
+-        if (view.classList.contains('hidden')) byId('safetyToolbarHint')?.classList.remove('is-visible');
+-      }).observe(view, { attributes: true, attributeFilter: ['class'] });
+-    }
+-  }
+-
+-  function installSafetyScrollHint() {
+-    const viewport = byId('safetyTableViewport');
+-    if (!viewport || byId('safetyScrollHint')) return;
+-    const hint = document.createElement('div');
+-    hint.id = 'safetyScrollHint';
+-    hint.className = 'safety-scroll-hint';
+-    hint.textContent = 'BIB stays pinned • swipe sideways for more columns';
+-    viewport.parentNode?.insertBefore(hint, viewport);
+-    const hide = () => {
+-      if (viewport.scrollLeft > 12) {
+-        hint.classList.add('is-hidden');
+-        storageSet('safetyScrollHintSeen_v193', '1');
+-      }
+-    };
+-    if (storageGet('safetyScrollHintSeen_v193') === '1') hint.classList.add('is-hidden');
+-    viewport.addEventListener('scroll', hide, { passive: true });
+-  }
+-
+-  function installDirectorKeyboardShortcuts() {
+-    document.addEventListener('keydown', event => {
+-      const root = byId('directorModeView');
+-      if (!root || root.classList.contains('hidden') || isTextEntry(event.target)) return;
+-      if (event.key === 'Escape') {
+-        event.preventDefault();
+-        window.directorExitAction_?.(event);
+-      } else if (event.shiftKey && event.key.toLowerCase() === 'r') {
+-        event.preventDefault();
+-        window.directorRefreshAction_?.(event);
+-      } else if (event.shiftKey && event.key.toLowerCase() === 'c') {
+-        event.preventDefault();
+-        window.directorCustomizeAction_?.(event);
+-      }
+-    }, true);
+-  }
+-
+-  function installAppModeObserver() {
+-    const director = byId('directorModeView');
+-    if (!director || !('MutationObserver' in window)) return;
+-    new MutationObserver(() => {
+-      if (!director.classList.contains('hidden')) {
+-        window.requestAnimationFrame(() => {
+-          installWidgetHelpToggles();
+-          installMapFullscreen();
+-        });
+-      } else {
+-        directorExitArmedUntil = 0;
+-        byId('directorExitButton')?.classList.remove('is-armed');
+-        byId('directorBackToTop')?.classList.remove('is-visible');
+-        byId('directorToolbarHint')?.classList.remove('is-visible');
+-        const mapWidget = byId('widget-map');
+-        mapWidget?.classList.remove('map-is-fullscreen');
+-        const mapButton = mapWidget?.querySelector('.map-fullscreen-button');
+-        if (mapButton) {
+-          mapButton.textContent = '⛶';
+-          mapButton.setAttribute('aria-pressed', 'false');
+-          mapButton.setAttribute('aria-label', 'Open GPS map full screen');
+-        }
+-      }
+-    }).observe(director, { attributes: true, attributeFilter: ['class'] });
+-  }
+-
+-  function init() {
+-    document.documentElement.dataset.uxVersion = VERSION;
+-    installStableDirectorToolbar();
+-    installDirectorNavigation();
+-    installWidgetHelpToggles();
+-    installMapFullscreen();
+-    installMinimalModeEnhancements();
+-    installSafetyToolbar();
+-    installSafetyScrollHint();
+-    installDirectorKeyboardShortcuts();
+-    installAppModeObserver();
+-  }
+-
+-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+-  else init();
+-})();
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/app/ux-v1933.css /mnt/data/race-bib-logger-v19.3.3/app/ux-v1933.css
+--- /mnt/data/race-bib-logger-v19.3.2/app/ux-v1933.css	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/app/ux-v1933.css	2026-08-02 12:10:10.937737957 +0000
+@@ -0,0 +1,395 @@
++/* ── v19.3.3 compact mobile monitoring and stable scrolling ───────── */
++/* Director section chips and their scroll observer were removed from markup and JavaScript. */
++
++.director-action-icon svg {
++    width: 1.12rem;
++    height: 1.12rem;
++    display: block;
++    fill: none;
++    stroke: currentColor;
++    stroke-width: 2;
++    stroke-linecap: round;
++    stroke-linejoin: round;
++}
++#directorSyncIcon.director-status-glyph {
++    font-size: .68rem !important;
++    line-height: 1;
++}
++#directorSyncBadge[data-state="syncing"] #directorSyncIcon { font-size: 1rem !important; }
++#directorSyncBadge[data-state="error"] #directorSyncIcon { font-size: .82rem !important; font-weight: 950; }
++.director-icon-action { box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
++
++.director-back-to-top {
++    right: max(.7rem, env(safe-area-inset-right, 0px));
++    bottom: max(.8rem, env(safe-area-inset-bottom, 0px));
++    width: 2.65rem;
++    min-width: 2.65rem;
++    height: 2.65rem;
++    font-size: 1.18rem;
++    font-weight: 950;
++}
++
++/* Safety Log: compact, one-row command bar with icon controls. The available
++   width is used without making buttons or text abnormally large. */
++#safetyLogView > .max-w-\[1400px\] {
++    padding: .72rem !important;
++    gap: .65rem !important;
++}
++.safety-log-topbar {
++    display: grid;
++    grid-template-columns: minmax(0, 1fr) auto;
++    align-items: center;
++    gap: .65rem;
++    min-height: 2.65rem;
++}
++.safety-log-title {
++    min-width: 0;
++    display: flex;
++    align-items: center;
++    gap: .48rem;
++    margin: 0;
++    font-size: clamp(1rem, 4.2vw, 1.32rem);
++    line-height: 1.05;
++    font-weight: 950;
++    letter-spacing: -.02em;
++    white-space: nowrap;
++    overflow: hidden;
++    text-overflow: ellipsis;
++}
++.safety-log-title > span:first-child { font-size: 1.15em; flex: 0 0 auto; }
++.safety-log-actions {
++    display: grid;
++    grid-template-columns: repeat(4, 2.45rem);
++    gap: .34rem;
++    align-items: center;
++}
++.safety-icon-action {
++    width: 2.45rem;
++    min-width: 2.45rem;
++    height: 2.45rem;
++    min-height: 2.45rem;
++    display: inline-flex;
++    align-items: center;
++    justify-content: center;
++    padding: 0 !important;
++    border: 1px solid var(--border-color);
++    border-radius: .72rem;
++    background: var(--input-bg);
++    color: var(--text-main);
++    font-size: 1rem !important;
++    font-weight: 950;
++    line-height: 1;
++    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 4px 12px rgba(0,0,0,.16);
++    transition: transform .08s ease, filter .12s ease, border-color .12s ease;
++}
++.safety-icon-action:active { transform: scale(.94); filter: brightness(1.12); }
++.safety-icon-action:disabled { opacity: .58; cursor: wait; }
++.safety-icon-primary { color: #bfdbfe; border-color: rgba(59,130,246,.5); background: rgba(37,99,235,.34); }
++.safety-icon-danger { color: #fecaca; border-color: rgba(239,68,68,.48); background: rgba(127,29,29,.34); }
++.safety-icon-neutral { color: var(--text-muted); }
++.safety-icon-status { border-radius: 999px; font-size: .66rem !important; }
++.safety-icon-status[data-state="ready"] { color: #34d399; border-color: rgba(16,185,129,.46); background: rgba(6,95,70,.26); }
++.safety-icon-status[data-state="syncing"] { color: #60a5fa; border-color: rgba(59,130,246,.48); background: rgba(30,64,175,.25); font-size: .95rem !important; }
++.safety-icon-status[data-state="error"] { color: #fbbf24; border-color: rgba(245,158,11,.5); background: rgba(120,53,15,.28); font-size: .82rem !important; }
++.safety-toolbar-hint {
++    min-height: 0;
++    max-height: 0;
++    opacity: 0;
++    overflow: hidden;
++    margin: 0;
++    padding: 0 .65rem;
++    border: 0 solid var(--border-color);
++    border-radius: .65rem;
++    background: var(--card-tint);
++    color: var(--text-muted);
++    font-size: .67rem;
++    font-weight: 850;
++    line-height: 1.3;
++    transition: opacity .15s ease, max-height .18s ease, padding .18s ease, border-width .18s ease;
++}
++.safety-toolbar-hint.is-visible {
++    max-height: 3rem;
++    opacity: 1;
++    padding: .42rem .65rem;
++    border-width: 1px;
++}
++#safetyRosterLoadState {
++    margin: 0;
++    min-height: 0;
++    padding: .42rem .62rem;
++    border-radius: .58rem;
++    font-size: .66rem;
++    line-height: 1.32;
++}
++
++/* Keep Setup's action aligned with the readiness and checkpoint summary badges.
++   ID selectors intentionally survive applyLockState() replacing className. */
++#setupHeaderRow { gap: .48rem; align-items: center; }
++#setupHeaderRow > h2 {
++    min-width: 0;
++    flex: 1 1 auto;
++    flex-wrap: nowrap !important;
++    overflow: hidden;
++}
++#setupHeaderRow #setupSummary {
++    min-width: 0;
++    max-width: 100%;
++    height: 2.05rem;
++    display: inline-flex;
++    align-items: center;
++    overflow: hidden;
++    text-overflow: ellipsis;
++    white-space: nowrap;
++    padding: .35rem .58rem !important;
++    border-radius: .58rem !important;
++}
++#setupHeaderRow #setupSummary.hidden { display: none !important; }
++#lockBtn {
++    flex: 0 0 auto;
++    height: 2.05rem;
++    min-height: 2.05rem !important;
++    max-height: 2.05rem;
++    padding: .35rem .62rem !important;
++    border-radius: .58rem !important;
++    font-size: .66rem !important;
++    line-height: 1 !important;
++    white-space: nowrap;
++    overflow: hidden;
++    text-overflow: ellipsis;
++}
++
++@media (max-width: 430px) {
++    .director-mode-actions { gap: .38rem !important; }
++    .director-icon-action,
++    .director-icon-action.is-expanded { height: 2.55rem !important; min-height: 2.55rem !important; border-radius: .7rem !important; }
++    .director-action-icon svg { width: 1.02rem; height: 1.02rem; }
++    .safety-log-actions { grid-template-columns: repeat(4, 2.25rem); gap: .28rem; }
++    .safety-icon-action { width: 2.25rem; min-width: 2.25rem; height: 2.25rem; min-height: 2.25rem; border-radius: .65rem; }
++    .safety-log-title { font-size: .98rem; }
++    #setupHeaderRow > h2 { gap: .32rem; }
++    #setupReadinessBadge { flex: 0 0 auto; }
++    #setupHeaderRow #setupSummary { font-size: .58rem !important; }
++    #lockBtn { max-width: 5.6rem; }
++}
++
++/* ── v19.3.3 entry and command-view refinements ───────────────────── */
++/* Quick Entry keeps only the large numeric pad visible. ABC hands control to
++   the native keyboard without replacing the race-day number pad with tiny keys. */
++.minimal-keyboard-tabs-two { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
++.minimal-native-bib-input {
++    position: absolute;
++    inset: 0;
++    z-index: 3;
++    width: 100%;
++    height: 100%;
++    padding: 0 4.7rem 0 1rem;
++    border: 0;
++    border-radius: inherit;
++    outline: 0;
++    background: transparent;
++    color: transparent;
++    caret-color: transparent;
++    opacity: .01;
++    text-transform: uppercase;
++}
++.minimal-native-keyboard-hint {
++    min-height: 3rem;
++    display: flex;
++    align-items: center;
++    justify-content: center;
++    padding: .55rem .75rem;
++    border: 1px solid #282a32;
++    border-radius: .75rem;
++    background: #0d0e12;
++    color: #9ca3af;
++    font-size: .68rem;
++    font-weight: 850;
++    text-align: center;
++}
++.minimal-native-keyboard-hint.hidden { display: none !important; }
++.minimal-bib-display-wrap:has(.minimal-native-bib-input:focus) {
++    box-shadow: 0 0 0 2px #3b82f6, 0 12px 28px rgba(37,99,235,.2);
++}
++
++/* Main and Quick Last-4 use exactly the same frequency colour token. */
++.minimal-last4-card[class*="last4-repeat-"] strong {
++    color: inherit !important;
++    text-shadow: var(--last4-shadow);
++}
++
++/* Spaces are invalid BIB characters. Feedback is brief, local, and highly visible. */
++.minimal-space-feedback,
++.bib-space-feedback {
++    margin-top: .35rem;
++    padding: .5rem .7rem;
++    border: 1px solid rgba(248,113,113,.78);
++    border-radius: .65rem;
++    background: rgba(127,29,29,.88);
++    color: #fee2e2;
++    font-size: .69rem;
++    line-height: 1.25;
++    font-weight: 900;
++    text-align: center;
++    box-shadow: 0 6px 18px rgba(127,29,29,.28);
++}
++.minimal-space-feedback.hidden,
++.bib-space-feedback.hidden { display: none !important; }
++.minimal-space-feedback:not(.hidden),
++.bib-space-feedback:not(.hidden) { animation: bibSpacePulseV1933 .22s ease-out 1; }
++@keyframes bibSpacePulseV1933 {
++    0% { transform: scale(.97); filter: brightness(1.5); }
++    100% { transform: scale(1); filter: brightness(1); }
++}
++
++/* OCR and keyboard controls are absent unless focus is inside the BIB field/tool shell. */
++.bib-input-shell:not(:focus-within) .bib-input-tools,
++.bib-input-shell:not(.tools-visible) .bib-input-tools {
++    opacity: 0;
++    visibility: hidden;
++    pointer-events: none;
++}
++.bib-input-shell:focus-within.tools-visible .bib-input-tools {
++    opacity: 1;
++    visibility: visible;
++    pointer-events: auto;
++}
++body.minimal-bib-open .bib-input-tools { display: none !important; }
++
++/* Duplicate confirmation remains above Quick Entry and fits without scrolling. */
++#v19DecisionModal { z-index: 220 !important; }
++#v19DecisionModal[data-kind="duplicate"] { padding: .65rem !important; align-items: center !important; }
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionCard {
++    width: min(94vw, 24rem) !important;
++    max-height: none !important;
++    padding: .85rem !important;
++    gap: .65rem !important;
++    border-radius: .9rem !important;
++}
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionTitle {
++    margin: 0;
++    font-size: .94rem !important;
++    line-height: 1.15;
++}
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionReasonWrap { display: none !important; }
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionBody { font-size: .72rem; }
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionCard > .grid { gap: .45rem !important; }
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionCancel,
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionConfirm {
++    min-height: 2.65rem;
++    padding: .55rem .6rem !important;
++    border-radius: .7rem !important;
++    font-size: .76rem;
++}
++.v19-duplicate-compact {
++    display: grid;
++    gap: .24rem;
++    padding: .62rem .7rem;
++    border: 1px solid rgba(245,158,11,.42);
++    border-radius: .72rem;
++    background: rgba(120,53,15,.16);
++}
++.v19-duplicate-compact strong { color: #fbbf24; font-size: .82rem; line-height: 1.18; }
++.v19-duplicate-compact span { color: var(--text-main); font-size: .69rem; line-height: 1.25; }
++.v19-duplicate-compact small { color: var(--text-muted); font-size: .62rem; line-height: 1.2; }
++
++/* History scope and limit indicators no longer consume card-sized space. */
++.scan-history-limit-strip {
++    min-height: 1.75rem;
++    display: inline-flex;
++    align-items: center;
++    align-self: flex-start;
++    gap: .35rem;
++    width: auto;
++    max-width: 100%;
++    padding: .25rem .55rem;
++    border-radius: 999px !important;
++    font-size: .62rem;
++    line-height: 1;
++    font-weight: 800;
++    white-space: nowrap;
++}
++#scanHistoryHeader { padding: .45rem .62rem !important; gap: .45rem !important; }
++.scan-history-scope-toggle { padding: .12rem !important; border-radius: .5rem !important; }
++.scan-history-scope-toggle button { min-height: 1.55rem; padding: .18rem .48rem !important; line-height: 1; }
++#expandCollapseAllBtn { min-height: 1.7rem; padding: .15rem .45rem !important; }
++#searchBar { min-height: 1.85rem; padding-block: .3rem !important; }
++
++/* Setup header: remove the now-unused event-distance strip and align Edit Setup. */
++#eventConfigStrip { display: none !important; }
++#setupHeaderRow { min-height: 2.1rem; }
++#setupHeaderRow > div:last-child { height: 2.05rem; display: flex; align-items: stretch; }
++#lockBtn {
++    display: inline-flex !important;
++    align-items: center !important;
++    justify-content: center !important;
++    vertical-align: middle;
++    transform: none !important;
++}
++
++/* Centrally managed map credentials are informational, not an end-user form. */
++.director-map-managed-card { min-height: 2.55rem; padding: .5rem .65rem !important; }
++
++/* Slim command header: one compact title band and a low-profile icon rail. */
++.director-mode-header {
++    padding: max(.4rem, env(safe-area-inset-top, 0px)) .65rem .45rem !important;
++    gap: .42rem !important;
++}
++.director-mode-title { font-size: clamp(.86rem, 3.8vw, 1.15rem) !important; line-height: 1.05 !important; }
++.director-mode-heading { min-height: 1.45rem; }
++.director-mode-actions { gap: .32rem !important; }
++.director-icon-action,
++.director-icon-action.is-expanded,
++#directorEventProfileBadge {
++    width: 2.18rem !important;
++    min-width: 2.18rem !important;
++    max-width: 2.18rem !important;
++    height: 2.18rem !important;
++    min-height: 2.18rem !important;
++    padding: 0 !important;
++    border-radius: .62rem !important;
++    overflow: hidden;
++    flex: 0 0 2.18rem !important;
++}
++#directorEventProfileBadge {
++    color: transparent !important;
++    font-size: 0 !important;
++    position: relative;
++}
++#directorEventProfileBadge::before {
++    content: "⚑";
++    color: currentColor;
++    color: #fbbf24;
++    font-size: .92rem;
++    line-height: 1;
++}
++.director-action-icon svg { width: .94rem !important; height: .94rem !important; }
++#directorSyncIcon.director-status-glyph { font-size: .55rem !important; }
++
++@media (max-width: 900px) {
++    .director-mode-header {
++        grid-template-columns: minmax(0, 1fr) auto !important;
++        align-items: center !important;
++    }
++    .director-mode-title { white-space: nowrap !important; }
++    .director-mode-actions { width: auto !important; justify-content: flex-end !important; }
++    #directorExitButton { margin-right: 0 !important; order: 0 !important; }
++}
++@media (max-width: 430px) {
++    .director-mode-header { padding-inline: .45rem !important; }
++    .director-mode-heading { gap: .3rem !important; }
++    .director-mode-title { max-width: 9.7rem; }
++    .director-icon-action,
++    .director-icon-action.is-expanded,
++    #directorEventProfileBadge {
++        width: 2rem !important;
++        min-width: 2rem !important;
++        max-width: 2rem !important;
++        height: 2rem !important;
++        min-height: 2rem !important;
++        flex-basis: 2rem !important;
++    }
++    #scanHistoryHeader { flex-wrap: wrap !important; }
++    #scanHistoryHeader > div:first-child { flex-wrap: nowrap !important; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
++    #scanHistoryHeader > div:first-child::-webkit-scrollbar { display: none; }
++    #scanHistoryHeader > div:last-child { flex: 1 1 100%; max-width: 100% !important; }
++}
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/app/ux-v1933.js /mnt/data/race-bib-logger-v19.3.3/app/ux-v1933.js
+--- /mnt/data/race-bib-logger-v19.3.2/app/ux-v1933.js	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/app/ux-v1933.js	2026-08-02 12:08:59.669739740 +0000
+@@ -0,0 +1,317 @@
++/* Race Bib Logger v19.3.3 — non-invasive UI/UX enhancement layer.
++ * Loaded after the operational modules so it can improve presentation without
++ * changing record formats, sync contracts, or race calculations.
++ */
++(() => {
++  'use strict';
++
++  const VERSION = '19.3.3';
++  const DIRECTOR_LABEL_MS = 5000;
++  let directorHintTimer = 0;
++  let directorExitArmedUntil = 0;
++  let minimalWakeLock = null;
++
++  function byId(id) { return document.getElementById(id); }
++  function storageGet(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
++  function storageSet(key, value) { try { localStorage.setItem(key, value); } catch (_) { /* storage unavailable */ } }
++  function isTextEntry(element) {
++    return !!element && /^(INPUT|TEXTAREA|SELECT)$/.test(element.tagName) || !!element?.isContentEditable;
++  }
++
++  function vibrate(pattern) {
++    try {
++      if (navigator.vibrate && storageGet('vibrateEnabled') !== 'false') navigator.vibrate(pattern);
++    } catch (_) { /* unsupported or blocked */ }
++  }
++
++  function showDirectorToolbarHint(label, durationMs = DIRECTOR_LABEL_MS) {
++    const hint = byId('directorToolbarHint');
++    if (!hint) return;
++    const clean = String(label || '').trim();
++    if (!clean) return;
++    hint.textContent = clean;
++    hint.classList.add('is-visible');
++    clearTimeout(directorHintTimer);
++    directorHintTimer = window.setTimeout(() => hint.classList.remove('is-visible'), Math.max(1200, Number(durationMs) || DIRECTOR_LABEL_MS));
++  }
++
++  function showSafetyToolbarHint(label, durationMs = 2400) {
++    const hint = byId('safetyToolbarHint');
++    const clean = String(label || '').trim();
++    if (!hint || !clean) return;
++    hint.textContent = clean;
++    hint.classList.add('is-visible');
++    clearTimeout(showSafetyToolbarHint.timer);
++    showSafetyToolbarHint.timer = window.setTimeout(() => hint.classList.remove('is-visible'), Math.max(1000, Number(durationMs) || 2400));
++  }
++  showSafetyToolbarHint.timer = 0;
++  window.showSafetyToolbarHint_ = showSafetyToolbarHint;
++
++  function toolbarLabel(elementId, temporaryLabel) {
++    const element = byId(elementId);
++    if (!element) return '';
++    return String(temporaryLabel || element.dataset.fullLabel || element.getAttribute('aria-label') || '').trim();
++  }
++
++  function installStableDirectorToolbar() {
++    // Preserve the earlier five-second label requirement without changing button width.
++    // The label appears as an overlay, so the command bar never pushes off-screen.
++    window.revealDirectorToolbarLabel_ = function revealDirectorToolbarLabelV193(elementId, temporaryLabel, durationMs = DIRECTOR_LABEL_MS) {
++      showDirectorToolbarHint(toolbarLabel(elementId, temporaryLabel), durationMs);
++    };
++
++    window.directorCustomizeAction_ = function directorCustomizeActionV193(event) {
++      event?.preventDefault?.();
++      showDirectorToolbarHint('Customize command view');
++      if (typeof window.openDirectorCustomize === 'function') window.openDirectorCustomize(event);
++    };
++
++    window.directorRefreshAction_ = function directorRefreshActionV193(event) {
++      event?.preventDefault?.();
++      showDirectorToolbarHint('Refreshing race data…');
++      vibrate(12);
++      if (typeof window.pullServerRecords === 'function') window.pullServerRecords();
++      if (typeof window.attemptSync === 'function') window.attemptSync();
++    };
++
++    window.directorExitAction_ = function directorExitActionV193(event) {
++      event?.preventDefault?.();
++      const button = byId('directorExitButton');
++      const now = Date.now();
++      if (now < directorExitArmedUntil) {
++        directorExitArmedUntil = 0;
++        button?.classList.remove('is-armed');
++        showDirectorToolbarHint('Leaving Race Command View', 1200);
++        if (typeof window.closeDirectorMode === 'function') window.closeDirectorMode();
++        return;
++      }
++      directorExitArmedUntil = now + DIRECTOR_LABEL_MS;
++      button?.classList.add('is-armed');
++      button?.setAttribute('aria-label', 'Exit armed. Tap again within five seconds to leave Race Command View.');
++      showDirectorToolbarHint('Tap Exit again to leave', DIRECTOR_LABEL_MS);
++      window.setTimeout(() => {
++        if (Date.now() >= directorExitArmedUntil) {
++          button?.classList.remove('is-armed');
++          button?.setAttribute('aria-label', 'Exit Director Mode. Tap once to arm, tap again to exit.');
++        }
++      }, DIRECTOR_LABEL_MS + 50);
++    };
++  }
++
++  function installDirectorNavigation() {
++    const root = byId('directorModeView');
++    const backToTop = byId('directorBackToTop');
++    if (!root || !backToTop) return;
++
++    backToTop.addEventListener('click', () => {
++      root.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
++      showDirectorToolbarHint('Top of command view', 1400);
++    });
++    root.addEventListener('scroll', () => backToTop.classList.toggle('is-visible', root.scrollTop > 520), { passive: true });
++  }
++
++  function installWidgetHelpToggles() {
++    document.querySelectorAll('#directorWidgetsGrid [data-widget]').forEach(section => {
++      const header = section.firstElementChild;
++      const description = header?.querySelector('p');
++      if (!header || !description || header.querySelector('.widget-help-button')) return;
++      description.classList.add('widget-help-text');
++      const button = document.createElement('button');
++      button.type = 'button';
++      button.className = 'widget-help-button';
++      button.textContent = 'i';
++      button.setAttribute('aria-label', 'Show or hide widget explanation');
++      button.setAttribute('aria-expanded', 'false');
++      button.addEventListener('click', event => {
++        event.stopPropagation();
++        const open = section.classList.toggle('show-widget-help');
++        button.setAttribute('aria-expanded', open ? 'true' : 'false');
++      });
++      const controls = header.querySelector('.widget-width-controls');
++      header.insertBefore(button, controls || null);
++    });
++  }
++
++  function installMapFullscreen() {
++    const widget = byId('widget-map');
++    const header = widget?.firstElementChild;
++    if (!widget || !header || header.querySelector('.map-fullscreen-button')) return;
++    const button = document.createElement('button');
++    button.type = 'button';
++    button.className = 'widget-help-button map-fullscreen-button';
++    button.textContent = '⛶';
++    button.setAttribute('aria-label', 'Open GPS map full screen');
++    button.setAttribute('aria-pressed', 'false');
++    button.addEventListener('click', event => {
++      event.stopPropagation();
++      const full = widget.classList.toggle('map-is-fullscreen');
++      if (full) document.body.classList.add('overflow-hidden');
++      else if (byId('directorModeView')?.classList.contains('hidden')) document.body.classList.remove('overflow-hidden');
++      button.textContent = full ? '✕' : '⛶';
++      button.setAttribute('aria-pressed', full ? 'true' : 'false');
++      button.setAttribute('aria-label', full ? 'Close full-screen GPS map' : 'Open GPS map full screen');
++      showDirectorToolbarHint(full ? 'GPS map full screen' : 'GPS map restored', 1600);
++      window.setTimeout(() => window.dispatchEvent(new Event('resize')), 180);
++    });
++    const controls = header.querySelector('.widget-width-controls');
++    header.insertBefore(button, controls || null);
++  }
++
++  function updateMinimalActiveTarget() {
++    const pill = byId('minimalActiveTargetPill');
++    const wrap = byId('minimalBibDisplayWrap');
++    const wakeStatus = byId('minimalWakeStatus');
++    if (pill) pill.textContent = wrap?.classList.contains('is-active') ? 'BIB' : 'REMARK';
++    if (wakeStatus && !('wakeLock' in navigator)) wakeStatus.textContent = 'Keep screen awake manually';
++  }
++
++  async function requestMinimalWakeLock() {
++    if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') {
++      updateMinimalActiveTarget();
++      return;
++    }
++    try {
++      if (minimalWakeLock) return;
++      minimalWakeLock = await navigator.wakeLock.request('screen');
++      const status = byId('minimalWakeStatus');
++      if (status) status.textContent = 'Screen kept awake';
++      minimalWakeLock.addEventListener('release', () => {
++        minimalWakeLock = null;
++        const current = byId('minimalWakeStatus');
++        if (current) current.textContent = 'Screen awake';
++      });
++    } catch (_) {
++      const status = byId('minimalWakeStatus');
++      if (status) status.textContent = 'Keep screen awake manually';
++    }
++  }
++
++  async function releaseMinimalWakeLock() {
++    try { await minimalWakeLock?.release?.(); } catch (_) { /* already released */ }
++    minimalWakeLock = null;
++  }
++
++  function minimalViewIsOpen() {
++    const view = byId('minimalBibModeView');
++    return !!view && !view.classList.contains('hidden');
++  }
++
++  function installMinimalModeEnhancements() {
++    const view = byId('minimalBibModeView');
++    const bibWrap = byId('minimalBibDisplayWrap');
++    const remarkShell = byId('minimalRemarkShell');
++    if (!view) return;
++
++    view.addEventListener('pointerdown', event => {
++      const target = event.target.closest('.minimal-key, .minimal-bib-actions button, .minimal-backspace-btn, .minimal-keyboard-tab');
++      if (!target) return;
++      vibrate(target.id === 'minimalBibLogButton' ? 24 : 8);
++    }, { passive: true });
++
++    const observer = new MutationObserver(() => {
++      updateMinimalActiveTarget();
++      if (minimalViewIsOpen()) requestMinimalWakeLock();
++      else releaseMinimalWakeLock();
++    });
++    observer.observe(view, { attributes: true, attributeFilter: ['class'] });
++    if (bibWrap) observer.observe(bibWrap, { attributes: true, attributeFilter: ['class'] });
++    if (remarkShell) observer.observe(remarkShell, { attributes: true, attributeFilter: ['class'] });
++
++    document.addEventListener('visibilitychange', () => {
++      if (document.visibilityState === 'visible' && minimalViewIsOpen()) requestMinimalWakeLock();
++      else if (document.visibilityState !== 'visible') releaseMinimalWakeLock();
++    });
++    updateMinimalActiveTarget();
++  }
++
++  function installSafetyToolbar() {
++    const view = byId('safetyLogView');
++    if (!view) return;
++    view.addEventListener('pointerdown', event => {
++      const control = event.target.closest('.safety-icon-action');
++      if (control) vibrate(8);
++    }, { passive: true });
++    if ('MutationObserver' in window) {
++      new MutationObserver(() => {
++        if (view.classList.contains('hidden')) byId('safetyToolbarHint')?.classList.remove('is-visible');
++      }).observe(view, { attributes: true, attributeFilter: ['class'] });
++    }
++  }
++
++  function installSafetyScrollHint() {
++    const viewport = byId('safetyTableViewport');
++    if (!viewport || byId('safetyScrollHint')) return;
++    const hint = document.createElement('div');
++    hint.id = 'safetyScrollHint';
++    hint.className = 'safety-scroll-hint';
++    hint.textContent = 'BIB stays pinned • swipe sideways for more columns';
++    viewport.parentNode?.insertBefore(hint, viewport);
++    const hide = () => {
++      if (viewport.scrollLeft > 12) {
++        hint.classList.add('is-hidden');
++        storageSet('safetyScrollHintSeen_v193', '1');
++      }
++    };
++    if (storageGet('safetyScrollHintSeen_v193') === '1') hint.classList.add('is-hidden');
++    viewport.addEventListener('scroll', hide, { passive: true });
++  }
++
++  function installDirectorKeyboardShortcuts() {
++    document.addEventListener('keydown', event => {
++      const root = byId('directorModeView');
++      if (!root || root.classList.contains('hidden') || isTextEntry(event.target)) return;
++      if (event.key === 'Escape') {
++        event.preventDefault();
++        window.directorExitAction_?.(event);
++      } else if (event.shiftKey && event.key.toLowerCase() === 'r') {
++        event.preventDefault();
++        window.directorRefreshAction_?.(event);
++      } else if (event.shiftKey && event.key.toLowerCase() === 'c') {
++        event.preventDefault();
++        window.directorCustomizeAction_?.(event);
++      }
++    }, true);
++  }
++
++  function installAppModeObserver() {
++    const director = byId('directorModeView');
++    if (!director || !('MutationObserver' in window)) return;
++    new MutationObserver(() => {
++      if (!director.classList.contains('hidden')) {
++        window.requestAnimationFrame(() => {
++          installWidgetHelpToggles();
++          installMapFullscreen();
++        });
++      } else {
++        directorExitArmedUntil = 0;
++        byId('directorExitButton')?.classList.remove('is-armed');
++        byId('directorBackToTop')?.classList.remove('is-visible');
++        byId('directorToolbarHint')?.classList.remove('is-visible');
++        const mapWidget = byId('widget-map');
++        mapWidget?.classList.remove('map-is-fullscreen');
++        const mapButton = mapWidget?.querySelector('.map-fullscreen-button');
++        if (mapButton) {
++          mapButton.textContent = '⛶';
++          mapButton.setAttribute('aria-pressed', 'false');
++          mapButton.setAttribute('aria-label', 'Open GPS map full screen');
++        }
++      }
++    }).observe(director, { attributes: true, attributeFilter: ['class'] });
++  }
++
++  function init() {
++    document.documentElement.dataset.uxVersion = VERSION;
++    installStableDirectorToolbar();
++    installDirectorNavigation();
++    installWidgetHelpToggles();
++    installMapFullscreen();
++    installMinimalModeEnhancements();
++    installSafetyToolbar();
++    installSafetyScrollHint();
++    installDirectorKeyboardShortcuts();
++    installAppModeObserver();
++  }
++
++  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
++  else init();
++})();
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/docs/DEVICE-TEST-MATRIX-v19.3.2.md /mnt/data/race-bib-logger-v19.3.3/docs/DEVICE-TEST-MATRIX-v19.3.2.md
+--- /mnt/data/race-bib-logger-v19.3.2/docs/DEVICE-TEST-MATRIX-v19.3.2.md	2026-08-02 07:40:46.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/docs/DEVICE-TEST-MATRIX-v19.3.2.md	1970-01-01 00:00:00.000000000 +0000
+@@ -1,114 +0,0 @@
+-# Physical Device Test Matrix — v19.3.1
+-
+-Record device model, OS/browser version, build, date, tester, pass/fail, screenshots, and defect ID for every row.
+-
+-## Platforms
+-
+-| Platform | Required coverage |
+-|---|---|
+-| Recent iPhone | Current iOS Safari and installed PWA |
+-| Older supported iPhone | Safari and installed PWA under memory pressure |
+-| Recent Android | Chrome and installed PWA |
+-| Low-memory Android | Chrome/PWA with background eviction testing |
+-| Tablet | Portrait and landscape Director Mode |
+-| Desktop command station | Chrome/Edge/Safari as applicable, large display and keyboard |
+-
+-## Quick Entry and synchronization
+-
+-- Enter configured and unconfigured BIBs; unconfigured BIBs must log without a prompt and appear in Reconciliation.
+-- Trigger a duplicate and verify previous checkpoint, device, volunteer, elapsed time, Log anyway, and Cancel.
+-- Trigger a route exception and verify a reason remains mandatory.
+-- Queue BIBs offline; header shows only pending BIB count, not incident/safety/acknowledgement totals.
+-- Reconnect through high latency, packet loss, intermittent Wi-Fi, and captive-portal conditions.
+-- Test against the new v19.3.1 Apps Script deployment.
+-- In staging only, test against the previous successful response shape without checksum fields; confirm no false permanent Sync Issue.
+-- Return an explicit bad checksum acknowledgement; confirm the batch remains queued and the mismatch is surfaced.
+-- Confirm server reconciliation count after recovery.
+-
+-## Runner Safety Log
+-
+-- Sort BIB ascending and descending.
+-- Sort Last Seen newest-first and oldest-first.
+-- Scroll horizontally and confirm the BIB column remains frozen.
+-- Test 1–3 digit BIBs, 4–6 digit BIBs, and long alphanumeric BIBs.
+-- Confirm the frozen column stays compact and expands only as needed.
+-- Test route/collision badges in the frozen column.
+-- Test large text and browser zoom at 200%.
+-
+-## Director Mode
+-
+-- Confirm these widgets are absent: incident timeline, incident board, missing runner, medical capacity, sweep/transport, weather risk, checkpoint supplies.
+-- Confirm Arrival Forecast, heatmap, COT funnel, route anomalies, finish projection, outcomes, checkpoint health, handover, post-race report, and GPS map remain available.
+-- Hide/show, reorder, resize, and reload retained widgets; confirm preferences persist.
+-- Verify Arrival Forecast 10/20/30 labels and controlled traffic estimates.
+-- Verify heatmap 60/120/240 windows, horizontal scrolling, sticky checkpoint column, and empty state.
+-- Acknowledge and resolve COT alerts; reload and verify resolver/time/note.
+-- Verify route skip, reverse, impossible-speed, and approved-exception examples.
+-- Mark DNS, DNF, withdrawal, and medical statuses and verify totals.
+-- Verify KM/category finish grouping and behavior when pace data is absent.
+-- Generate/copy/download shift handover.
+-- Export post-race HTML and JSON and open both files on another device.
+-
+-## Google Maps and GPS
+-
+-- Configure the restricted production browser key through Apps Script properties.
+-- Test a local per-device key override, then remove it and confirm server-key fallback.
+-- GPS allowed, denied, approximate, temporarily unavailable, and stale.
+-- Verify Google street tiles render; no grid-only fallback remains.
+-- Drag/pan with one finger or mouse.
+-- Pinch and mouse-wheel zoom.
+-- Test map-type, Street View, fullscreen, scale, and zoom controls.
+-- Verify checkpoint markers, PWA markers, detail popups, marker age states, and recent trails.
+-- Verify battery/charging, connection, queue, GPS age/accuracy, and last sync under the map.
+-- Test invalid key, blocked referrer, API-disabled, quota error, and offline behavior.
+-- Confirm map failure never blocks BIB entry or synchronization.
+-- Test 1, 10, 30, and 100 reporting devices.
+-
+-## Accessibility and usability
+-
+-- Large text / browser zoom at 200%.
+-- Reduced motion.
+-- VoiceOver and TalkBack labels for controls and status changes.
+-- Keyboard navigation and visible focus.
+-- Wet/gloved touch use where relevant.
+-- High-glare and dark environments.
+-- Colour-independent status comprehension.
+-
+-## Load and soak
+-
+-- Two-hour multi-device soak with continuous BIB scans, COT alerts, device health, and Director refresh.
+-- At least 10 simultaneous logging devices and two Director devices in a test environment.
+-- Monitor Apps Script execution failures, lock contention, Sheets write rate, memory growth, battery drain, queue growth, Google Maps quota, and report generation time.
+-
+-Do not approve race-day deployment until all mandatory rows pass or have a documented operational workaround accepted by the race director and safety lead.
+-
+-## v19.3.1 UI/UX acceptance additions
+-
+-| Area | Scenario | Expected result |
+-|---|---|---|
+-| Quick Entry | 390 × 844 portrait | Full numeric keypad, Clear, LOG, and status fit with no overlap. |
+-| Quick Entry | Switch BIB ↔ Remark | Active target pill updates immediately; phone keyboard stays closed. |
+-| Quick Entry | Screen remains open | Wake Lock status updates accurately; failure never blocks entry. |
+-| Quick Entry | Rapid 30-BIB sequence | Haptics remain brief, taps are not dropped, and success confirmation never covers keys. |
+-| Main Entry | Focus BIB field | OCR/keyboard tools appear without shifting the entered BIB unexpectedly. |
+-| Success feedback | Log numeric and long alphanumeric BIBs | Compact toast shows the correct BIB and checkpoint and clears quickly. |
+-| Director phone | 390–430 px width | Exit, sync, customize, and refresh all remain visible with no horizontal page scroll. |
+-| Director command labels | Tap each toolbar icon | Floating label is readable for about five seconds; button widths remain unchanged. |
+-| Director navigation | Scroll and tap section chips | Active chip follows viewport and tap scrolls to the chosen visible section. |
+-| Director map | Enter/exit full screen | Map remains draggable/zoomable and returns to its widget without a blank canvas. |
+-| Director keyboard | Shift+R, Shift+C, Escape | Refresh, Customize, and guarded Exit work when focus is not in a form control. |
+-| Safety Log | Short and long BIBs | Frozen BIB column remains narrow for short labels and expands only as needed. |
+-| Safety Log | Horizontal swipe | BIB stays pinned and one-time swipe hint disappears after use. |
+-| Accessibility | Keyboard navigation | Every actionable control has a visible focus ring. |
+-| Accessibility | Reduced Motion | New transitions and smooth scrolling are suppressed. |
+-| Mobile dialogs | Duplicate/recovery/customize | Dialog appears as a reachable bottom sheet and respects the bottom safe area. |
+-
+-
+-## v19.3.1 focused acceptance checks
+-
+-- At 390 × 844, the Safety Log title and four icon actions remain on one row.
+-- Large-text mode does not turn Edit Setup into a tall or wrapped button.
+-- Scroll Director Mode at least 1,000 CSS pixels and wait through two refresh/render cycles; the position must not jump upward.
+-- The Director section-chip strip must be absent.
+-- The single right-side up-arrow must appear only after scrolling and return the Director overlay to scroll position 0.
+-- Exit, status, customize, and refresh icons must have consistent visual weight.
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/docs/DEVICE-TEST-MATRIX-v19.3.3.md /mnt/data/race-bib-logger-v19.3.3/docs/DEVICE-TEST-MATRIX-v19.3.3.md
+--- /mnt/data/race-bib-logger-v19.3.2/docs/DEVICE-TEST-MATRIX-v19.3.3.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/docs/DEVICE-TEST-MATRIX-v19.3.3.md	2026-08-02 12:13:45.813732581 +0000
+@@ -0,0 +1,17 @@
++# Physical-device test matrix — v19.3.3
++
++| Area | Recent iPhone PWA | Older iPhone | Android PWA | Tablet | Desktop |
++|---|---|---|---|---|---|
++| Large 123 Quick keypad fits without overlap | Required | Required | Required | Required | Required |
++| ABC opens native keyboard; 123 returns to keypad | Required | Required | Required | Required | Required |
++| BIB spaces rejected with red feedback | Required | Required | Required | Required | Required |
++| Duplicate dialog remains fully visible in Quick Entry | Required | Required | Required | Required | Required |
++| Last 4 repeat colours match main screen | Required | Required | Required | Required | Required |
++| OCR/keyboard controls hidden until BIB focus | Required | Required | Required | Required | Required |
++| Scan History header remains compact | Required | Required | Required | Required | Required |
++| Director header remains slim and scroll stays stable | Required | Required | Required | Required | Required |
++| Google map pan/pinch/wheel zoom | Required | Recommended | Required | Required | Required |
++| Offline logging and reconnect synchronization | Required | Required | Required | Required | Required |
++| Service-worker update from v19.3.1/v19.3.2 | Required | Required | Required | Required | Required |
++
++Also test reduced motion, large text, landscape orientation, poor connectivity, low-memory Android, GPS denied, GPS stale, and multiple devices synchronizing concurrently.
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/docs/GOOGLE-MAPS-SETUP-v19.3.2.md /mnt/data/race-bib-logger-v19.3.3/docs/GOOGLE-MAPS-SETUP-v19.3.2.md
+--- /mnt/data/race-bib-logger-v19.3.2/docs/GOOGLE-MAPS-SETUP-v19.3.2.md	2026-08-02 07:40:46.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/docs/GOOGLE-MAPS-SETUP-v19.3.2.md	1970-01-01 00:00:00.000000000 +0000
+@@ -1,32 +0,0 @@
+-# Google Maps setup — v19.3.1
+-
+-The Director GPS widget uses the Google Maps JavaScript API. The release does not contain an API key.
+-
+-## Recommended setup
+-
+-1. Select or create a Google Cloud project.
+-2. Enable **Maps JavaScript API**.
+-3. Create a browser API key.
+-4. Add an application restriction for the exact PWA hostname/referrer.
+-5. Add an API restriction allowing only **Maps JavaScript API**.
+-6. In Apps Script, open **Project Settings → Script Properties** and add:
+-   - `GOOGLE_MAPS_BROWSER_API_KEY`
+-   - optional: `GOOGLE_MAPS_MAP_ID`
+-7. Deploy a new Apps Script Web App version.
+-8. Open the PWA, run the cloud connection test, and then press **Test Google Maps**.
+-
+-## Per-device override
+-
+-PWA Settings also accepts a browser key and optional Map ID. A local value overrides the server-provided value. This can be useful for staging, but server-managed configuration is easier to maintain across many race devices.
+-
+-## Security
+-
+-- Use a browser key, not a server-secret key.
+-- Restrict the key to the exact production hostname/referrer.
+-- Restrict it to Maps JavaScript API.
+-- Use separate keys for production and testing.
+-- Review billing and quota alerts before race day.
+-
+-## Failure behaviour
+-
+-A missing, invalid, blocked, or offline map does not block BIB logging. The Director widget shows an actionable error while the rest of the PWA remains operational.
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/docs/GOOGLE-MAPS-SETUP-v19.3.3.md /mnt/data/race-bib-logger-v19.3.3/docs/GOOGLE-MAPS-SETUP-v19.3.3.md
+--- /mnt/data/race-bib-logger-v19.3.2/docs/GOOGLE-MAPS-SETUP-v19.3.3.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/docs/GOOGLE-MAPS-SETUP-v19.3.3.md	2026-08-02 12:13:45.809732581 +0000
+@@ -0,0 +1,19 @@
++# Centrally managed Google Maps setup — v19.3.3
++
++The Director map does not request a key from race-day users. `Code.gs` reads deployment-level Apps Script properties and sends the map configuration with normal configuration and Director summary responses.
++
++## One-time deployment configuration
++
++In the bound Apps Script project, open **Project Settings → Script Properties** and add:
++
++- `GOOGLE_MAPS_BROWSER_API_KEY` — required for the interactive Google map
++- `GOOGLE_MAPS_MAP_ID` — optional
++
++The browser key should be restricted in Google Cloud to:
++
++- the deployed PWA/site origin; and
++- the Maps JavaScript API.
++
++Do not put the key in `index.html`, `localStorage`, Settings UI, source-control secrets, or screenshots. A browser Maps key is delivered to the browser by design, so origin/API restrictions are the security boundary.
++
++When no deployment key is present, Director Mode shows a configuration status instead of asking a checkpoint operator to enter credentials.
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/docs/IMPLEMENTATION-STATUS-v19.3.2.md /mnt/data/race-bib-logger-v19.3.3/docs/IMPLEMENTATION-STATUS-v19.3.2.md
+--- /mnt/data/race-bib-logger-v19.3.2/docs/IMPLEMENTATION-STATUS-v19.3.2.md	2026-08-02 07:40:46.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/docs/IMPLEMENTATION-STATUS-v19.3.2.md	1970-01-01 00:00:00.000000000 +0000
+@@ -1,32 +0,0 @@
+-# v19.3.1 implementation status
+-
+-## Complete
+-
+-- Compact single-row Runner Safety Log toolbar.
+-- Icon-only safety status, sync, incident, and exit actions with accessible labels.
+-- Compact roster loading/error state.
+-- Director section-chip navigation removed.
+-- Director vertical auto-scroll regression removed.
+-- Single right-side back-to-top button retained.
+-- Director toolbar emoji replaced with normalized vector icons.
+-- Director sync-status glyph reduced.
+-- Setup action aligned to the summary/readiness control height.
+-- UI overrides extracted to `app/ux-v1931.css`.
+-- Service-worker and deployment asset validation updated.
+-- Unit, checksum-parity, FNV-parity, asset, JavaScript syntax, and static integration tests passing.
+-
+-## Unchanged
+-
+-- Racelog A:AC schema.
+-- Google Apps Script action contracts.
+-- Offline record formats and checksums.
+-- Duplicate, unknown-BIB, route-exception, reconciliation, and clock-drift logic.
+-- Google Maps API-key requirements.
+-
+-## Physical validation still required
+-
+-- Installed iPhone PWA with normal and enlarged system text.
+-- Android PWA with gesture navigation and low memory.
+-- Director scrolling during live refreshes and long-duration operation.
+-- Safety full-event synchronization on a production-sized roster.
+-- Real Google Maps pan, pinch zoom, markers, and trails.
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/docs/IMPLEMENTATION-STATUS-v19.3.3.md /mnt/data/race-bib-logger-v19.3.3/docs/IMPLEMENTATION-STATUS-v19.3.3.md
+--- /mnt/data/race-bib-logger-v19.3.2/docs/IMPLEMENTATION-STATUS-v19.3.3.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/docs/IMPLEMENTATION-STATUS-v19.3.3.md	2026-08-02 12:13:45.813732581 +0000
+@@ -0,0 +1,24 @@
++# Implementation status — v19.3.3
++
++## Complete in code
++
++- Numeric-only custom Quick Entry keypad with native ABC keyboard handoff.
++- Whitespace rejection and temporary red feedback.
++- Compact duplicate confirmation above Quick Entry with no duplicate reason selector.
++- Shared repeat-frequency colours across main and Quick Last 4.
++- Focus-bound normal-entry camera and keyboard controls.
++- Compact Scan History scope/limit controls.
++- Removed Setup event-distance strip.
++- Aligned Setup action sizing.
++- Slimmer Director title/action rail.
++- Removed Shift Handover and Post-Race Command Report surfaces.
++- Server-only Google Maps configuration path.
++- Service-worker and deployment asset versioning for v19.3.3.
++
++## Still requires deployment/device validation
++
++- Production Google Maps browser key restrictions and marker rendering.
++- iPhone and Android native-keyboard transitions.
++- Installed-PWA service-worker replacement.
++- Live Apps Script synchronization under weak connectivity.
++- Physical GPS movement and multi-device soak tests.
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/index.html /mnt/data/race-bib-logger-v19.3.3/index.html
+--- /mnt/data/race-bib-logger-v19.3.2/index.html	2026-08-02 07:41:10.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/index.html	2026-08-02 12:13:11.657733435 +0000
+@@ -3289,7 +3289,7 @@
+ 
+ 
+         /* =====================================================================
+-           v19.3.1 — Compact mobile monitoring and stable Director scrolling
++           v19.3.3 — Compact entry, duplicate, setup, and Director refinements
+            Keeps operational behaviour unchanged while making primary actions
+            easier to hit, reducing layout shift, and improving small-screen use.
+            ===================================================================== */
+@@ -3598,7 +3598,7 @@
+     
+ 
+ </style>
+-<link rel="stylesheet" href="app/ux-v1931.css">
++<link rel="stylesheet" href="app/ux-v1933.css">
+ </head>
+ <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
+ 
+@@ -3643,21 +3643,13 @@
+                 <div id="testConnectionStatusFeedback" class="text-[10px] font-bold hidden leading-tight"></div>
+             </div>
+ 
+-            <!-- Google Maps: interactive Director GPS map -->
+-            <div class="theme-card flex flex-col gap-2">
+-                <div class="flex items-center justify-between gap-2">
++            <!-- Google Maps is deployment-managed; checkpoint users never enter credentials. -->
++            <div class="theme-card director-map-managed-card flex items-center justify-between gap-3">
++                <div class="min-w-0">
+                     <h4 class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">🗺️ Director Google Map</h4>
+-                    <span id="googleMapsSettingsState" class="text-[9px] font-black theme-text-muted">Optional</span>
+-                </div>
+-                <label class="block text-[10px] theme-text-muted font-bold" for="googleMapsApiKeyInput">Maps JavaScript API browser key</label>
+-                <input type="password" id="googleMapsApiKeyInput" autocomplete="off" placeholder="Restricted browser API key" class="w-full theme-input border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-700">
+-                <label class="block text-[10px] theme-text-muted font-bold" for="googleMapsMapIdInput">Map ID <span class="font-normal">(optional)</span></label>
+-                <div class="flex gap-2">
+-                    <input type="text" id="googleMapsMapIdInput" autocomplete="off" placeholder="Optional Google Cloud map ID" class="flex-grow theme-input border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-700">
+-                    <button type="button" onclick="testGoogleMapsConnection_()" id="googleMapsTesterBtn" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs px-3 rounded-lg transition shrink-0">Test map</button>
++                    <p class="text-[9px] theme-text-muted leading-snug mt-0.5">Loaded automatically from the Apps Script deployment configuration.</p>
+                 </div>
+-                <div id="googleMapsTestFeedback" class="hidden text-[10px] font-bold leading-tight"></div>
+-                <p class="text-[9px] theme-text-muted leading-snug">Used only when Director Mode opens the GPS map. Restrict the browser key to this web-app origin and to Maps JavaScript API. A server-provided key is used when this local field is blank.</p>
++                <span id="googleMapsSettingsState" class="text-[9px] font-black theme-text-muted whitespace-nowrap">Checking…</span>
+             </div>
+ 
+             <!-- Event Profile: live, server-driven category/KM configuration -->
+@@ -3750,15 +3742,8 @@
+                     <span class="text-xs font-bold theme-text">Enable COT warning announcements and acknowledgement workflow</span>
+                 </label>
+ 
+-                <div class="grid grid-cols-2 gap-3">
+-                    <div class="theme-input border rounded-lg px-2.5 py-2">
+-                        <div class="text-[10px] theme-text-muted font-bold">Current CP Scan History</div>
+-                        <div class="text-xs font-black theme-text mt-0.5">Latest 20 logs</div>
+-                    </div>
+-                    <div class="theme-input border rounded-lg px-2.5 py-2">
+-                        <div class="text-[10px] theme-text-muted font-bold">Global Scan History</div>
+-                        <div class="text-xs font-black theme-text mt-0.5">Latest 20 logs</div>
+-                    </div>
++                <div class="scan-history-limit-strip theme-input border rounded-lg" aria-label="Scan history limits">
++                    <span><strong>Current CP</strong> 20</span><span aria-hidden="true">•</span><span><strong>Global</strong> 20</span><span class="theme-text-muted">latest logs</span>
+                 </div>
+                 <input type="hidden" id="currentCpHistoryLimitSelect" value="20">
+                 <input type="hidden" id="globalHistoryLimitSelect" value="20">
+@@ -3980,22 +3965,24 @@
+                 </div>
+                 <div id="minimalBibDisplayWrap" class="minimal-bib-display-wrap is-active" onclick="activateMinimalEntryTarget_('bib')">
+                     <div id="minimalBibDisplay" class="is-placeholder" role="textbox" aria-label="BIB being entered" aria-live="polite">Tap the keypad</div>
++                    <input id="minimalNativeBibInput" class="minimal-native-bib-input" type="text" inputmode="text" enterkeyhint="done" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" aria-label="Native keyboard BIB input" onkeydown="handleMinimalNativeBibKeydown_(event)" oninput="handleMinimalNativeBibInput_(this)" onblur="handleMinimalNativeKeyboardBlur_()">
+                     <span id="minimalBibRepeatHint" class="minimal-bib-repeat-hint" aria-live="polite">Previously recorded</span>
+                     <button type="button" class="minimal-backspace-btn" onclick="event.stopPropagation(); minimalBibBackspace_('bib')" aria-label="Delete last BIB character" title="Backspace BIB">⌫</button>
+                 </div>
+                 <div id="minimalRemarkShell" class="minimal-remark-shell">
+-                    <label for="minimalRemarkInput">Remark for this BIB <span>Optional · tap to edit with keypad</span></label>
+-                    <input type="text" id="minimalRemarkInput" inputmode="none" maxlength="500" readonly onclick="activateMinimalEntryTarget_('remark')" aria-label="Optional remark for this BIB, edited with the on-screen keypad" placeholder="e.g. Missed helper, penalty, etc.">
++                    <label for="minimalRemarkInput">Remark for this BIB <span>Optional · press ABC for phone keyboard</span></label>
++                    <input type="text" id="minimalRemarkInput" inputmode="none" maxlength="500" readonly onclick="activateMinimalEntryTarget_('remark')" onkeydown="handleMinimalRemarkNativeKeydown_(event)" oninput="syncMinimalRemarkInput_('minimal')" onblur="handleMinimalNativeKeyboardBlur_()" aria-label="Optional remark for this BIB. Tap ABC to use the phone keyboard." placeholder="e.g. Missed helper, penalty, etc.">
+                 </div>
++                <div id="minimalSpaceFeedback" class="minimal-space-feedback hidden" role="status" aria-live="assertive">Spaces are not allowed in BIB numbers.</div>
+             </div>
+ 
+             <div class="minimal-keyboard-area">
+-                <div class="minimal-keyboard-tabs" role="tablist" aria-label="On-screen keyboard layout">
+-                    <button type="button" id="minimalTabNumbers" class="minimal-keyboard-tab" onclick="setMinimalBibKeyboardPage_('numbers')" role="tab">123</button>
+-                    <button type="button" id="minimalTabLetters" class="minimal-keyboard-tab" onclick="setMinimalBibKeyboardPage_('letters')" role="tab">ABC</button>
+-                    <button type="button" id="minimalTabSymbols" class="minimal-keyboard-tab" onclick="setMinimalBibKeyboardPage_('symbols')" role="tab">#+=</button>
++                <div class="minimal-keyboard-tabs minimal-keyboard-tabs-two" role="tablist" aria-label="Quick entry input mode">
++                    <button type="button" id="minimalTabNumbers" class="minimal-keyboard-tab" onclick="activateMinimalNumericKeypad_()" role="tab" aria-selected="true">123</button>
++                    <button type="button" id="minimalTabLetters" class="minimal-keyboard-tab" onclick="openMinimalNativeKeyboard_()" role="tab" aria-selected="false">ABC</button>
+                 </div>
+-                <div id="minimalBibKeyboard" class="mt-2" aria-label="BIB on-screen keyboard"></div>
++                <div id="minimalBibKeyboard" class="mt-2" aria-label="Numeric BIB keypad"></div>
++                <div id="minimalNativeKeyboardHint" class="minimal-native-keyboard-hint hidden" role="status">Phone keyboard active · tap 123 to return to the large number pad.</div>
+             </div>
+ 
+             <div class="minimal-bib-actions">
+@@ -4472,14 +4459,6 @@
+                         </div>
+                     </div>
+ 
+-                    <button type="button" id="eventConfigStrip" class="event-config-strip" onclick="openEventProfile_()" title="View the category and KM configuration synced from the Setup sheet">
+-                        <span class="event-config-strip-main">
+-                            <span id="eventConfigStripTitle" class="event-config-strip-title">Event setup: waiting for sync</span>
+-                            <span id="eventConfigStripSub" class="event-config-strip-sub">Categories and race distances are loaded dynamically from the Setup sheet.</span>
+-                        </span>
+-                        <span id="eventConfigStripHealth" class="event-config-health warning">Waiting</span>
+-                    </button>
+-
+                     <div id="storageReadinessNotice" role="status" aria-live="polite">Local storage is starting. You can fill Setup now; bib logging unlocks automatically when storage is ready.</div>
+ 
+                     <div id="gpsCheckpointAdvisor" class="hidden gps-checkpoint-advisor" role="status" aria-live="polite">
+@@ -4546,7 +4525,7 @@
+                     <form id="bibEntryForm" onsubmit="handleBibEntrySubmit_(event)" class="flex flex-col gap-3" autocomplete="off">
+                         <div class="bib-entry-submit-grid">
+                             <div class="bib-input-shell">
+-                                <input type="text" id="bibInput" inputmode="text" enterkeyhint="go" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" onfocus="warmUpGPS(); showBibInputTools_();" onblur="scheduleHideBibInputTools_();" onkeydown="handleBibInputKeydown_(event)" oninput="warmUpGPS(); sanitizeBibTyping_(this); autoScaleBibFontSize_(); syncMinimalBibInput_();" placeholder="Any BIB: 7, MO1234, SWEEPER, PACER-A" aria-describedby="bibInputToolsHint" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
++                                <input type="text" id="bibInput" inputmode="text" enterkeyhint="go" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" onfocus="warmUpGPS(); showBibInputTools_();" onblur="scheduleHideBibInputTools_();" onkeydown="handleBibInputKeydown_(event)" oninput="warmUpGPS(); sanitizeBibTyping_(this); autoScaleBibFontSize_(); syncMinimalBibInput_();" placeholder="Any BIB: 7, MO1234, SWEEPER, PACER-A" aria-describedby="bibInputToolsHint bibSpaceFeedback" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
+                                 <div id="bibInputTools" class="bib-input-tools" aria-label="Bib entry tools" aria-hidden="true">
+                                     <button type="button" id="bibOcrBtn" onpointerdown="event.preventDefault();" onclick="openBibScanner(); event.stopPropagation();" title="Start live OCR" aria-label="Start live OCR" class="bib-entry-tool">
+                                         <span class="bib-entry-tool-icon" aria-hidden="true">📷</span>
+@@ -4555,10 +4534,11 @@
+                                         <span id="bibEntryModeIcon" class="bib-entry-tool-icon" aria-hidden="true">🔢</span><span id="bibEntryModeLabel" class="sr-only">Numbers</span>
+                                     </button>
+                                 </div>
+-                                <span id="bibInputToolsHint" class="sr-only">OCR and keyboard mode tools appear when this field is focused. Any non-empty printable BIB label is accepted, including spaces and punctuation. The minimalist keypad avoids opening the phone keyboard.</span>
++                                <span id="bibInputToolsHint" class="sr-only">OCR and keyboard mode tools appear when this field is focused. Any non-empty printable BIB label is accepted except spaces. Punctuation remains supported. The minimalist keypad keeps the number pad on screen and opens the phone keyboard only after ABC is pressed.</span>
+                             </div>
+                             <button type="submit" id="logActionButton" onpointerdown="keepBibInputFocused_(event)" aria-label="Log bib" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-90 duration-75 text-white font-extrabold text-lg rounded-xl shadow-lg transition-all flex items-center justify-center"><span id="logActionButtonLabel">LOG</span></button>
+                         </div>
++                        <div id="bibSpaceFeedback" class="bib-space-feedback hidden" role="status" aria-live="assertive">Spaces are not allowed in BIB numbers.</div>
+                         <div class="mt-1 relative">
+                             <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark for next bib (Optional)</label>
+                             <div class="remark-input-row">
+@@ -4822,10 +4802,10 @@
+             <!-- Right Panel Side -->
+             <div class="w-full h-full flex flex-col lg:min-h-0">
+                 <section class="theme-panel rounded-xl border shadow flex flex-col overflow-hidden min-h-[450px] lg:min-h-0 w-full h-full">
+-                    <div class="px-3 py-2.5 border-b theme-border flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap bg-neutral-200/50 dark:bg-neutral-900/10">
++                    <div id="scanHistoryHeader" class="px-3 py-2.5 border-b theme-border flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap bg-neutral-200/50 dark:bg-neutral-900/10">
+                         <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                             <h3 class="text-[10px] font-bold theme-text-muted uppercase tracking-wider whitespace-nowrap">Scan History</h3>
+-                            <div class="inline-flex bg-neutral-100 dark:bg-neutral-900 border theme-border rounded-md p-0.5 text-[9px] font-bold shrink-0">
++                            <div class="scan-history-scope-toggle inline-flex bg-neutral-100 dark:bg-neutral-900 border theme-border rounded-md p-0.5 text-[9px] font-bold shrink-0">
+                                 <button onclick="setScopeFilter('current')" id="scopeBtn-current" class="px-2 py-0.5 rounded bg-blue-600 dark:bg-blue-900 text-white transition-colors duration-150">Current CP</button>
+                                 <button onclick="setScopeFilter('global')" id="scopeBtn-global" class="px-2 py-0.5 rounded text-neutral-600 dark:text-neutral-400 transition-colors duration-150">Global</button>
+                             </div>
+@@ -4879,7 +4859,7 @@
+ 
+     <!-- v19 reusable decision modal -->
+     <div id="v19DecisionModal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-[140]" role="dialog" aria-modal="true" aria-hidden="true">
+-        <div class="theme-panel border theme-border rounded-2xl shadow-2xl w-full max-w-lg p-5 flex flex-col gap-4">
++        <div id="v19DecisionCard" class="theme-panel border theme-border rounded-2xl shadow-2xl w-full max-w-lg p-5 flex flex-col gap-4">
+             <h3 id="v19DecisionTitle" class="text-lg font-black theme-text">Confirm action</h3>
+             <div id="v19DecisionBody" class="v19-modal-body"></div>
+             <div id="v19DecisionReasonWrap" class="hidden flex flex-col gap-1">
+@@ -4946,6 +4926,6 @@
+     <script src="app/main.js"></script>
+     <script src="app/operations-v19.js"></script>
+     <script src="app/director-ops-v192.js"></script>
+-    <script src="app/ux-v1931.js"></script>
++    <script src="app/ux-v1933.js"></script>
+ </body>
+ </html>
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/manifest.json /mnt/data/race-bib-logger-v19.3.3/manifest.json
+--- /mnt/data/race-bib-logger-v19.3.2/manifest.json	2026-08-02 06:51:06.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/manifest.json	2026-08-02 12:08:59.669739740 +0000
+@@ -2,7 +2,7 @@
+   "id": "./",
+   "name": "Race Bib Logger",
+   "short_name": "Race Log",
+-  "description": "Offline-first race logging with keypad-priority BIB entry, duplicate protection, safety analytics, forecasts, route anomaly detection, interactive GPS device mapping, handover, and post-race reporting.",
++  "description": "Offline-first race logging with keypad-priority BIB entry, compact duplicate protection, safety analytics, forecasts, route anomaly detection, and centrally configured interactive GPS device mapping.",
+   "lang": "en",
+   "dir": "ltr",
+   "start_url": "./index.html",
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/package.json /mnt/data/race-bib-logger-v19.3.3/package.json
+--- /mnt/data/race-bib-logger-v19.3.2/package.json	2026-08-02 07:36:50.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/package.json	2026-08-02 12:08:59.669739740 +0000
+@@ -1,7 +1,7 @@
+ {
+-  "name": "race-bib-logger-v19-3-1",
++  "name": "race-bib-logger-v19-3-3",
+   "private": true,
+-  "version": "19.3.1",
++  "version": "19.3.3",
+   "scripts": {
+     "validate:assets": "node scripts/validate-assets.mjs",
+     "test:unit": "node tests/unit-integrity.mjs && node tests/checksum-parity.mjs && node tests/fnv-parity.mjs",
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/scripts/validate-assets.mjs /mnt/data/race-bib-logger-v19.3.3/scripts/validate-assets.mjs
+--- /mnt/data/race-bib-logger-v19.3.2/scripts/validate-assets.mjs	2026-08-02 07:37:31.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/scripts/validate-assets.mjs	2026-08-02 12:10:50.925736956 +0000
+@@ -9,7 +9,7 @@
+   'index.html', 'tailwind.css', 'manifest.json', 'sw.js', 'Code.gs',
+   'app/constants.js', 'app/contracts.js', 'app/state-store.js', 'app/errors.js',
+   'app/components.js', 'app/integrity.js', 'app/main.js', 'app/operations-v19.js',
+-  'app/director-ops-v192.js', 'app/ux-v1931.js', 'app/ux-v1931.css'
++  'app/director-ops-v192.js', 'app/ux-v1933.js', 'app/ux-v1933.css'
+ ];
+ 
+ function exists(relative) {
+@@ -52,7 +52,7 @@
+   else {
+     for (const match of cacheArray[1].matchAll(/["'](\.\/[^"']+)["']/g)) exists(match[1]);
+   }
+-  if (!/race-logger-static-v19-3-1/.test(sw)) errors.push('Service-worker static cache is not versioned for v19.3.1.');
++  if (!/race-logger-static-v19-3-3/.test(sw)) errors.push('Service-worker static cache is not versioned for v19.3.3.');
+ } catch (error) {
+   errors.push(`Could not inspect sw.js: ${error.message}`);
+ }
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/sw.js /mnt/data/race-bib-logger-v19.3.3/sw.js
+--- /mnt/data/race-bib-logger-v19.3.2/sw.js	2026-08-02 07:37:31.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/sw.js	2026-08-02 12:08:59.669739740 +0000
+@@ -1,9 +1,9 @@
+-// Race Bib Logger v19.3.1 UI, sync, and interactive-map revision.
++// Race Bib Logger v19.3.3 UI, sync, and interactive-map revision.
+ // Keeps the existing IndexedDB/background-sync logic below unchanged while making
+ // app-shell caching safe for subdirectory deployments and shared web origins.
+ const CACHE_PREFIX = 'race-logger-';
+-const STATIC_CACHE = 'race-logger-static-v19-3-1-r1';
+-const RUNTIME_CACHE = 'race-logger-runtime-v19-3-1-r1';
++const STATIC_CACHE = 'race-logger-static-v19-3-3-r1';
++const RUNTIME_CACHE = 'race-logger-runtime-v19-3-3-r1';
+ const NETWORK_TIMEOUT_MS = 4500;
+ const MAX_RUNTIME_ENTRIES = 80;
+ 
+@@ -25,8 +25,8 @@
+   './app/main.js',
+   './app/operations-v19.js',
+   './app/director-ops-v192.js',
+-  './app/ux-v1931.js',
+-  './app/ux-v1931.css',
++  './app/ux-v1933.js',
++  './app/ux-v1933.css',
+   './icons/icon-192.png',
+   './icons/icon-512.png',
+   './icons/icon-512-maskable.png'
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/tests/browser-offline.spec.js /mnt/data/race-bib-logger-v19.3.3/tests/browser-offline.spec.js
+--- /mnt/data/race-bib-logger-v19.3.2/tests/browser-offline.spec.js	2026-08-02 05:45:58.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/tests/browser-offline.spec.js	2026-08-02 12:10:50.925736956 +0000
+@@ -3,7 +3,7 @@
+ const { test, expect } = require('@playwright/test');
+ const baseURL = process.env.BASE_URL || 'http://127.0.0.1:8765/index.html';
+ 
+-test('v19.2 command-centre controls load without runtime errors', async ({ page }) => {
++test('v19.3.3 entry and command controls load without runtime errors', async ({ page }) => {
+   const errors = [];
+   page.on('pageerror', (error) => errors.push(error.message));
+   await page.goto(baseURL, { waitUntil: 'networkidle' });
+@@ -12,7 +12,8 @@
+   await expect(page.locator('#v19DecisionModal')).toBeAttached();
+   await expect(page.locator('#widget-heatmap')).toBeAttached();
+   await expect(page.locator('#widget-cot-funnel')).toBeAttached();
+-  await expect(page.locator('#widget-post-race-report')).toBeAttached();
++  await expect(page.locator('#minimalNativeBibInput')).toBeAttached();
++  await expect(page.locator('#widget-post-race-report')).toHaveCount(0);
+   expect(errors).toEqual([]);
+ });
+ 
+diff -ruN '--exclude=*.png' '--exclude=*.zip' '--exclude=*.sha256' '--exclude=SHA256SUMS.txt' /mnt/data/race-bib-logger-v19.3.2/tests/static-checks.mjs /mnt/data/race-bib-logger-v19.3.3/tests/static-checks.mjs
+--- /mnt/data/race-bib-logger-v19.3.2/tests/static-checks.mjs	2026-08-02 07:41:10.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.3/tests/static-checks.mjs	2026-08-02 12:10:50.373736970 +0000
+@@ -9,92 +9,93 @@
+ const main = read('app/main.js');
+ const ops = read('app/operations-v19.js');
+ const command = read('app/director-ops-v192.js');
+-const ux = read('app/ux-v1931.js');
+-const uxCss = read('app/ux-v1931.css');
++const ux = read('app/ux-v1933.js');
++const uxCss = read('app/ux-v1933.css');
+ const backend = read('Code.gs');
+ const sw = read('sw.js');
+ 
+-assert.match(backend, /const APP_VERSION = "19\.3\.1"/);
++assert.match(backend, /const APP_VERSION = "19\.3\.3"/);
+ assert.match(backend, /const DATA_COLUMN_COUNT = 29/);
+ assert.match(backend, /"Reason Code".*"Reconciliation Flags".*"Record Checksum"/s);
+-assert.match(backend, /const COMMAND_OPS_SHEET_NAME = "CommandOps"/);
+-assert.match(backend, /const WEATHER_RISK_SHEET_NAME = "WeatherRisk"/);
+-assert.match(backend, /function getCommandOpsRecords_\(/);
+-assert.match(backend, /function upsertCommandOp_\(/);
+-assert.match(backend, /function getWeatherRisk_\(/);
+-assert.match(backend, /action === "command_ops"/);
+-assert.match(backend, /action === "command_op_upsert"/);
+-assert.match(backend, /EVENT_EPOCH_MISMATCH/);
+-assert.match(backend, /eventEpoch: eventEpoch/);
+ assert.match(backend, /action === "reconciliation_count"/);
+ assert.match(backend, /action === "operational_batch"/);
+ assert.match(backend, /checksumVerified: checksumResult\.verified === true/);
+ assert.match(backend, /recordChecksumsVerified: checksumResult\.recordsVerified === true/);
+ assert.match(backend, /function getSafetyActionCard_\(/);
+ assert.match(backend, /function upsertCheckpointStatus_\(/);
+-assert.match(backend, /"Resolved At", "Resolution"/);
+-assert.doesNotMatch(backend, /getRange\(2, ORIGINAL_DEVICE_TIME_COL,[^\n]+clearContent/, 'v19 migration must not erase existing S:V audit fields.');
++assert.doesNotMatch(backend, /getRange\(2, ORIGINAL_DEVICE_TIME_COL,[^\n]+clearContent/, 'Migration must not erase existing S:V audit fields.');
+ 
+-for (const id of ['v19DecisionModal', 'clockDriftBlocker', 'reconciliationView', 'recoveryWizard', 'offlineSafetyActionCard', 'directorCheckpointHealthBody', 'directorMapBody', 'safetyBibHeader', 'safetyLastSeenHeader', 'minimalBibRepeatHint']) {
+-  assert.match(html, new RegExp(`id=["']${id}["']`), `Missing UI element #${id}`);
+-}
+-for (const file of ['constants', 'contracts', 'state-store', 'errors', 'components', 'integrity', 'main', 'operations-v19', 'director-ops-v192', 'ux-v1931']) {
++for (const id of [
++  'v19DecisionModal', 'clockDriftBlocker', 'reconciliationView', 'recoveryWizard',
++  'offlineSafetyActionCard', 'directorCheckpointHealthBody', 'directorMapBody',
++  'safetyBibHeader', 'safetyLastSeenHeader', 'minimalBibRepeatHint',
++  'minimalNativeBibInput', 'minimalSpaceFeedback', 'bibSpaceFeedback'
++]) assert.match(html, new RegExp(`id=["']${id}["']`), `Missing UI element #${id}`);
++
++for (const file of ['constants', 'contracts', 'state-store', 'errors', 'components', 'integrity', 'main', 'operations-v19', 'director-ops-v192', 'ux-v1933']) {
+   assert.match(html, new RegExp(`app/${file}\\.js`), `Missing module script ${file}.js`);
+ }
+-assert.ok(html.split('\n').length < 5000, 'index.html should remain presentation-first after module extraction.');
++assert.match(html, /app\/ux-v1933\.css/);
++assert.ok(html.split('\n').length < 5000, 'index.html should remain presentation-first.');
+ assert.ok(main.split('\n').length > 10000, 'Existing application runtime should be preserved in app/main.js.');
++
+ assert.match(main, /function renderDirectorGpsMap_\(/);
+ assert.match(main, /function setSafetySort_\(/);
+ assert.match(main, /addCombo\('', 'Uncategorized', 'system'\)/);
+ assert.match(main, /resolveDirectorDistanceCategory_/);
+ assert.match(main, /scheduleMinimalBibRepeatedLookup_/);
+-assert.match(main, /'post-race-report': 'director-post-race-report-body'/);
+-assert.match(html, /director-icon-action/);
+-assert.match(html, /tbody td:first-child:not\(\.virtual-spacer-cell\)/);
+-assert.match(ops, /Duplicate passage warning/);
++assert.doesNotMatch(main, /director-post-race-report-body|director-handover-body/);
++assert.match(main, /openMinimalNativeKeyboard_/);
++assert.match(main, /minimalBibKeyboardPage_ = 'numbers'/);
++assert.match(main, /showBibSpaceBlockedFeedback_/);
++assert.match(main, /incoming\.replace\(\/\\s\+\/g, ''\)/);
++assert.match(main, /last4-repeat-\$\{colourBucket\}/);
++assert.doesNotMatch(html, /id="minimalTabSymbols"/);
++assert.match(html, /id="minimalTabNumbers"/);
++assert.match(html, /id="minimalTabLetters"/);
++assert.doesNotMatch(html, /id="eventConfigStrip"/);
++
++assert.match(ops, /kind: 'duplicate'/);
++assert.match(ops, /title: 'Duplicate BIB'/);
++assert.match(ops, /DUPLICATE_CONFIRMED/);
+ assert.doesNotMatch(ops, /title: 'Runner not found'/);
+ assert.match(ops, /UNKNOWN_NOT_IN_SETUP/);
+ assert.match(ops, /Checkpoint sequence exception/);
+ assert.match(ops, /Race-Day Recovery Wizard|runAllRecoveryChecks_/);
+ assert.match(ops, /operational_batch/);
+-assert.match(ops, /checksum acknowledgement did not match/i);
+ 
+ for (const feature of [
+   'Checkpoint Load Heatmap', 'COT Risk Funnel', 'Route Anomaly Diagram',
+-  'Finish Projection', 'DNS / DNF / Withdrawal / Medical', 'Shift Handover',
+-  'Post-Race Command Report'
++  'Finish Projection', 'DNS / DNF / Withdrawal / Medical'
+ ]) assert.match(command, new RegExp(feature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+ for (const removedFeature of [
+   'Missing Runner Workflow', 'Medical Capacity Board', 'Sweep & Transport Tracking',
+-  'Weather Risk', 'Checkpoint Supply Status'
++  'Weather Risk', 'Checkpoint Supply Status', 'Shift Handover', 'Post-Race Command Report'
+ ]) assert.doesNotMatch(command.match(/const WIDGETS = \[[\s\S]*?\n  \];/)?.[0] || '', new RegExp(removedFeature));
++assert.doesNotMatch(command, /renderHandover_|renderPostRaceReport_|downloadV192Report_/);
++
+ assert.match(main, /maps\.googleapis\.com\/maps\/api\/js/);
+ assert.match(main, /gestureHandling: 'greedy'/);
+ assert.match(backend, /GOOGLE_MAPS_BROWSER_API_KEY/);
+ assert.match(backend, /mapConfig: getGoogleMapsClientConfig_\(\)/);
+-assert.match(main, /next10/);
+-assert.match(main, /next20/);
+-assert.match(main, /next30/);
+-assert.match(backend, /next10/);
+-assert.match(backend, /next20/);
+-assert.match(backend, /next30/);
+-assert.match(command, /resolveV192CotAlert_/);
+-assert.match(command, /connectivity/);
+-assert.match(command, /gpsCapturedAt/);
++assert.doesNotMatch(html, /googleMapsApiKeyInput|googleMapsMapIdInput/);
++assert.match(html, /id="googleMapsSettingsState"/);
++
+ assert.match(sw, /app\/operations-v19\.js/);
+ assert.match(sw, /app\/director-ops-v192\.js/);
+-assert.match(sw, /app\/ux-v1931\.js/);
+-assert.match(sw, /race-logger-static-v19-3-1/);
++assert.match(sw, /app\/ux-v1933\.js/);
++assert.match(sw, /app\/ux-v1933\.css/);
++assert.match(sw, /race-logger-static-v19-3-3/);
+ assert.match(ux, /showDirectorToolbarHint/);
+ assert.match(ux, /requestMinimalWakeLock/);
+-assert.doesNotMatch(ux, /buildDirectorSectionNav|scrollIntoView/, 'Director UX must not auto-scroll the vertical command view.');
++assert.doesNotMatch(ux, /buildDirectorSectionNav|scrollIntoView/, 'Director UX must not auto-scroll the command view.');
+ assert.match(ux, /installMapFullscreen/);
+-assert.doesNotMatch(html, /id="directorSectionNav"/, 'Broken Director section-chip navigation must remain removed.');
++assert.match(uxCss, /#v19DecisionModal\[data-kind="duplicate"\]/);
++assert.match(uxCss, /minimal-last4-card\[class\*="last4-repeat-"\] strong/);
++assert.match(uxCss, /scan-history-limit-strip/);
++assert.match(uxCss, /bib-input-shell:focus-within\.tools-visible/);
+ assert.match(html, /class="safety-log-topbar"/);
+-assert.match(html, /class="safety-icon-action/);
+ assert.match(html, /id="directorBackToTop"/);
+-assert.match(html, /id="minimalActiveTargetPill"/);
+-assert.match(html, /id="successToastBib"/);
+ assert.match(sw, /attachRecordChecksums_\(unsynced\)/);
+ assert.match(sw, /checksumBatch_\(unsynced\)/);
+ assert.match(sw, /operational_batch/);

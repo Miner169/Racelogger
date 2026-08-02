@@ -3289,7 +3289,7 @@
 
 
         /* =====================================================================
-           v19.3.1 — Compact mobile monitoring and stable Director scrolling
+           v19.3.3 — Compact entry, duplicate, setup, and Director refinements
            Keeps operational behaviour unchanged while making primary actions
            easier to hit, reducing layout shift, and improving small-screen use.
            ===================================================================== */
@@ -3598,7 +3598,7 @@
     
 
 </style>
-<link rel="stylesheet" href="app/ux-v1931.css">
+<link rel="stylesheet" href="app/ux-v1933.css">
 </head>
 <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
 
@@ -3643,21 +3643,13 @@
                 <div id="testConnectionStatusFeedback" class="text-[10px] font-bold hidden leading-tight"></div>
             </div>
 
-            <!-- Google Maps: interactive Director GPS map -->
-            <div class="theme-card flex flex-col gap-2">
-                <div class="flex items-center justify-between gap-2">
+            <!-- Google Maps is deployment-managed; checkpoint users never enter credentials. -->
+            <div class="theme-card director-map-managed-card flex items-center justify-between gap-3">
+                <div class="min-w-0">
                     <h4 class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">🗺️ Director Google Map</h4>
-                    <span id="googleMapsSettingsState" class="text-[9px] font-black theme-text-muted">Optional</span>
+                    <p class="text-[9px] theme-text-muted leading-snug mt-0.5">Loaded automatically from the Apps Script deployment configuration.</p>
                 </div>
-                <label class="block text-[10px] theme-text-muted font-bold" for="googleMapsApiKeyInput">Maps JavaScript API browser key</label>
-                <input type="password" id="googleMapsApiKeyInput" autocomplete="off" placeholder="Restricted browser API key" class="w-full theme-input border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-700">
-                <label class="block text-[10px] theme-text-muted font-bold" for="googleMapsMapIdInput">Map ID <span class="font-normal">(optional)</span></label>
-                <div class="flex gap-2">
-                    <input type="text" id="googleMapsMapIdInput" autocomplete="off" placeholder="Optional Google Cloud map ID" class="flex-grow theme-input border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-700">
-                    <button type="button" onclick="testGoogleMapsConnection_()" id="googleMapsTesterBtn" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs px-3 rounded-lg transition shrink-0">Test map</button>
-                </div>
-                <div id="googleMapsTestFeedback" class="hidden text-[10px] font-bold leading-tight"></div>
-                <p class="text-[9px] theme-text-muted leading-snug">Used only when Director Mode opens the GPS map. Restrict the browser key to this web-app origin and to Maps JavaScript API. A server-provided key is used when this local field is blank.</p>
+                <span id="googleMapsSettingsState" class="text-[9px] font-black theme-text-muted whitespace-nowrap">Checking…</span>
             </div>
 
             <!-- Event Profile: live, server-driven category/KM configuration -->
@@ -3750,15 +3742,8 @@
                     <span class="text-xs font-bold theme-text">Enable COT warning announcements and acknowledgement workflow</span>
                 </label>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="theme-input border rounded-lg px-2.5 py-2">
-                        <div class="text-[10px] theme-text-muted font-bold">Current CP Scan History</div>
-                        <div class="text-xs font-black theme-text mt-0.5">Latest 20 logs</div>
-                    </div>
-                    <div class="theme-input border rounded-lg px-2.5 py-2">
-                        <div class="text-[10px] theme-text-muted font-bold">Global Scan History</div>
-                        <div class="text-xs font-black theme-text mt-0.5">Latest 20 logs</div>
-                    </div>
+                <div class="scan-history-limit-strip theme-input border rounded-lg" aria-label="Scan history limits">
+                    <span><strong>Current CP</strong> 20</span><span aria-hidden="true">•</span><span><strong>Global</strong> 20</span><span class="theme-text-muted">latest logs</span>
                 </div>
                 <input type="hidden" id="currentCpHistoryLimitSelect" value="20">
                 <input type="hidden" id="globalHistoryLimitSelect" value="20">
@@ -3980,22 +3965,24 @@
                 </div>
                 <div id="minimalBibDisplayWrap" class="minimal-bib-display-wrap is-active" onclick="activateMinimalEntryTarget_('bib')">
                     <div id="minimalBibDisplay" class="is-placeholder" role="textbox" aria-label="BIB being entered" aria-live="polite">Tap the keypad</div>
+                    <input id="minimalNativeBibInput" class="minimal-native-bib-input" type="text" inputmode="text" enterkeyhint="done" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" aria-label="Native keyboard BIB input" onkeydown="handleMinimalNativeBibKeydown_(event)" oninput="handleMinimalNativeBibInput_(this)" onblur="handleMinimalNativeKeyboardBlur_()">
                     <span id="minimalBibRepeatHint" class="minimal-bib-repeat-hint" aria-live="polite">Previously recorded</span>
                     <button type="button" class="minimal-backspace-btn" onclick="event.stopPropagation(); minimalBibBackspace_('bib')" aria-label="Delete last BIB character" title="Backspace BIB">⌫</button>
                 </div>
                 <div id="minimalRemarkShell" class="minimal-remark-shell">
-                    <label for="minimalRemarkInput">Remark for this BIB <span>Optional · tap to edit with keypad</span></label>
-                    <input type="text" id="minimalRemarkInput" inputmode="none" maxlength="500" readonly onclick="activateMinimalEntryTarget_('remark')" aria-label="Optional remark for this BIB, edited with the on-screen keypad" placeholder="e.g. Missed helper, penalty, etc.">
+                    <label for="minimalRemarkInput">Remark for this BIB <span>Optional · press ABC for phone keyboard</span></label>
+                    <input type="text" id="minimalRemarkInput" inputmode="none" maxlength="500" readonly onclick="activateMinimalEntryTarget_('remark')" onkeydown="handleMinimalRemarkNativeKeydown_(event)" oninput="syncMinimalRemarkInput_('minimal')" onblur="handleMinimalNativeKeyboardBlur_()" aria-label="Optional remark for this BIB. Tap ABC to use the phone keyboard." placeholder="e.g. Missed helper, penalty, etc.">
                 </div>
+                <div id="minimalSpaceFeedback" class="minimal-space-feedback hidden" role="status" aria-live="assertive">Spaces are not allowed in BIB numbers.</div>
             </div>
 
             <div class="minimal-keyboard-area">
-                <div class="minimal-keyboard-tabs" role="tablist" aria-label="On-screen keyboard layout">
-                    <button type="button" id="minimalTabNumbers" class="minimal-keyboard-tab" onclick="setMinimalBibKeyboardPage_('numbers')" role="tab">123</button>
-                    <button type="button" id="minimalTabLetters" class="minimal-keyboard-tab" onclick="setMinimalBibKeyboardPage_('letters')" role="tab">ABC</button>
-                    <button type="button" id="minimalTabSymbols" class="minimal-keyboard-tab" onclick="setMinimalBibKeyboardPage_('symbols')" role="tab">#+=</button>
+                <div class="minimal-keyboard-tabs minimal-keyboard-tabs-two" role="tablist" aria-label="Quick entry input mode">
+                    <button type="button" id="minimalTabNumbers" class="minimal-keyboard-tab" onclick="activateMinimalNumericKeypad_()" role="tab" aria-selected="true">123</button>
+                    <button type="button" id="minimalTabLetters" class="minimal-keyboard-tab" onclick="openMinimalNativeKeyboard_()" role="tab" aria-selected="false">ABC</button>
                 </div>
-                <div id="minimalBibKeyboard" class="mt-2" aria-label="BIB on-screen keyboard"></div>
+                <div id="minimalBibKeyboard" class="mt-2" aria-label="Numeric BIB keypad"></div>
+                <div id="minimalNativeKeyboardHint" class="minimal-native-keyboard-hint hidden" role="status">Phone keyboard active · tap 123 to return to the large number pad.</div>
             </div>
 
             <div class="minimal-bib-actions">
@@ -4472,14 +4459,6 @@
                         </div>
                     </div>
 
-                    <button type="button" id="eventConfigStrip" class="event-config-strip" onclick="openEventProfile_()" title="View the category and KM configuration synced from the Setup sheet">
-                        <span class="event-config-strip-main">
-                            <span id="eventConfigStripTitle" class="event-config-strip-title">Event setup: waiting for sync</span>
-                            <span id="eventConfigStripSub" class="event-config-strip-sub">Categories and race distances are loaded dynamically from the Setup sheet.</span>
-                        </span>
-                        <span id="eventConfigStripHealth" class="event-config-health warning">Waiting</span>
-                    </button>
-
                     <div id="storageReadinessNotice" role="status" aria-live="polite">Local storage is starting. You can fill Setup now; bib logging unlocks automatically when storage is ready.</div>
 
                     <div id="gpsCheckpointAdvisor" class="hidden gps-checkpoint-advisor" role="status" aria-live="polite">
@@ -4546,7 +4525,7 @@
                     <form id="bibEntryForm" onsubmit="handleBibEntrySubmit_(event)" class="flex flex-col gap-3" autocomplete="off">
                         <div class="bib-entry-submit-grid">
                             <div class="bib-input-shell">
-                                <input type="text" id="bibInput" inputmode="text" enterkeyhint="go" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" onfocus="warmUpGPS(); showBibInputTools_();" onblur="scheduleHideBibInputTools_();" onkeydown="handleBibInputKeydown_(event)" oninput="warmUpGPS(); sanitizeBibTyping_(this); autoScaleBibFontSize_(); syncMinimalBibInput_();" placeholder="Any BIB: 7, MO1234, SWEEPER, PACER-A" aria-describedby="bibInputToolsHint" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
+                                <input type="text" id="bibInput" inputmode="text" enterkeyhint="go" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" onfocus="warmUpGPS(); showBibInputTools_();" onblur="scheduleHideBibInputTools_();" onkeydown="handleBibInputKeydown_(event)" oninput="warmUpGPS(); sanitizeBibTyping_(this); autoScaleBibFontSize_(); syncMinimalBibInput_();" placeholder="Any BIB: 7, MO1234, SWEEPER, PACER-A" aria-describedby="bibInputToolsHint bibSpaceFeedback" class="w-full h-16 theme-input text-center text-4xl font-black border-2 rounded-xl focus:outline-none focus:border-blue-600 dark:focus:border-blue-900 transition uppercase">
                                 <div id="bibInputTools" class="bib-input-tools" aria-label="Bib entry tools" aria-hidden="true">
                                     <button type="button" id="bibOcrBtn" onpointerdown="event.preventDefault();" onclick="openBibScanner(); event.stopPropagation();" title="Start live OCR" aria-label="Start live OCR" class="bib-entry-tool">
                                         <span class="bib-entry-tool-icon" aria-hidden="true">📷</span>
@@ -4555,10 +4534,11 @@
                                         <span id="bibEntryModeIcon" class="bib-entry-tool-icon" aria-hidden="true">🔢</span><span id="bibEntryModeLabel" class="sr-only">Numbers</span>
                                     </button>
                                 </div>
-                                <span id="bibInputToolsHint" class="sr-only">OCR and keyboard mode tools appear when this field is focused. Any non-empty printable BIB label is accepted, including spaces and punctuation. The minimalist keypad avoids opening the phone keyboard.</span>
+                                <span id="bibInputToolsHint" class="sr-only">OCR and keyboard mode tools appear when this field is focused. Any non-empty printable BIB label is accepted except spaces. Punctuation remains supported. The minimalist keypad keeps the number pad on screen and opens the phone keyboard only after ABC is pressed.</span>
                             </div>
                             <button type="submit" id="logActionButton" onpointerdown="keepBibInputFocused_(event)" aria-label="Log bib" class="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 active:scale-90 duration-75 text-white font-extrabold text-lg rounded-xl shadow-lg transition-all flex items-center justify-center"><span id="logActionButtonLabel">LOG</span></button>
                         </div>
+                        <div id="bibSpaceFeedback" class="bib-space-feedback hidden" role="status" aria-live="assertive">Spaces are not allowed in BIB numbers.</div>
                         <div class="mt-1 relative">
                             <label id="remarkLabel" class="block text-xs theme-text-muted mb-1 font-bold">Remark for next bib (Optional)</label>
                             <div class="remark-input-row">
@@ -4822,10 +4802,10 @@
             <!-- Right Panel Side -->
             <div class="w-full h-full flex flex-col lg:min-h-0">
                 <section class="theme-panel rounded-xl border shadow flex flex-col overflow-hidden min-h-[450px] lg:min-h-0 w-full h-full">
-                    <div class="px-3 py-2.5 border-b theme-border flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap bg-neutral-200/50 dark:bg-neutral-900/10">
+                    <div id="scanHistoryHeader" class="px-3 py-2.5 border-b theme-border flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap bg-neutral-200/50 dark:bg-neutral-900/10">
                         <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                             <h3 class="text-[10px] font-bold theme-text-muted uppercase tracking-wider whitespace-nowrap">Scan History</h3>
-                            <div class="inline-flex bg-neutral-100 dark:bg-neutral-900 border theme-border rounded-md p-0.5 text-[9px] font-bold shrink-0">
+                            <div class="scan-history-scope-toggle inline-flex bg-neutral-100 dark:bg-neutral-900 border theme-border rounded-md p-0.5 text-[9px] font-bold shrink-0">
                                 <button onclick="setScopeFilter('current')" id="scopeBtn-current" class="px-2 py-0.5 rounded bg-blue-600 dark:bg-blue-900 text-white transition-colors duration-150">Current CP</button>
                                 <button onclick="setScopeFilter('global')" id="scopeBtn-global" class="px-2 py-0.5 rounded text-neutral-600 dark:text-neutral-400 transition-colors duration-150">Global</button>
                             </div>
@@ -4879,7 +4859,7 @@
 
     <!-- v19 reusable decision modal -->
     <div id="v19DecisionModal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-[140]" role="dialog" aria-modal="true" aria-hidden="true">
-        <div class="theme-panel border theme-border rounded-2xl shadow-2xl w-full max-w-lg p-5 flex flex-col gap-4">
+        <div id="v19DecisionCard" class="theme-panel border theme-border rounded-2xl shadow-2xl w-full max-w-lg p-5 flex flex-col gap-4">
             <h3 id="v19DecisionTitle" class="text-lg font-black theme-text">Confirm action</h3>
             <div id="v19DecisionBody" class="v19-modal-body"></div>
             <div id="v19DecisionReasonWrap" class="hidden flex flex-col gap-1">
@@ -4946,6 +4926,6 @@
     <script src="app/main.js"></script>
     <script src="app/operations-v19.js"></script>
     <script src="app/director-ops-v192.js"></script>
-    <script src="app/ux-v1931.js"></script>
+    <script src="app/ux-v1933.js"></script>
 </body>
 </html>

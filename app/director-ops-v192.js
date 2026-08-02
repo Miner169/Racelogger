@@ -1,11 +1,11 @@
-/* Race Bib Logger v19.3.1 director analytics suite.
+/* Race Bib Logger v19.3.3 director analytics suite.
  * Keeps high-value forecasting, safety analysis and reporting while removing
  * the operational boards requested for a cleaner command view.
  */
 (function (global) {
   'use strict';
 
-  const VERSION = '19.3.1';
+  const VERSION = '19.3.3';
   const STORE_KEY = 'raceCommandOps_v19_2';
   const HEATMAP_WINDOW_KEY = 'directorHeatmapWindow_v19_2';
   const OPS_EPOCH_KEY = 'raceCommandOpsEventEpoch_v19_2';
@@ -16,20 +16,17 @@
   let pullInFlight_ = null;
   let activeOpId_ = '';
   let heatmapWindowMinutes_ = Number(localStorage.getItem(HEATMAP_WINDOW_KEY) || 60) || 60;
-  let handoverSnapshot_ = null;
 
   const WIDGETS = [
     ['heatmap', '🔥 Checkpoint Load Heatmap', 'Scans per minute by checkpoint and rolling time block.'],
     ['cot-funnel', '⏳ COT Risk Funnel', 'Safe, approaching, critical, overdue, acknowledged, and resolved runners.'],
     ['route-anomalies', '🧭 Route Anomaly Diagram', 'Skipped checkpoints, reverse movement, impossible travel, and approved exceptions.'],
     ['finish-projection', '🏁 Finish Projection', 'Estimated finish windows and runner counts by KM and category.'],
-    ['outcomes', '📋 DNS / DNF / Withdrawal / Medical', 'Operational totals and unresolved runner outcomes.'],
-    ['handover', '🤝 Shift Handover', 'Quiet devices, pending BIB queue, checkpoint activity, and upcoming cutoffs.'],
-    ['post-race-report', '🧾 Post-Race Command Report', 'Export COT outcomes, device health, checkpoint performance, integrity, and reconciliation.']
+    ['outcomes', '📋 DNS / DNF / Withdrawal / Medical', 'Operational totals and unresolved runner outcomes.']
   ];
   const REMOVED_WIDGET_IDS = Object.freeze([
     'incidents', 'timeline', 'missing-runners', 'medical-capacity',
-    'transport-sweep', 'weather-risk', 'supplies'
+    'transport-sweep', 'weather-risk', 'supplies', 'handover', 'post-race-report'
   ]);
 
   const TYPE_CONFIG = {
@@ -78,7 +75,6 @@
     if (stored && stored !== epoch) {
       commandOps_ = {};
       saveJson_(STORE_KEY, commandOps_);
-      handoverSnapshot_ = null;
     }
     localStorage.setItem(OPS_EPOCH_KEY, epoch);
     return stored !== epoch;
@@ -612,140 +608,6 @@
   global.v192AcknowledgeIncident_=function(encodedId){const id=decodeURIComponent(encodedId),i=global.localIncidents_?.[id];if(!i)return;i.acknowledgedAt=i.acknowledgedAt||nowIso_();i.status=i.status==='open'?'responding':i.status;i.updatedAt=nowIso_();i.updatedBy=currentVolunteer_();i.synced=false;persistIncident_(i);};
   global.v192ResolveIncident_=function(encodedId){const id=decodeURIComponent(encodedId),i=global.localIncidents_?.[id];if(!i)return;const resolution=prompt('Resolution / handover note:',i.resolution||'');if(resolution===null||!resolution.trim())return;i.resolution=resolution.trim();i.resolvedAt=nowIso_();i.status='resolved';i.updatedAt=i.resolvedAt;i.updatedBy=currentVolunteer_();i.synced=false;persistIncident_(i);};
 
-  function handoverData_() {
-    const devices = global.serverOperationsSummary_?.devices || [];
-    const quiet = devices.filter(d => !d.lastSeen || Date.now() - parseMs_(d.lastSeen) > 5 * 60000);
-    const deviceQueue = devices.reduce((sum, d) => sum + (Number(d.queueCount) || 0), 0);
-    const localBibQueue = Number(global.RaceState?.getState?.().queueSummary?.logs || 0);
-    const alerts = Object.values(global.localCotAlerts_ || {})
-      .filter(a => !a.resolved && !a.acknowledged)
-      .sort((a, b) => parseMs_(a.cotTime) - parseMs_(b.cotTime));
-    const checkpoints = Object.entries(global.serverOperationsSummary_?.checkpoints || {})
-      .map(([checkpoint, data]) => ({
-        checkpoint,
-        total: Number(data?.total) || 0,
-        last15: Number(data?.last15) || 0,
-        lastSeen: data?.lastSeen || ''
-      }))
-      .sort((a, b) => b.last15 - a.last15 || b.total - a.total);
-    return {
-      generatedAt: nowIso_(),
-      generatedBy: currentVolunteer_(),
-      quietDevices: quiet,
-      pendingQueue: Math.max(deviceQueue, localBibQueue),
-      localBibQueue,
-      upcomingCot: alerts.slice(0, 15),
-      checkpoints: checkpoints.slice(0, 20),
-      integrity: global.serverOperationsSummary_?.integrity || {}
-    };
-  }
-  function handoverText_(h) {
-    const integrity = h.integrity || {};
-    return `SHIFT HANDOVER — ${new Date(h.generatedAt).toLocaleString()}
-Prepared by: ${h.generatedBy || 'Unspecified'}
-
-QUIET / STALE DEVICES (${h.quietDevices.length})
-${h.quietDevices.map(d => `- ${d.checkpoint || d.deviceId}: last seen ${ageLabel_(d.lastSeen)}, queue ${Number(d.queueCount) || 0}, battery ${d.batteryPercent == null ? '—' : Math.round(Number(d.batteryPercent) * 100) + '%'}`).join('\n') || '- None'}
-
-PENDING BIB QUEUE
-- Local device: ${h.localBibQueue}
-- Highest reported operational queue: ${h.pendingQueue}
-
-UPCOMING / ACTIVE COT (${h.upcomingCot.length})
-${h.upcomingCot.map(a => `- BIB ${a.bib} ${a.level} — COT ${formatTime_(a.cotTime)} — needs acknowledgement`).join('\n') || '- None'}
-
-CHECKPOINT ACTIVITY
-${h.checkpoints.map(c => `- ${c.checkpoint}: ${c.last15} scans in 15m, ${c.total} total, last seen ${ageLabel_(c.lastSeen)}`).join('\n') || '- No checkpoint data'}
-
-INTEGRITY
-- Route anomalies: ${Number(integrity.routeJumps) || 0}
-- Stale devices: ${Number(integrity.staleDevices) || 0}
-- High clock drift devices: ${Number(integrity.highClockDriftDevices) || 0}
-- Uncategorized BIBs: ${Number(integrity.uncategorizedBibs) || 0}`;
-  }
-  function renderHandover_() {
-    const el=document.getElementById('director-handover-body');if(!el)return;
-    const h=handoverSnapshot_||handoverData_(),text=handoverText_(h);
-    el.innerHTML=`<div class="v192-toolbar"><span class="text-[10px] theme-text-muted">Snapshot generated ${ageLabel_(h.generatedAt)}</span><div class="flex gap-1"><button class="v192-btn" onclick="generateV192Handover_()">↻ Generate</button><button class="v192-btn" onclick="copyV192Handover_()">Copy</button><button class="v192-btn v192-btn-primary" onclick="downloadV192Handover_()">Download</button></div></div><div class="v192-pre">${esc_(text)}</div>`;
-    setEmpty_('handover',false);
-  }
-  global.generateV192Handover_=function(){handoverSnapshot_=handoverData_();renderHandover_();};
-  global.copyV192Handover_=async function(){const text=handoverText_(handoverSnapshot_||handoverData_());try{await navigator.clipboard.writeText(text);alert('Handover copied.');}catch(_){prompt('Copy handover:',text);}};
-  function downloadText_(name,text,type){const blob=new Blob([text],{type:type||'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-  global.downloadV192Handover_=function(){const h=handoverSnapshot_||handoverData_();downloadText_(`race-handover-${new Date().toISOString().replace(/[:.]/g,'-')}.txt`,handoverText_(h));};
-
-  function buildCommandTimeline_(logs, incidents, alerts, notes, ops) {
-    const events = [];
-    (logs || []).forEach(log => {
-      const base = { at: log.time || log.timestamp || '', bib: log.bib || '', checkpoint: log.checkpoint || '', source: 'Passage' };
-      events.push(Object.assign({}, base, { type: 'checkpoint_passage', summary: `BIB ${log.bib || 'unknown'} recorded at ${log.checkpoint || 'Unspecified'}` }));
-      if (log.editedAt) events.push({ at: log.editedAt, bib: log.bib || '', checkpoint: log.checkpoint || '', source: 'Audit', type: 'record_edited', summary: `Passage edited by ${log.editedBy || log.editor || 'unknown'}` });
-    });
-    (incidents || []).forEach(i => {
-      events.push({ at: i.createdAt, bib: i.bib || '', checkpoint: i.checkpoint || '', source: 'Incident', type: 'incident_opened', summary: `${i.type || 'Incident'} opened${i.owner ? ' · owner ' + i.owner : ''}` });
-      if (i.acknowledgedAt) events.push({ at: i.acknowledgedAt, bib: i.bib || '', checkpoint: i.checkpoint || '', source: 'Incident', type: 'incident_acknowledged', summary: `Incident acknowledged${i.owner ? ' by ' + i.owner : ''}` });
-      if (i.resolvedAt) events.push({ at: i.resolvedAt, bib: i.bib || '', checkpoint: i.checkpoint || '', source: 'Incident', type: 'incident_resolved', summary: `Incident resolved${i.resolution ? ' · ' + i.resolution : ''}` });
-    });
-    (alerts || []).forEach(a => {
-      events.push({ at: a.firstSeenAt || a.createdAt || a.updatedAt || a.cotTime, bib: a.bib || '', checkpoint: '', source: 'COT', type: 'cot_alert', summary: `${a.level || 'COT'} alert · cutoff ${formatTime_(a.cotTime)}` });
-      if (a.acknowledgedAt) events.push({ at: a.acknowledgedAt, bib: a.bib || '', checkpoint: '', source: 'COT', type: 'cot_acknowledged', summary: `COT acknowledged by ${a.acknowledgedBy || 'unknown'}` });
-      if (a.resolvedAt) events.push({ at: a.resolvedAt, bib: a.bib || '', checkpoint: '', source: 'COT', type: 'cot_resolved', summary: `COT resolved by ${a.resolvedBy || 'unknown'}${a.resolution ? ' · ' + a.resolution : ''}` });
-    });
-    (notes || []).forEach(n => events.push({ at: n.updatedAt || n.time, bib: n.bib || '', checkpoint: n.checkpoint || '', source: 'Safety', type: 'safety_note', summary: `${n.status || 'Safety note'}${n.remark ? ' · ' + n.remark : ''}` }));
-    (ops || []).forEach(o => events.push({ at: o.updatedAt || o.createdAt, bib: o.bib || '', checkpoint: o.checkpoint || '', source: 'Command', type: o.type || 'command_op', summary: `${o.name || o.type || 'Command operation'} · ${o.status || 'open'}${o.owner ? ' · owner ' + o.owner : ''}` }));
-    return events.filter(e => Number.isFinite(parseMs_(e.at))).sort((a,b) => parseMs_(a.at) - parseMs_(b.at));
-  }
-
-  function buildReport_() {
-    const logs = (lastLogs_ || []).filter(countable_);
-    const summary = global.serverOperationsSummary_ || {};
-    const alerts = Object.values(global.localCotAlerts_ || {});
-    const cp = {};
-    logs.forEach(log => {
-      const key = log.checkpoint || 'Unspecified';
-      cp[key] = cp[key] || { logs: 0, unique: new Set(), lastSeen: 0 };
-      cp[key].logs++;
-      cp[key].unique.add(bibKey_(log));
-      cp[key].lastSeen = Math.max(cp[key].lastSeen, parseMs_(log.time) || 0);
-    });
-    const reconciliation = loadJson_(global.RaceConfig?.serverReconciliationKey || 'serverReconciliationSnapshot_v19', {});
-    return {
-      version: VERSION,
-      generatedAt: nowIso_(),
-      generatedBy: currentVolunteer_(),
-      totals: {
-        logs: logs.length,
-        uniqueRunners: new Set(logs.map(bibKey_).filter(Boolean)).size,
-        cotAlerts: alerts.length,
-        unresolvedCot: alerts.filter(a => !a.resolved).length,
-        devices: (summary.devices || []).length
-      },
-      checkpointPerformance: Object.entries(cp).map(([checkpoint, value]) => ({
-        checkpoint,
-        logs: value.logs,
-        uniqueRunners: value.unique.size,
-        lastSeen: value.lastSeen ? new Date(value.lastSeen).toISOString() : ''
-      })),
-      cotAlerts: alerts,
-      devices: summary.devices || [],
-      routeAnomalies: summary.integrity?.routeSamples || [],
-      integrity: summary.integrity || {},
-      reconciliation
-    };
-  }
-  function reportHtml_(r) {
-    const table = (headers, rows) => `<table><thead><tr>${headers.map(h => `<th>${esc_(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
-    return `<!doctype html><html><head><meta charset="utf-8"><title>Post-Race Command Report</title><style>body{font-family:Arial,sans-serif;margin:32px;color:#111}h1,h2{margin:.6em 0}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.card{border:1px solid #ccc;padding:12px;border-radius:8px}.card b{font-size:24px;display:block}table{border-collapse:collapse;width:100%;margin:12px 0 24px;font-size:12px}th,td{border:1px solid #ccc;padding:6px;text-align:left}th{background:#eee}pre{white-space:pre-wrap;background:#f5f5f5;padding:12px}</style></head><body><h1>Race Command Post-Race Report</h1><p>Generated ${esc_(new Date(r.generatedAt).toLocaleString())} by ${esc_(r.generatedBy || 'Unspecified')} · App v${VERSION}</p><div class="cards">${Object.entries(r.totals).map(([key, value]) => `<div class="card"><b>${value}</b>${esc_(key)}</div>`).join('')}</div><h2>Checkpoint performance</h2>${table(['Checkpoint','Logs','Unique runners','Last seen'], r.checkpointPerformance.map(x => `<tr><td>${esc_(x.checkpoint)}</td><td>${x.logs}</td><td>${x.uniqueRunners}</td><td>${esc_(formatTime_(x.lastSeen))}</td></tr>`))}<h2>COT outcomes</h2>${table(['BIB','Category','Level','Acknowledged','Resolved','COT'], r.cotAlerts.map(a => `<tr><td>${esc_(a.bib)}</td><td>${esc_(a.category)}</td><td>${esc_(a.level)}</td><td>${a.acknowledged ? 'Yes' : 'No'}</td><td>${a.resolved ? 'Yes' : 'No'}</td><td>${esc_(formatTime_(a.cotTime))}</td></tr>`))}<h2>Device health</h2>${table(['Device','Checkpoint','Battery','Queue','Connection','Last seen','GPS'], r.devices.map(d => `<tr><td>${esc_(d.device || d.deviceId)}</td><td>${esc_(d.checkpoint)}</td><td>${d.batteryPercent == null ? '—' : Math.round(Number(d.batteryPercent) * 100) + '%'}</td><td>${Number(d.queueCount) || 0}</td><td>${esc_(d.connectivity || '')}</td><td>${esc_(formatTime_(d.lastSeen))}</td><td>${d.latitude == null ? '—' : esc_(Number(d.latitude).toFixed(5) + ', ' + Number(d.longitude).toFixed(5))}</td></tr>`))}<h2>Integrity, route anomalies and reconciliation</h2><pre>${esc_(JSON.stringify({integrity:r.integrity,routeAnomalies:r.routeAnomalies,reconciliation:r.reconciliation}, null, 2))}</pre></body></html>`;
-  }
-  function renderPostRaceReport_() {
-    const el = document.getElementById('director-post-race-report-body');
-    if (!el) return;
-    const report = buildReport_();
-    el.innerHTML = `<div class="v192-grid"><div class="v192-stat"><strong>${report.totals.logs}</strong><span>Logs</span></div><div class="v192-stat"><strong>${report.totals.uniqueRunners}</strong><span>Unique runners</span></div><div class="v192-stat"><strong>${report.totals.unresolvedCot}</strong><span>Unresolved COT</span></div><div class="v192-stat"><strong>${report.devices.length}</strong><span>Devices</span></div></div><div class="v192-toolbar"><p class="text-[10px] theme-text-muted flex-1">The report contains checkpoint performance, COT outcomes, device health, route anomalies, integrity, and reconciliation. JSON preserves machine-readable detail.</p><button class="v192-btn" onclick="downloadV192Report_('json')">Download JSON</button><button class="v192-btn v192-btn-primary" onclick="downloadV192Report_('html')">Download HTML report</button></div>`;
-    setEmpty_('post-race-report', false);
-  }
-  global.downloadV192Report_=function(format){const r=buildReport_(),stamp=new Date().toISOString().replace(/[:.]/g,'-');if(format==='json')downloadText_(`post-race-command-report-${stamp}.json`,JSON.stringify(r,null,2),'application/json');else downloadText_(`post-race-command-report-${stamp}.html`,reportHtml_(r),'text/html;charset=utf-8');};
-
   function renderAll_(logs) {
     if (Array.isArray(logs)) lastLogs_ = logs;
     renderHeatmap_(lastLogs_);
@@ -753,8 +615,6 @@ INTEGRITY
     renderRouteAnomalies_(lastLogs_);
     renderFinishProjection_(lastLogs_);
     renderOutcomes_();
-    renderHandover_();
-    renderPostRaceReport_();
     redrawMapWithHealth_(lastLogs_);
   }
 
@@ -797,6 +657,6 @@ INTEGRITY
     renderAll_([]);
   }
 
-  global.RaceDirectorOpsV192 = Object.freeze({ render: renderAll_, buildReport: buildReport_ });
+  global.RaceDirectorOpsV192 = Object.freeze({ render: renderAll_ });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialise_,{once:true});else initialise_();
 })(window);

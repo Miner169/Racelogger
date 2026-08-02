@@ -56,8 +56,13 @@
     }
     UI.setText('v19DecisionConfirm', options.confirmLabel || 'Continue');
     UI.setText('v19DecisionCancel', options.cancelLabel || 'Cancel');
+    modal.dataset.kind = options.kind || '';
+    if (options.kind === 'duplicate' && global.minimalBibModeActive_ && typeof global.closeMinimalNativeKeyboard_ === 'function') {
+      global.closeMinimalNativeKeyboard_(false);
+    }
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
+    window.setTimeout(function () { document.getElementById('v19DecisionConfirm')?.focus({ preventScroll: true }); }, 30);
     return new Promise(function (resolve) { decisionResolver_ = { resolve: resolve, requireReason: !!(options.reasons && options.reasons.length) }; });
   }
 
@@ -73,6 +78,7 @@
     if (modal) {
       modal.classList.add('hidden');
       modal.setAttribute('aria-hidden', 'true');
+      modal.dataset.kind = '';
     }
     const pending = decisionResolver_;
     decisionResolver_ = null;
@@ -134,15 +140,14 @@
     const previousTime = typeof global.parseCustomOrIsoDate === 'function' ? global.parseCustomOrIsoDate(previous.time).getTime() : Date.parse(previous.time);
     const elapsed = Number.isFinite(previousTime) ? formatElapsed_(Date.now() - previousTime) : 'time unavailable';
     const device = typeof global.getDeviceLabel === 'function' ? global.getDeviceLabel(previous.device) : (previous.device || 'Unknown device');
-    return '<div class="v19-warning-hero"><strong>BIB ' + UI.escapeHtml(bib) + ' was already recorded</strong><span>Review the previous passage before submitting another.</span></div>' +
-      '<dl class="v19-detail-grid">' +
-      '<div><dt>Previous checkpoint</dt><dd>' + UI.escapeHtml(previous.checkpoint || 'Unknown') + '</dd></div>' +
-      '<div><dt>Current checkpoint</dt><dd>' + UI.escapeHtml(currentCheckpoint || 'Unknown') + '</dd></div>' +
-      '<div><dt>Device</dt><dd>' + UI.escapeHtml(device) + '</dd></div>' +
-      '<div><dt>Volunteer</dt><dd>' + UI.escapeHtml(previous.volunteer || 'Unknown') + '</dd></div>' +
-      '<div><dt>Elapsed</dt><dd>' + UI.escapeHtml(elapsed) + '</dd></div>' +
-      '<div><dt>Recorded time</dt><dd>' + UI.escapeHtml(typeof global.formatLogTime === 'function' ? global.formatLogTime(previous.time) : previous.time) + '</dd></div>' +
-      '</dl>';
+    const previousCheckpoint = previous.checkpoint || 'Unknown checkpoint';
+    const current = currentCheckpoint || 'Unknown checkpoint';
+    const passage = previousCheckpoint === current ? previousCheckpoint : previousCheckpoint + ' → ' + current;
+    return '<div class="v19-duplicate-compact">' +
+      '<strong>BIB ' + UI.escapeHtml(bib) + ' is already recorded</strong>' +
+      '<span>' + UI.escapeHtml(passage) + ' · ' + UI.escapeHtml(device) + ' · ' + UI.escapeHtml(previous.volunteer || 'Unknown volunteer') + '</span>' +
+      '<small>' + UI.escapeHtml(elapsed) + ' · ' + UI.escapeHtml(typeof global.formatLogTime === 'function' ? global.formatLogTime(previous.time) : previous.time) + '</small>' +
+      '</div>';
   }
 
   async function checkDuplicateAndLogV19_() {
@@ -201,9 +206,9 @@
       .sort(function (a, b) { return global.parseCustomOrIsoDate(b.time) - global.parseCustomOrIsoDate(a.time); })[0];
     if (recentDuplicate) {
       const decision = await openDecision_({
-        title: 'Duplicate passage warning',
+        kind: 'duplicate',
+        title: 'Duplicate BIB',
         bodyHtml: duplicateBodyHtml_(bib, recentDuplicate, checkpoint),
-        reasons: RC.reasonCodes.duplicate,
         confirmLabel: 'Log anyway',
         cancelLabel: 'Cancel'
       });
@@ -212,7 +217,7 @@
         global.announceToScreenReader_('Duplicate entry cancelled.');
         return;
       }
-      reasonCodes.push(decision.reasonCode);
+      reasonCodes.push('DUPLICATE_CONFIRMED');
       flags.push('duplicate-override');
     }
 

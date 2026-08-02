@@ -1,0 +1,47 @@
+Race Bib Logger v19.3.3 — Validation Results
+=============================================
+
+PASSED
+------
+1. JavaScript syntax checks
+   - app/main.js
+   - app/operations-v19.js
+   - app/director-ops-v192.js
+   - app/ux-v1933.js
+
+2. Deployment asset validation
+   - 16 core files present
+   - manifest icons present
+   - local HTML script/stylesheet references resolve
+   - service-worker app-shell references resolve
+   - v19.3.3 cache version detected
+
+3. Integrity unit tests
+   - canonical record checksum generation
+   - SHA-256 checksum parity
+   - FNV-1a 64-bit fallback parity
+
+4. Static integration checks
+   - large numeric Quick Entry keypad and native ABC handoff present
+   - symbol/custom alphabet Quick keyboard absent
+   - normal and Quick BIB space rejection present
+   - compact duplicate modal is above Quick Entry and has no duplicate reason selector
+   - Quick Last 4 uses the main repeat-frequency colour classes
+   - camera/keyboard tools are focus-bound
+   - Setup event-distance strip absent
+   - compact Scan History controls present
+   - Shift Handover and Post-Race Command Report widgets/exports absent
+   - Google Maps credential inputs absent; server configuration path present
+   - Google Maps pan/zoom implementation retained
+   - service-worker includes v19.3.3 UX assets
+
+NOT EXECUTED IN THIS ENVIRONMENT
+--------------------------------
+- Installed iPhone and Android PWA keyboard transitions
+- Physical touch, haptic, safe-area, and large-text checks
+- Production Google Maps key/origin restrictions and live marker rendering
+- Real GPS movement and trail rendering
+- Live Apps Script synchronization and multi-device reconciliation
+- Weak-network, background-sync, and long-duration soak tests
+
+Conclusion: all available syntax, asset, checksum, unit, and static integration tests passed. Physical-device and production-service validation remains required before race-day deployment.

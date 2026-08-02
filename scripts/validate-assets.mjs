@@ -9,7 +9,7 @@ const required = [
   'index.html', 'tailwind.css', 'manifest.json', 'sw.js', 'Code.gs',
   'app/constants.js', 'app/contracts.js', 'app/state-store.js', 'app/errors.js',
   'app/components.js', 'app/integrity.js', 'app/main.js', 'app/operations-v19.js',
-  'app/director-ops-v192.js', 'app/ux-v1931.js', 'app/ux-v1931.css'
+  'app/director-ops-v192.js', 'app/ux-v1933.js', 'app/ux-v1933.css'
 ];
 
 function exists(relative) {
@@ -52,7 +52,7 @@ try {
   else {
     for (const match of cacheArray[1].matchAll(/["'](\.\/[^"']+)["']/g)) exists(match[1]);
   }
-  if (!/race-logger-static-v19-3-1/.test(sw)) errors.push('Service-worker static cache is not versioned for v19.3.1.');
+  if (!/race-logger-static-v19-3-3/.test(sw)) errors.push('Service-worker static cache is not versioned for v19.3.3.');
 } catch (error) {
   errors.push(`Could not inspect sw.js: ${error.message}`);
 }

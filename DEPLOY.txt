@@ -1,36 +1,23 @@
-RACE BIB LOGGER v19.3.1 — COMPACT MOBILE MONITORING
+RACE BIB LOGGER v19.3.3 — DEPLOYMENT
+===================================
 
-PURPOSE
-This release fixes the mobile Runner Safety Log spacing, prevents Director Mode from jumping back upward, aligns the Setup action button, and normalizes Director toolbar icons. The Racelog A:AC schema and synchronization contracts are unchanged from v19.3.0.
+1. Upload the package contents to the same web root. Preserve the app/ and icons/ folders.
+2. Replace Code.gs in the bound Google Apps Script project, save, and deploy a new Web App version.
+3. Keep the Web App execution/access settings appropriate for the event deployment.
+4. In Apps Script Project Settings > Script Properties, configure once for the deployment:
+     GOOGLE_MAPS_BROWSER_API_KEY = your browser-restricted Maps JavaScript API key
+     GOOGLE_MAPS_MAP_ID = optional Google Cloud Map ID
+   Checkpoint users do not enter or store a Maps key on their device.
+5. Restrict the browser key in Google Cloud to the deployed website origin and the Maps JavaScript API.
+6. Confirm manifest.json, sw.js, app/ux-v1933.js, and app/ux-v1933.css are served from the same root.
+7. On installed PWAs, close all app windows, reopen online once, and allow the service worker to update.
+8. Validate on a real event device:
+   - Quick Entry shows the large 123 keypad only.
+   - ABC opens the phone keyboard and 123 returns to the large keypad.
+   - Space input is rejected with red feedback.
+   - Duplicate warning appears inside Quick Entry without scrolling.
+   - Last 4 repeated BIB colours match the main Last 4 strip.
+   - Race Command View scroll position remains stable.
+   - Google map pans and zooms and displays PWA/checkpoint markers.
 
-DEPLOYMENT
-1) Replace Code.gs with the supplied v19.3.1 Code.gs.
-2) Deploy a new Google Apps Script web-app version.
-3) Upload the complete PWA package, including app/ux-v1931.js and app/ux-v1931.css.
-4) Keep the same manifest and icon paths.
-5) Open the PWA online once after deployment so the new service worker can install.
-6) Confirm the connection test reports server version 19.3.1.
-7) Close and reopen installed PWAs before race use.
-
-SERVICE-WORKER CACHE NAMES
-- race-logger-static-v19-3-1-r1
-- race-logger-runtime-v19-3-1-r1
-
-UI ACCEPTANCE CHECKS
-- Runner Safety Log header stays on one compact row at 390 px width.
-- Safety status, full sync, new incident, and exit use four fixed-size icon controls.
-- The event-roster loading message occupies only the text height it needs.
-- Director Mode can be scrolled down and remains at the chosen position during refresh/render updates.
-- The broken Categories/Standings/At a glance section-chip strip is absent.
-- One floating up-arrow appears on the right after scrolling and returns Director Mode to the top.
-- Exit, sync, customize, and refresh icons are visually consistent and not oversized.
-- Edit Setup matches the height of the readiness/summary controls and does not wrap.
-
-GOOGLE MAPS
-The Director GPS map still requires a configured Google Maps JavaScript API browser key. No key is embedded. Follow docs/GOOGLE-MAPS-SETUP-v19.3.1.md.
-
-DATA AND SHEETS
-No spreadsheet migration is required. Racelog remains A:AC. Existing CommandOps, WeatherRisk, Incidents, DeviceHealth, COTAlerts, and SafetyNotes data are not modified by this UI release.
-
-PRE-RACE VALIDATION
-Use docs/DEVICE-TEST-MATRIX-v19.3.1.md. Test an installed recent iPhone, an older iPhone, Android Chrome/PWA, a low-memory Android device, tablet/landscape, large text, reduced motion, offline/reconnection, weak network, and real GPS.
+No Racelog sheet migration is required for v19.3.3.
