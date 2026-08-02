@@ -1,0 +1,3049 @@
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/Code.gs /mnt/data/race-bib-logger-v19.3.4/Code.gs
+--- /mnt/data/race-bib-logger-v19.3.3/Code.gs	2026-08-02 12:48:37.357680251 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/Code.gs	2026-08-02 12:56:35.861668279 +0000
+@@ -14,7 +14,7 @@
+ const CHECKPOINT_GPS_HEADERS = ["Checkpoint", "Race KM", "Category", "Latitude", "Longitude", "Checkpoint KM", "Radius M", "Active", "Aliases", "Notes"];
+ const CHECKPOINT_GPS_DEFAULT_RADIUS_M = 250;
+ const CHECKPOINT_GPS_SPAM_DISTANCE_M = 25000;
+-const APP_VERSION = "19.3.3";
++const APP_VERSION = "19.3.4";
+ const LOCK_TIMEOUT_MS = 30000;
+ const HEADERS = ["BIB", "Time", "Checkpoint", "Volunteer", "Remark", "Device", "Latitude", "Longitude", "UID", "Server Received At", "Status", "Status Changed At", "Passage Mode", "Creator ID", "Duplicate Of UID", "Duplicate Device Count", "Checkpoint KM", "Checkpoint KM Source", "Original Device Time", "Clock Offset Ms", "Clock Confidence Ms", "App Version", "Reason Code", "Reconciliation Flags", "Route Exception Reason", "Unknown BIB", "Record Checksum", "Edited At", "Edited By"];
+ const LAST_ROW_CACHE_KEY = 'lastDataRow';
+@@ -2347,11 +2347,9 @@
+ }
+ 
+ function getGoogleMapsClientConfig_() {
+-  const properties = PropertiesService.getScriptProperties();
+-  return {
+-    apiKey: String(properties.getProperty('GOOGLE_MAPS_BROWSER_API_KEY') || '').trim(),
+-    mapId: String(properties.getProperty('GOOGLE_MAPS_MAP_ID') || '').trim()
+-  };
++  // Retained as a response-contract compatibility field. The PWA now uses the
++  // built-in OpenStreetMap slippy map and does not expose or require API keys.
++  return { provider: 'openstreetmap', requiresKey: false };
+ }
+ 
+ function handleConfigRequest_() {
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/DEPLOY.txt /mnt/data/race-bib-logger-v19.3.4/DEPLOY.txt
+--- /mnt/data/race-bib-logger-v19.3.3/DEPLOY.txt	2026-08-02 12:13:45.809732581 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/DEPLOY.txt	2026-08-02 13:01:08.577661455 +0000
+@@ -1,23 +1,22 @@
+-RACE BIB LOGGER v19.3.3 — DEPLOYMENT
++RACE BIB LOGGER v19.3.4 — DEPLOYMENT
+ ===================================
+ 
+-1. Upload the package contents to the same web root. Preserve the app/ and icons/ folders.
++1. Upload every package file to the same web root. Preserve the app/, icons/, scripts/, tests/, and docs/ folders.
+ 2. Replace Code.gs in the bound Google Apps Script project, save, and deploy a new Web App version.
+ 3. Keep the Web App execution/access settings appropriate for the event deployment.
+-4. In Apps Script Project Settings > Script Properties, configure once for the deployment:
+-     GOOGLE_MAPS_BROWSER_API_KEY = your browser-restricted Maps JavaScript API key
+-     GOOGLE_MAPS_MAP_ID = optional Google Cloud Map ID
+-   Checkpoint users do not enter or store a Maps key on their device.
+-5. Restrict the browser key in Google Cloud to the deployed website origin and the Maps JavaScript API.
+-6. Confirm manifest.json, sw.js, app/ux-v1933.js, and app/ux-v1933.css are served from the same root.
+-7. On installed PWAs, close all app windows, reopen online once, and allow the service worker to update.
+-8. Validate on a real event device:
+-   - Quick Entry shows the large 123 keypad only.
+-   - ABC opens the phone keyboard and 123 returns to the large keypad.
+-   - Space input is rejected with red feedback.
+-   - Duplicate warning appears inside Quick Entry without scrolling.
+-   - Last 4 repeated BIB colours match the main Last 4 strip.
+-   - Race Command View scroll position remains stable.
+-   - Google map pans and zooms and displays PWA/checkpoint markers.
++4. No Google Maps key, Map ID, or race-day map credential is required. Director Mode uses the built-in OpenStreetMap viewer.
++5. Confirm manifest.json, sw.js, app/slippy-map-v1934.js, app/ux-v1934.js, and app/ux-v1934.css are served from the same root.
++6. On installed PWAs, close every app window, reopen online once, and allow the service worker to replace the old shell cache.
++7. Validate on a real event device:
++   - Open Quick BIB Entry and press ABC.
++   - Confirm the small LOG button appears beside the BIB backspace button while the phone keyboard is active.
++   - Confirm pressing that LOG button does not require lowering the keyboard first.
++   - Confirm duplicate review remains visible inside Quick Entry.
++   - Open Director Mode and verify the map displays configured CP markers and PWA/device markers.
++   - Drag the map, pinch or use +/− to zoom, tap a marker, and press ◎ to fit all markers.
++   - Verify OpenStreetMap attribution remains visible at the bottom-right of the map.
++8. Test once with poor connectivity. Map markers and trails remain rendered even if external base-map tiles are unavailable.
+ 
+-No Racelog sheet migration is required for v19.3.3.
++The map loads only tiles visible in the active viewport. Do not add tile-prefetch, area-download, or offline-map scraping features to the public OpenStreetMap tile endpoint.
++
++No Racelog sheet migration is required for v19.3.4.
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/app/constants.js /mnt/data/race-bib-logger-v19.3.4/app/constants.js
+--- /mnt/data/race-bib-logger-v19.3.3/app/constants.js	2026-08-02 12:08:59.669739740 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/app/constants.js	2026-08-02 13:00:25.033662545 +0000
+@@ -2,7 +2,7 @@
+ (function (global) {
+   'use strict';
+   global.RaceConfig = Object.freeze({
+-    appVersion: '19.3.3',
++    appVersion: '19.3.4',
+     dbName: 'RaceLoggerDB',
+     queueBatchSize: 50,
+     operationalBatchSize: 25,
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/app/director-ops-v192.js /mnt/data/race-bib-logger-v19.3.4/app/director-ops-v192.js
+--- /mnt/data/race-bib-logger-v19.3.3/app/director-ops-v192.js	2026-08-02 12:08:59.637739741 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/app/director-ops-v192.js	2026-08-02 13:00:25.033662545 +0000
+@@ -1,11 +1,11 @@
+-/* Race Bib Logger v19.3.3 director analytics suite.
++/* Race Bib Logger v19.3.4 director analytics suite.
+  * Keeps high-value forecasting, safety analysis and reporting while removing
+  * the operational boards requested for a cleaner command view.
+  */
+ (function (global) {
+   'use strict';
+ 
+-  const VERSION = '19.3.3';
++  const VERSION = '19.3.4';
+   const STORE_KEY = 'raceCommandOps_v19_2';
+   const HEATMAP_WINDOW_KEY = 'directorHeatmapWindow_v19_2';
+   const OPS_EPOCH_KEY = 'raceCommandOpsEventEpoch_v19_2';
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/app/main.js /mnt/data/race-bib-logger-v19.3.4/app/main.js
+--- /mnt/data/race-bib-logger-v19.3.3/app/main.js	2026-08-02 12:48:37.425680249 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/app/main.js	2026-08-02 13:06:16.301653756 +0000
+@@ -1,4 +1,4 @@
+-        const APP_VERSION = "19.3.3";
++        const APP_VERSION = "19.3.4";
+         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
+         let db;
+         let dbReady_ = false;
+@@ -179,14 +179,9 @@
+             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
+         }
+ 
+-        let googleMapsApiKey_ = '';
+-        let googleMapsMapId_ = '';
+-        let serverGoogleMapsConfig_ = {};
+-        let googleMapsLoadPromise_ = null;
+-        let googleMapsLoadedKey_ = '';
+-        let directorGoogleMapInstance_ = null;
+-        let directorGoogleMapInfoWindow_ = null;
+-        let directorGoogleMapOverlays_ = [];
++        // v19.3.4 uses a built-in, dependency-free OpenStreetMap slippy map.
++        // It requires no deployment key or race-day device configuration.
++        let directorSlippyMapInstance_ = null;
+ 
+         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+         if (!isStandalone) {
+@@ -508,6 +503,7 @@
+             const display = document.getElementById('minimalBibDisplay');
+             const wrap = document.getElementById('minimalBibDisplayWrap');
+             const logButton = document.getElementById('minimalBibLogButton');
++            const keyboardLogButton = document.getElementById('minimalKeyboardLogButton');
+             const value = String(input?.value || '');
+             const normalized = normalizeBibOriginal_(value);
+             if (display) {
+@@ -520,7 +516,12 @@
+                 display.classList.toggle('minimal-bib-xlong', length > 16);
+             }
+             wrap?.classList.toggle('has-value', !!value);
+-            if (logButton) logButton.disabled = bibLogSubmissionInFlight_ || !isSetupComplete_() || !normalized;
++            const submitDisabled = bibLogSubmissionInFlight_ || !isSetupComplete_() || !normalized;
++            if (logButton) logButton.disabled = submitDisabled;
++            if (keyboardLogButton) {
++                keyboardLogButton.disabled = submitDisabled;
++                keyboardLogButton.textContent = bibLogSubmissionInFlight_ ? '…' : 'LOG';
++            }
+             scheduleMinimalBibRepeatedLookup_(normalized);
+         }
+ 
+@@ -593,6 +594,8 @@
+             lettersTab?.setAttribute('aria-selected', minimalNativeKeyboardActive_ ? 'true' : 'false');
+             const root = document.getElementById('minimalBibKeyboard');
+             const hint = document.getElementById('minimalNativeKeyboardHint');
++            const bibWrap = document.getElementById('minimalBibDisplayWrap');
++            bibWrap?.classList.toggle('native-keyboard-active', minimalNativeKeyboardActive_ && minimalEntryTarget_ === 'bib');
+             if (!root) return;
+             root.classList.add('numbers-layout');
+             root.classList.toggle('hidden', minimalNativeKeyboardActive_);
+@@ -865,6 +868,14 @@
+             checkDuplicateAndLog();
+         }
+ 
++        function submitMinimalBibFromKeyboard_(event) {
++            // Submit on pointer-down so the native keyboard does not collapse before
++            // duplicate review or logging begins. This is the small LOG beside ⌫.
++            event?.preventDefault?.();
++            event?.stopPropagation?.();
++            submitMinimalBib_();
++        }
++
+         function handleMinimalBibPhysicalKey_(event) {
+             if (!minimalBibModeActive_ || event.defaultPrevented) return;
+             if (event.target?.id === 'minimalNativeBibInput' || event.target?.id === 'minimalRemarkInput') return;
+@@ -2558,11 +2569,8 @@
+             cotAlertsEnabled_ = localStorage.getItem('cotAlertsEnabled_v1') !== 'false';
+             appTextScale_ = localStorage.getItem('appTextScale_v1') || 'normal';
+             screenReaderAnnouncements_ = localStorage.getItem('screenReaderAnnouncements_v1') !== 'false';
+-            googleMapsApiKey_ = '';
+-            googleMapsMapId_ = '';
+             localStorage.removeItem('googleMapsApiKey_v1');
+             localStorage.removeItem('googleMapsMapId_v1');
+-            updateGoogleMapsSettingsState_();
+ 
+             document.getElementById("vibrateToggle").checked = vibrateEnabled;
+             document.getElementById("soundToggle").checked = soundEnabled;
+@@ -3112,11 +3120,17 @@
+                 button.classList.toggle('log-submit-busy', bibLogSubmissionInFlight_);
+             }
+             if (label) label.textContent = bibLogSubmissionInFlight_ ? 'LOGGING…' : 'LOG';
++            const minimalDisabled = bibLogSubmissionInFlight_ || !isSetupComplete_() || !normalizeBibOriginal_(document.getElementById('bibInput')?.value || '');
+             const minimalButton = document.getElementById('minimalBibLogButton');
+             if (minimalButton) {
+-                minimalButton.disabled = bibLogSubmissionInFlight_ || !isSetupComplete_() || !normalizeBibOriginal_(document.getElementById('bibInput')?.value || '');
++                minimalButton.disabled = minimalDisabled;
+                 minimalButton.textContent = bibLogSubmissionInFlight_ ? 'LOGGING…' : 'LOG';
+             }
++            const keyboardLogButton = document.getElementById('minimalKeyboardLogButton');
++            if (keyboardLogButton) {
++                keyboardLogButton.disabled = minimalDisabled;
++                keyboardLogButton.textContent = bibLogSubmissionInFlight_ ? '…' : 'LOG';
++            }
+         }
+ 
+         function handleBibEntrySubmit_(event) {
+@@ -6764,85 +6778,30 @@
+             }).join('');
+         }
+ 
+-        function getEffectiveGoogleMapsConfig_() {
+-            return {
+-                apiKey: String(serverGoogleMapsConfig_.apiKey || '').trim(),
+-                mapId: String(serverGoogleMapsConfig_.mapId || '').trim()
+-            };
+-        }
+-
+-        function updateGoogleMapsSettingsState_() {
+-            const state = document.getElementById('googleMapsSettingsState');
+-            if (!state) return;
+-            const cfg = getEffectiveGoogleMapsConfig_();
+-            state.textContent = cfg.apiKey ? 'Ready' : 'Deployment setup required';
+-            state.classList.toggle('text-emerald-600', !!cfg.apiKey);
+-            state.classList.toggle('text-amber-500', !cfg.apiKey);
+-        }
+-
+-        function applyGoogleMapsConfigFromPayload_(payload) {
+-            const incoming = payload?.mapConfig || payload?.googleMaps || null;
+-            if (!incoming || typeof incoming !== 'object') return;
+-            serverGoogleMapsConfig_ = {
+-                apiKey: String(incoming.apiKey || '').trim(),
+-                mapId: String(incoming.mapId || '').trim()
+-            };
+-            updateGoogleMapsSettingsState_();
+-        }
+-
+-        function ensureGoogleMapsApi_(overrideKey) {
+-            const key = String(overrideKey || getEffectiveGoogleMapsConfig_().apiKey || '').trim();
+-            if (!key) return Promise.reject(new Error('Google Maps browser API key is not configured.'));
+-            if (window.google?.maps?.Map) {
+-                googleMapsLoadedKey_ = googleMapsLoadedKey_ || key;
+-                return Promise.resolve(window.google.maps);
+-            }
+-            if (googleMapsLoadPromise_) return googleMapsLoadPromise_;
+-            googleMapsLoadPromise_ = new Promise((resolve, reject) => {
+-                const callbackName = '__raceBibGoogleMapsReady';
+-                let completed = false;
+-                const finishError = message => {
+-                    if (completed) return;
+-                    completed = true;
+-                    googleMapsLoadPromise_ = null;
+-                    try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+-                    reject(new Error(message || 'Google Maps JavaScript API could not load.'));
+-                };
+-                window[callbackName] = () => {
+-                    if (completed) return;
+-                    completed = true;
+-                    googleMapsLoadedKey_ = key;
+-                    try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+-                    resolve(window.google.maps);
+-                };
+-                const old = document.getElementById('raceGoogleMapsApiScript');
+-                if (old) old.remove();
+-                const script = document.createElement('script');
+-                script.id = 'raceGoogleMapsApiScript';
+-                script.async = true;
+-                script.defer = true;
+-                script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) + '&loading=async&callback=' + callbackName + '&v=weekly';
+-                script.onerror = () => finishError('Google Maps could not be downloaded. Check the API key, referrer restrictions, and internet connection.');
+-                document.head.appendChild(script);
+-                setTimeout(() => finishError('Google Maps loading timed out after 20 seconds.'), 20000);
+-            });
+-            return googleMapsLoadPromise_;
+-        }
+-
+-        function clearDirectorGoogleMapOverlays_() {
+-            directorGoogleMapOverlays_.forEach(item => {
+-                try { item.setMap?.(null); } catch (_) { /* no-op */ }
+-            });
+-            directorGoogleMapOverlays_ = [];
++        // Compatibility no-op for older Apps Script responses that still include
++        // a mapConfig object. v19.3.4 does not require or accept browser map keys.
++        function applyGoogleMapsConfigFromPayload_() {}
++
++        function clearDirectorSlippyMap_() {
++            if (!directorSlippyMapInstance_) return;
++            try { directorSlippyMapInstance_.destroy(); } catch (_) { /* already removed */ }
++            directorSlippyMapInstance_ = null;
+         }
+ 
+         async function renderDirectorGpsMap_(allLogs) {
+             const container = document.getElementById('directorMapBody');
+             if (!container) return;
++            clearDirectorSlippyMap_();
++
+             const logsWithGps = (allLogs || []).filter(log =>
+                 log && !log.pendingDelete && Number.isFinite(Number(log.latitude)) && Number.isFinite(Number(log.longitude))
+             );
+             const byDevice = new Map();
++            const getGroup = (key, fallbackPoint) => {
++                if (!byDevice.has(key)) byDevice.set(key, { key, points: [], latest: fallbackPoint || null, count: 0, health: null });
++                return byDevice.get(key);
++            };
++
+             logsWithGps.forEach(log => {
+                 const key = String(log.device || log.creatorId || `${log.checkpoint || 'Unknown'} · ${log.volunteer || 'PWA'}`).trim() || 'Unknown PWA';
+                 const ts = parseCustomOrIsoDate(log.time).getTime();
+@@ -6850,14 +6809,47 @@
+                     latitude: Number(log.latitude), longitude: Number(log.longitude),
+                     accuracy: Number(log.gpsAccuracyM || log.accuracy || 0) || null,
+                     checkpoint: String(log.checkpoint || 'Unspecified').trim() || 'Unspecified',
+-                    volunteer: String(log.volunteer || '').trim(), time: Number.isFinite(ts) ? ts : 0
++                    volunteer: String(log.volunteer || '').trim(), time: Number.isFinite(ts) ? ts : 0,
++                    source: 'log'
+                 };
+-                if (!byDevice.has(key)) byDevice.set(key, { key, points: [], latest: point, count: 0 });
+-                const group = byDevice.get(key);
+-                group.points.push(point); group.count += 1;
++                const group = getGroup(key, point);
++                group.points.push(point);
++                group.count += 1;
+                 if (!group.latest || point.time >= group.latest.time) group.latest = point;
+             });
+-            byDevice.forEach(group => { group.points = group.points.sort((a,b) => a.time - b.time).slice(-30); });
++
++            // DeviceHealth can be newer than the most recent BIB log. Merge its latest
++            // coordinate so the map locates active PWAs even during quiet checkpoints.
++            const healthDevices = Array.isArray(serverOperationsSummary_?.devices) ? serverOperationsSummary_.devices : [];
++            healthDevices.forEach(device => {
++                if (!Number.isFinite(Number(device?.latitude)) || !Number.isFinite(Number(device?.longitude))) return;
++                const key = String(device.device || device.deviceId || `${device.checkpoint || 'Unknown'} · ${device.volunteer || 'PWA'}`).trim() || 'Unknown PWA';
++                const captured = parseCustomOrIsoDate(device.gpsCapturedAt || device.lastSeen || device.lastSync || '').getTime();
++                const point = {
++                    latitude: Number(device.latitude), longitude: Number(device.longitude),
++                    accuracy: Number(device.gpsAccuracyM || 0) || null,
++                    checkpoint: String(device.checkpoint || 'Unspecified').trim() || 'Unspecified',
++                    volunteer: String(device.volunteer || '').trim(), time: Number.isFinite(captured) ? captured : 0,
++                    source: 'device-health'
++                };
++                const group = getGroup(key, point);
++                group.health = device;
++                const duplicatePoint = group.points.some(existing =>
++                    Math.abs(existing.latitude - point.latitude) < 0.000001 &&
++                    Math.abs(existing.longitude - point.longitude) < 0.000001 &&
++                    Math.abs((existing.time || 0) - (point.time || 0)) < 1000
++                );
++                if (!duplicatePoint) group.points.push(point);
++                if (!group.latest || point.time >= group.latest.time) group.latest = point;
++            });
++
++            byDevice.forEach(group => {
++                group.points = group.points
++                    .filter(point => Number.isFinite(point.latitude) && Number.isFinite(point.longitude))
++                    .sort((a, b) => a.time - b.time)
++                    .slice(-30);
++                if (!group.latest && group.points.length) group.latest = group.points[group.points.length - 1];
++            });
+ 
+             const configured = (typeof checkpointGpsProfiles_ === 'function' ? checkpointGpsProfiles_() : [])
+                 .filter(profile => profile && Number.isFinite(Number(profile.latitude)) && Number.isFinite(Number(profile.longitude)))
+@@ -6868,12 +6860,16 @@
+             const seen = new Set();
+             const checkpointPoints = configured.filter(point => {
+                 const key = `${point.checkpoint.toUpperCase()}|${point.latitude.toFixed(6)}|${point.longitude.toFixed(6)}`;
+-                if (seen.has(key)) return false; seen.add(key); return true;
++                if (seen.has(key)) return false;
++                seen.add(key);
++                return true;
+             });
+-            const deviceGroups = Array.from(byDevice.values()).sort((a,b) => (b.latest?.time || 0) - (a.latest?.time || 0));
++            const deviceGroups = Array.from(byDevice.values())
++                .filter(group => group.latest)
++                .sort((a, b) => (b.latest?.time || 0) - (a.latest?.time || 0));
+             const allCoordinates = checkpointPoints.concat(deviceGroups.flatMap(group => group.points));
+             if (!allCoordinates.length) {
+-                container.innerHTML = '<div class="text-center theme-text-muted text-xs p-4">No GPS coordinates have been recorded yet. Coordinates appear after a PWA logs a BIB with location permission.</div>';
++                container.innerHTML = '<div class="text-center theme-text-muted text-xs p-4">No GPS coordinates have been recorded yet. Checkpoint markers appear from CheckpointGPS, and PWA markers appear after a device reports location.</div>';
+                 setDirectorWidgetEmptyState_('map', true);
+                 return;
+             }
+@@ -6881,6 +6877,7 @@
+ 
+             const now = Date.now();
+             const labelForAge = ageMs => {
++                if (!Number.isFinite(ageMs)) return 'time unknown';
+                 const mins = Math.max(0, Math.floor(ageMs / 60000));
+                 if (mins < 1) return 'just now';
+                 if (mins < 60) return `${mins}m ago`;
+@@ -6893,79 +6890,76 @@
+                 const ageMs = latest.time ? Math.max(0, now - latest.time) : Infinity;
+                 const stateClass = stateForAge(ageMs);
+                 const label = getDeviceLabel(group.key) || group.key;
+-                return `<div class="director-gps-device-row"><span class="director-gps-dot ${stateClass}" aria-hidden="true"></span><div class="min-w-0"><strong class="theme-text block truncate">${escapeHtml_(label)}</strong><span class="theme-text-muted block truncate">${escapeHtml_(latest.checkpoint)}${latest.volunteer ? ` · ${escapeHtml_(latest.volunteer)}` : ''} · ${group.count} GPS record${group.count === 1 ? '' : 's'}</span></div><div class="text-right whitespace-nowrap"><strong class="theme-text">${escapeHtml_(labelForAge(ageMs))}</strong>${latest.accuracy ? `<span class="theme-text-muted block">±${Math.round(latest.accuracy)}m</span>` : ''}</div></div>`;
++                const sourceLabel = group.count
++                    ? `${group.count} geotagged log${group.count === 1 ? '' : 's'}`
++                    : 'live device-health location';
++                const health = group.health || {};
++                const battery = Number.isFinite(Number(health.batteryPct)) ? ` · ${Math.round(Number(health.batteryPct))}% battery` : '';
++                return `<div class="director-gps-device-row"><span class="director-gps-dot ${stateClass}" aria-hidden="true"></span><div class="min-w-0"><strong class="theme-text block truncate">${escapeHtml_(label)}</strong><span class="theme-text-muted block truncate">${escapeHtml_(latest.checkpoint)}${latest.volunteer ? ` · ${escapeHtml_(latest.volunteer)}` : ''} · ${sourceLabel}${battery}</span></div><div class="text-right whitespace-nowrap"><strong class="theme-text">${escapeHtml_(labelForAge(ageMs))}</strong>${latest.accuracy ? `<span class="theme-text-muted block">±${Math.round(latest.accuracy)}m</span>` : ''}</div></div>`;
+             }).join('');
+-            container.innerHTML = `<div class="director-gps-map-shell"><div class="director-gps-map-summary"><span>${deviceGroups.length} PWA device${deviceGroups.length === 1 ? '' : 's'} with GPS</span><span>${logsWithGps.length} geotagged log${logsWithGps.length === 1 ? '' : 's'}</span><span>${checkpointPoints.length} checkpoint marker${checkpointPoints.length === 1 ? '' : 's'}</span><span>Newest ${newest ? escapeHtml_(labelForAge(Math.max(0, now - newest))) : 'unknown'}</span></div><div class="director-gps-map-stage"><div id="directorGoogleMapCanvas" class="director-google-map-canvas"><div class="director-map-message">Loading Google Maps…</div></div></div>${legend ? `<div class="director-gps-map-legend">${legend}</div>` : ''}<p class="text-[9px] theme-text-muted leading-snug">Use one finger or mouse drag to pan, pinch or the wheel to zoom, and the map-type control to switch street or satellite view. Device trails show up to the last 30 geotagged records.</p></div>`;
+ 
+-            const cfg = getEffectiveGoogleMapsConfig_();
+-            if (!cfg.apiKey) {
+-                const canvas = document.getElementById('directorGoogleMapCanvas');
+-                if (canvas) canvas.innerHTML = '<div class="director-map-message"><div><strong class="theme-text">Google Maps deployment configuration required</strong><p class="mt-1">Set GOOGLE_MAPS_BROWSER_API_KEY in Apps Script properties. Checkpoint devices do not enter map credentials.</p></div></div>';
+-                return;
+-            }
++            container.innerHTML = `<div class="director-gps-map-shell"><div class="director-gps-map-summary"><span>${deviceGroups.length} PWA device${deviceGroups.length === 1 ? '' : 's'} located</span><span>${logsWithGps.length} geotagged log${logsWithGps.length === 1 ? '' : 's'}</span><span>${checkpointPoints.length} checkpoint marker${checkpointPoints.length === 1 ? '' : 's'}</span><span>Newest ${newest ? escapeHtml_(labelForAge(Math.max(0, now - newest))) : 'unknown'}</span></div><div class="director-gps-map-stage"><div id="directorOpenMapCanvas" class="director-google-map-canvas director-open-map-canvas"><div class="director-map-message">Loading interactive map…</div></div></div>${legend ? `<div class="director-gps-map-legend">${legend}</div>` : ''}<p class="text-[9px] theme-text-muted leading-snug">Drag to move, pinch or use +/− to zoom, and press ◎ to show all checkpoints and PWAs. The base map uses OpenStreetMap and requires no API key. Device trails show up to the last 30 reported coordinates.</p></div>`;
++
+             try {
+-                await ensureGoogleMapsApi_();
+-                const canvas = document.getElementById('directorGoogleMapCanvas');
++                if (typeof window.RaceSlippyMap !== 'function') throw new Error('The built-in map module did not load. Refresh the PWA after deploying all v19.3.4 files.');
++                const canvas = document.getElementById('directorOpenMapCanvas');
+                 if (!canvas || !document.body.contains(canvas)) return;
+-                clearDirectorGoogleMapOverlays_();
+                 const centerSource = deviceGroups[0]?.latest || checkpointPoints[0] || allCoordinates[0];
+-                directorGoogleMapInstance_ = new google.maps.Map(canvas, {
++                directorSlippyMapInstance_ = new window.RaceSlippyMap(canvas, {
+                     center: { lat: Number(centerSource.latitude), lng: Number(centerSource.longitude) },
+-                    zoom: 14, mapId: cfg.mapId || undefined,
+-                    gestureHandling: 'greedy', zoomControl: true, mapTypeControl: true,
+-                    streetViewControl: true, fullscreenControl: true, scaleControl: true,
+-                    clickableIcons: false, keyboardShortcuts: true
++                    zoom: 14,
++                    minZoom: 2,
++                    maxZoom: 19
+                 });
+-                directorGoogleMapInfoWindow_ = directorGoogleMapInfoWindow_ || new google.maps.InfoWindow();
+-                const bounds = new google.maps.LatLngBounds();
+-                checkpointPoints.forEach(point => {
+-                    const position = { lat: point.latitude, lng: point.longitude };
+-                    bounds.extend(position);
+-                    const marker = new google.maps.Marker({
+-                        map: directorGoogleMapInstance_, position, title: point.checkpoint,
+-                        icon: { path: 'M -7,-7 7,-7 7,7 -7,7 z', fillColor: '#f59e0b', fillOpacity: 1, strokeColor: '#111827', strokeWeight: 2, scale: 1 }
+-                    });
+-                    marker.addListener('click', () => {
+-                        directorGoogleMapInfoWindow_.setContent(`<strong>${escapeHtml_(point.checkpoint)}</strong><br><span>${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}</span>`);
+-                        directorGoogleMapInfoWindow_.open({ map: directorGoogleMapInstance_, anchor: marker });
++
++                const markers = [];
++                const polylines = [];
++                checkpointPoints.forEach((point, index) => {
++                    markers.push({
++                        id: `checkpoint-${index}`,
++                        kind: 'checkpoint',
++                        lat: point.latitude,
++                        lng: point.longitude,
++                        title: point.checkpoint,
++                        ariaLabel: `Checkpoint ${point.checkpoint}`,
++                        popupHtml: `<strong>${escapeHtml_(point.checkpoint)}</strong><br><span>Checkpoint / station</span><br><span>${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}</span>`
+                     });
+-                    directorGoogleMapOverlays_.push(marker);
+                 });
+-                deviceGroups.forEach(group => {
++
++                deviceGroups.forEach((group, index) => {
+                     const ageMs = group.latest.time ? Math.max(0, now - group.latest.time) : Infinity;
+                     const state = stateForAge(ageMs);
+                     const color = state === 'is-quiet' ? '#ef4444' : state === 'is-stale' ? '#f97316' : '#22c55e';
+                     const path = group.points.map(point => ({ lat: point.latitude, lng: point.longitude }));
+-                    path.forEach(position => bounds.extend(position));
+                     if (path.length > 1) {
+-                        const trail = new google.maps.Polyline({ map: directorGoogleMapInstance_, path, geodesic: true, strokeColor: color, strokeOpacity: .58, strokeWeight: 4 });
+-                        directorGoogleMapOverlays_.push(trail);
++                        polylines.push({ id: `trail-${index}`, points: path, color, width: 4, opacity: 0.62 });
+                     }
+                     const latest = group.latest;
+-                    const position = { lat: latest.latitude, lng: latest.longitude };
+                     const label = getDeviceLabel(group.key) || group.key;
+-                    const marker = new google.maps.Marker({
+-                        map: directorGoogleMapInstance_, position, title: label,
+-                        label: { text: String(deviceGroups.indexOf(group) + 1), color: '#ffffff', fontWeight: '900', fontSize: '11px' },
+-                        icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: color, fillOpacity: 1, strokeColor: '#07120b', strokeWeight: 2, scale: 11 }
++                    const health = group.health || {};
++                    const battery = Number.isFinite(Number(health.batteryPct)) ? `${Math.round(Number(health.batteryPct))}%${health.charging ? ' charging' : ''}` : 'Unknown';
++                    const queue = Number.isFinite(Number(health.queueCount)) ? Number(health.queueCount) : 0;
++                    const online = health.online === false ? 'Offline / stale' : health.online === true ? 'Online' : 'Status unknown';
++                    const lastSync = health.lastSync ? labelForAge(Math.max(0, now - parseCustomOrIsoDate(health.lastSync).getTime())) : 'Unknown';
++                    markers.push({
++                        id: `device-${index}`,
++                        kind: 'device',
++                        state,
++                        color,
++                        label: String(index + 1),
++                        lat: latest.latitude,
++                        lng: latest.longitude,
++                        title: label,
++                        ariaLabel: `${label}, ${latest.checkpoint}, ${labelForAge(ageMs)}`,
++                        popupHtml: `<strong>${escapeHtml_(label)}</strong><br><span>${escapeHtml_(latest.checkpoint)}${latest.volunteer ? ` · ${escapeHtml_(latest.volunteer)}` : ''}</span><br><span>${escapeHtml_(online)} · GPS ${escapeHtml_(labelForAge(ageMs))}</span><br><span>Battery ${escapeHtml_(battery)} · Queue ${queue} · Last sync ${escapeHtml_(lastSync)}</span>${latest.accuracy ? `<br><span>Accuracy ±${Math.round(latest.accuracy)}m</span>` : ''}<br><span>${latest.latitude.toFixed(6)}, ${latest.longitude.toFixed(6)}</span>`
+                     });
+-                    marker.addListener('click', () => {
+-                        const html = `<strong>${escapeHtml_(label)}</strong><br>${escapeHtml_(latest.checkpoint)}${latest.volunteer ? ` · ${escapeHtml_(latest.volunteer)}` : ''}<br>${group.count} GPS record${group.count === 1 ? '' : 's'} · ${escapeHtml_(labelForAge(ageMs))}${latest.accuracy ? `<br>Accuracy ±${Math.round(latest.accuracy)}m` : ''}<br>${latest.latitude.toFixed(6)}, ${latest.longitude.toFixed(6)}`;
+-                        directorGoogleMapInfoWindow_.setContent(html);
+-                        directorGoogleMapInfoWindow_.open({ map: directorGoogleMapInstance_, anchor: marker });
+-                    });
+-                    directorGoogleMapOverlays_.push(marker);
+                 });
+-                if (allCoordinates.length === 1) directorGoogleMapInstance_.setZoom(16);
+-                else {
+-                    directorGoogleMapInstance_.fitBounds(bounds, 54);
+-                    google.maps.event.addListenerOnce(directorGoogleMapInstance_, 'idle', () => {
+-                        if (directorGoogleMapInstance_.getZoom() > 18) directorGoogleMapInstance_.setZoom(18);
+-                    });
+-                }
++
++                directorSlippyMapInstance_.setData({ markers, polylines });
++                directorSlippyMapInstance_.fitBounds(markers.map(marker => ({ lat: marker.lat, lng: marker.lng })), 54);
+             } catch (error) {
+-                const canvas = document.getElementById('directorGoogleMapCanvas');
+-                if (canvas) canvas.innerHTML = `<div class="director-map-message"><div><strong class="text-red-600 dark:text-red-400">Google Maps unavailable</strong><p class="mt-1">${escapeHtml_(error?.message || 'Map failed to load.')}</p><button type="button" onclick="openSettings()">Check map settings</button></div></div>`;
++                const canvas = document.getElementById('directorOpenMapCanvas');
++                if (canvas) canvas.innerHTML = `<div class="director-map-message"><div><strong class="text-red-600 dark:text-red-400">Interactive map unavailable</strong><p class="mt-1">${escapeHtml_(error?.message || 'Map failed to load.')}</p><button type="button" onclick="location.reload()">Reload app</button></div></div>`;
+             }
+         }
+ 
+@@ -10716,6 +10710,9 @@
+                 renderServerOperationsCards_();
+                 renderArrivalForecast_([]);
+                 renderDeviceHealthWidget_();
++                if (isDirectorModeOpen && typeof getEnrichedLogsFromDb_ === 'function') {
++                    getEnrichedLogsFromDb_(logs => renderDirectorGpsMap_(logs || []));
++                }
+                 renderIncidentWidget_();
+                 renderDataIntegrityWidget_([]);
+             } catch (e) { console.warn('Operations summary unavailable', e); }
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/app/slippy-map-v1934.js /mnt/data/race-bib-logger-v19.3.4/app/slippy-map-v1934.js
+--- /mnt/data/race-bib-logger-v19.3.3/app/slippy-map-v1934.js	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/app/slippy-map-v1934.js	2026-08-02 12:55:08.709670459 +0000
+@@ -0,0 +1,473 @@
++/* Race Bib Logger v19.3.4 — dependency-free interactive OpenStreetMap renderer.
++ * Loads only the raster tiles visible in the current viewport. No API key,
++ * account, geocoder, tile prefetch, or background map download is used.
++ */
++(function (global) {
++  'use strict';
++
++  const TILE_SIZE = 256;
++  const MIN_LAT = -85.05112878;
++  const MAX_LAT = 85.05112878;
++
++  function clamp(value, min, max) {
++    return Math.max(min, Math.min(max, value));
++  }
++
++  function normaliseLng(lng) {
++    let value = Number(lng) || 0;
++    while (value < -180) value += 360;
++    while (value >= 180) value -= 360;
++    return value;
++  }
++
++  function latLngToWorld(lat, lng, zoom) {
++    const safeLat = clamp(Number(lat) || 0, MIN_LAT, MAX_LAT);
++    const safeLng = normaliseLng(lng);
++    const scale = TILE_SIZE * Math.pow(2, zoom);
++    const sin = Math.sin(safeLat * Math.PI / 180);
++    return {
++      x: (safeLng + 180) / 360 * scale,
++      y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale
++    };
++  }
++
++  function worldToLatLng(x, y, zoom) {
++    const scale = TILE_SIZE * Math.pow(2, zoom);
++    const lng = x / scale * 360 - 180;
++    const n = Math.PI - 2 * Math.PI * y / scale;
++    const lat = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
++    return { lat: clamp(lat, MIN_LAT, MAX_LAT), lng: normaliseLng(lng) };
++  }
++
++  function distance(a, b) {
++    return Math.hypot(a.x - b.x, a.y - b.y);
++  }
++
++  function midpoint(a, b) {
++    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
++  }
++
++  function safeText(value) {
++    return String(value == null ? '' : value);
++  }
++
++  class RaceSlippyMap {
++    constructor(container, options = {}) {
++      if (!container) throw new Error('Map container is missing.');
++      this.container = container;
++      this.options = {
++        minZoom: Number.isFinite(options.minZoom) ? options.minZoom : 2,
++        maxZoom: Number.isFinite(options.maxZoom) ? options.maxZoom : 19,
++        tileUrl: options.tileUrl || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
++        attribution: options.attribution || '© OpenStreetMap contributors'
++      };
++      this.center = { lat: Number(options.center?.lat) || 0, lng: Number(options.center?.lng) || 0 };
++      this.zoom = clamp(Math.round(Number(options.zoom) || 13), this.options.minZoom, this.options.maxZoom);
++      this.markers = [];
++      this.polylines = [];
++      this.fitPoints = [];
++      this.pointerMap = new Map();
++      this.dragState = null;
++      this.pinchState = null;
++      this.renderFrame = 0;
++      this.tileLoadCount = 0;
++      this.tileErrorCount = 0;
++      this.destroyed = false;
++      this.popupMarkerId = '';
++
++      this._build();
++      this._bind();
++      this.scheduleRender();
++    }
++
++    _build() {
++      this.container.innerHTML = `
++        <div class="race-slippy-map" role="application" aria-label="Interactive map of checkpoints and PWA devices">
++          <div class="race-slippy-tiles" aria-hidden="true"></div>
++          <svg class="race-slippy-lines" aria-hidden="true"></svg>
++          <div class="race-slippy-markers"></div>
++          <div class="race-slippy-popup hidden" role="dialog" aria-live="polite"></div>
++          <div class="race-slippy-controls" aria-label="Map controls">
++            <button type="button" data-map-action="zoom-in" aria-label="Zoom in">+</button>
++            <button type="button" data-map-action="zoom-out" aria-label="Zoom out">−</button>
++            <button type="button" data-map-action="fit" aria-label="Show all checkpoints and devices">◎</button>
++          </div>
++          <div class="race-slippy-tile-status hidden" role="status">Map tiles unavailable. Checkpoints and device positions are still shown.</div>
++          <a class="race-slippy-attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">${this.options.attribution}</a>
++        </div>`;
++      this.viewport = this.container.querySelector('.race-slippy-map');
++      this.tilePane = this.container.querySelector('.race-slippy-tiles');
++      this.linePane = this.container.querySelector('.race-slippy-lines');
++      this.markerPane = this.container.querySelector('.race-slippy-markers');
++      this.popup = this.container.querySelector('.race-slippy-popup');
++      this.tileStatus = this.container.querySelector('.race-slippy-tile-status');
++    }
++
++    _bind() {
++      this.onPointerDown = (event) => this._pointerDown(event);
++      this.onPointerMove = (event) => this._pointerMove(event);
++      this.onPointerUp = (event) => this._pointerUp(event);
++      this.onWheel = (event) => this._wheel(event);
++      this.onDoubleClick = (event) => {
++        event.preventDefault();
++        this._zoomAt(event.clientX, event.clientY, this.zoom + 1);
++      };
++      this.onKeyDown = (event) => {
++        if (event.key === '+' || event.key === '=') { event.preventDefault(); this.setZoom(this.zoom + 1); }
++        if (event.key === '-') { event.preventDefault(); this.setZoom(this.zoom - 1); }
++        if (event.key === 'Escape') this.closePopup();
++      };
++      this.onControlClick = (event) => {
++        const action = event.target.closest('[data-map-action]')?.dataset.mapAction;
++        if (!action) return;
++        event.preventDefault();
++        event.stopPropagation();
++        if (action === 'zoom-in') this.setZoom(this.zoom + 1);
++        else if (action === 'zoom-out') this.setZoom(this.zoom - 1);
++        else if (action === 'fit') this.fitBounds(this.fitPoints, 54);
++      };
++      this.onMarkerClick = (event) => {
++        const marker = event.target.closest('[data-race-map-marker]');
++        if (!marker) return;
++        event.preventDefault();
++        event.stopPropagation();
++        const item = this.markers.find(entry => entry.id === marker.dataset.raceMapMarker);
++        if (item) this.openPopup(item);
++      };
++
++      this.viewport.tabIndex = 0;
++      this.viewport.addEventListener('pointerdown', this.onPointerDown);
++      this.viewport.addEventListener('pointermove', this.onPointerMove);
++      this.viewport.addEventListener('pointerup', this.onPointerUp);
++      this.viewport.addEventListener('pointercancel', this.onPointerUp);
++      this.viewport.addEventListener('wheel', this.onWheel, { passive: false });
++      this.viewport.addEventListener('dblclick', this.onDoubleClick);
++      this.viewport.addEventListener('keydown', this.onKeyDown);
++      this.viewport.addEventListener('click', this.onControlClick);
++      this.markerPane.addEventListener('click', this.onMarkerClick);
++      this.viewport.addEventListener('click', (event) => {
++        if (!event.target.closest('[data-race-map-marker], .race-slippy-popup, .race-slippy-controls')) this.closePopup();
++      });
++      if ('ResizeObserver' in global) {
++        this.resizeObserver = new ResizeObserver(() => this.scheduleRender());
++        this.resizeObserver.observe(this.container);
++      } else {
++        this.onWindowResize = () => this.scheduleRender();
++        global.addEventListener('resize', this.onWindowResize);
++      }
++    }
++
++    setData({ markers = [], polylines = [] } = {}) {
++      this.markers = markers.filter(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng))).map((item, index) => ({
++        ...item,
++        id: safeText(item.id || `marker-${index}`),
++        lat: Number(item.lat),
++        lng: Number(item.lng)
++      }));
++      this.polylines = polylines.map((line, index) => ({
++        ...line,
++        id: safeText(line.id || `line-${index}`),
++        points: (line.points || []).filter(point => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng))).map(point => ({ lat: Number(point.lat), lng: Number(point.lng) }))
++      })).filter(line => line.points.length > 1);
++      this.fitPoints = this.markers.map(marker => ({ lat: marker.lat, lng: marker.lng }));
++      this.scheduleRender();
++      return this;
++    }
++
++    setView(center, zoom = this.zoom) {
++      if (center && Number.isFinite(Number(center.lat)) && Number.isFinite(Number(center.lng))) {
++        this.center = { lat: clamp(Number(center.lat), MIN_LAT, MAX_LAT), lng: normaliseLng(center.lng) };
++      }
++      this.zoom = clamp(Math.round(Number(zoom) || this.zoom), this.options.minZoom, this.options.maxZoom);
++      this.closePopup();
++      this.scheduleRender();
++      return this;
++    }
++
++    setZoom(zoom) {
++      return this.setView(this.center, zoom);
++    }
++
++    fitBounds(points, padding = 48) {
++      const valid = (points || []).filter(point => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)));
++      if (!valid.length) return this;
++      if (valid.length === 1) return this.setView(valid[0], Math.min(16, this.options.maxZoom));
++      const width = Math.max(180, this.viewport.clientWidth || this.container.clientWidth || 320);
++      const height = Math.max(180, this.viewport.clientHeight || this.container.clientHeight || 320);
++      let selectedZoom = this.options.minZoom;
++      let selectedCenter = valid[0];
++      for (let zoom = this.options.maxZoom; zoom >= this.options.minZoom; zoom--) {
++        const worlds = valid.map(point => latLngToWorld(point.lat, point.lng, zoom));
++        const minX = Math.min(...worlds.map(point => point.x));
++        const maxX = Math.max(...worlds.map(point => point.x));
++        const minY = Math.min(...worlds.map(point => point.y));
++        const maxY = Math.max(...worlds.map(point => point.y));
++        if (maxX - minX <= width - padding * 2 && maxY - minY <= height - padding * 2) {
++          selectedZoom = zoom;
++          selectedCenter = worldToLatLng((minX + maxX) / 2, (minY + maxY) / 2, zoom);
++          break;
++        }
++      }
++      return this.setView(selectedCenter, selectedZoom);
++    }
++
++    scheduleRender() {
++      if (this.destroyed || this.renderFrame) return;
++      this.renderFrame = global.requestAnimationFrame(() => {
++        this.renderFrame = 0;
++        this.render();
++      });
++    }
++
++    render() {
++      if (this.destroyed) return;
++      const width = this.viewport.clientWidth;
++      const height = this.viewport.clientHeight;
++      if (!width || !height) return;
++      const centerWorld = latLngToWorld(this.center.lat, this.center.lng, this.zoom);
++      const origin = { x: centerWorld.x - width / 2, y: centerWorld.y - height / 2 };
++      this.lastOrigin = origin;
++      this.lastSize = { width, height };
++      this._renderTiles(origin, width, height);
++      this._renderLines(origin, width, height);
++      this._renderMarkers(origin);
++      if (this.popupMarkerId) {
++        const item = this.markers.find(marker => marker.id === this.popupMarkerId);
++        if (item) this._positionPopup(item, origin);
++      }
++    }
++
++    _renderTiles(origin, width, height) {
++      const zoom = this.zoom;
++      const tileCount = Math.pow(2, zoom);
++      const startX = Math.floor(origin.x / TILE_SIZE) - 1;
++      const endX = Math.floor((origin.x + width) / TILE_SIZE) + 1;
++      const startY = Math.floor(origin.y / TILE_SIZE) - 1;
++      const endY = Math.floor((origin.y + height) / TILE_SIZE) + 1;
++      const fragment = document.createDocumentFragment();
++      this.tilePane.replaceChildren();
++      this.tileLoadCount = 0;
++      this.tileErrorCount = 0;
++      for (let tileY = startY; tileY <= endY; tileY++) {
++        if (tileY < 0 || tileY >= tileCount) continue;
++        for (let tileX = startX; tileX <= endX; tileX++) {
++          const wrappedX = ((tileX % tileCount) + tileCount) % tileCount;
++          const img = document.createElement('img');
++          img.alt = '';
++          img.draggable = false;
++          img.decoding = 'async';
++          img.loading = 'eager';
++          img.width = TILE_SIZE;
++          img.height = TILE_SIZE;
++          img.style.left = `${Math.round(tileX * TILE_SIZE - origin.x)}px`;
++          img.style.top = `${Math.round(tileY * TILE_SIZE - origin.y)}px`;
++          img.src = this.options.tileUrl.replace('{z}', zoom).replace('{x}', wrappedX).replace('{y}', tileY);
++          img.addEventListener('load', () => {
++            this.tileLoadCount += 1;
++            this.tileStatus.classList.add('hidden');
++          }, { once: true });
++          img.addEventListener('error', () => {
++            this.tileErrorCount += 1;
++            if (!this.tileLoadCount && this.tileErrorCount >= 3) this.tileStatus.classList.remove('hidden');
++          }, { once: true });
++          fragment.appendChild(img);
++        }
++      }
++      this.tilePane.appendChild(fragment);
++    }
++
++    _project(point, origin) {
++      const world = latLngToWorld(point.lat, point.lng, this.zoom);
++      return { x: world.x - origin.x, y: world.y - origin.y };
++    }
++
++    _renderLines(origin, width, height) {
++      this.linePane.setAttribute('viewBox', `0 0 ${width} ${height}`);
++      this.linePane.replaceChildren();
++      this.polylines.forEach(line => {
++        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
++        polyline.setAttribute('points', line.points.map(point => {
++          const pos = this._project(point, origin);
++          return `${pos.x.toFixed(1)},${pos.y.toFixed(1)}`;
++        }).join(' '));
++        polyline.setAttribute('fill', 'none');
++        polyline.setAttribute('stroke', line.color || '#22c55e');
++        polyline.setAttribute('stroke-width', String(line.width || 4));
++        polyline.setAttribute('stroke-opacity', String(line.opacity == null ? 0.62 : line.opacity));
++        polyline.setAttribute('stroke-linecap', 'round');
++        polyline.setAttribute('stroke-linejoin', 'round');
++        this.linePane.appendChild(polyline);
++      });
++    }
++
++    _renderMarkers(origin) {
++      const fragment = document.createDocumentFragment();
++      this.markerPane.replaceChildren();
++      this.markers.forEach(marker => {
++        const pos = this._project(marker, origin);
++        const button = document.createElement('button');
++        button.type = 'button';
++        button.dataset.raceMapMarker = marker.id;
++        button.className = `race-slippy-marker ${marker.kind === 'checkpoint' ? 'is-checkpoint' : 'is-device'} ${marker.state || ''}`.trim();
++        button.style.left = `${pos.x}px`;
++        button.style.top = `${pos.y}px`;
++        if (marker.color) button.style.setProperty('--marker-color', marker.color);
++        button.setAttribute('aria-label', marker.ariaLabel || marker.title || 'Map marker');
++        button.title = marker.title || '';
++        button.innerHTML = marker.kind === 'checkpoint'
++          ? '<span class="race-slippy-checkpoint-flag" aria-hidden="true">⚑</span>'
++          : `<span aria-hidden="true">${safeText(marker.label || '•')}</span>`;
++        fragment.appendChild(button);
++      });
++      this.markerPane.appendChild(fragment);
++    }
++
++    openPopup(marker) {
++      this.popupMarkerId = marker.id;
++      this.popup.innerHTML = `<button type="button" class="race-slippy-popup-close" aria-label="Close map information">×</button><div>${marker.popupHtml || safeText(marker.title)}</div>`;
++      this.popup.classList.remove('hidden');
++      this.popup.querySelector('.race-slippy-popup-close')?.addEventListener('click', (event) => {
++        event.preventDefault();
++        event.stopPropagation();
++        this.closePopup();
++      });
++      this._positionPopup(marker, this.lastOrigin || latLngToWorld(this.center.lat, this.center.lng, this.zoom));
++    }
++
++    _positionPopup(marker, origin) {
++      if (!this.lastSize || !origin || this.popup.classList.contains('hidden')) return;
++      const pos = this._project(marker, origin);
++      const left = clamp(pos.x, 90, this.lastSize.width - 90);
++      const top = clamp(pos.y - 26, 76, this.lastSize.height - 38);
++      this.popup.style.left = `${left}px`;
++      this.popup.style.top = `${top}px`;
++    }
++
++    closePopup() {
++      this.popupMarkerId = '';
++      this.popup?.classList.add('hidden');
++    }
++
++    _localPoint(clientX, clientY) {
++      const rect = this.viewport.getBoundingClientRect();
++      return { x: clientX - rect.left, y: clientY - rect.top };
++    }
++
++    _pointerDown(event) {
++      if (event.target.closest('button, a, .race-slippy-popup')) return;
++      event.preventDefault();
++      this.viewport.setPointerCapture?.(event.pointerId);
++      this.pointerMap.set(event.pointerId, { x: event.clientX, y: event.clientY });
++      this.closePopup();
++      this._resetGestureState();
++    }
++
++    _pointerMove(event) {
++      if (!this.pointerMap.has(event.pointerId)) return;
++      event.preventDefault();
++      this.pointerMap.set(event.pointerId, { x: event.clientX, y: event.clientY });
++      const points = Array.from(this.pointerMap.values());
++      if (points.length === 1 && this.dragState) {
++        const current = points[0];
++        const dx = current.x - this.dragState.pointer.x;
++        const dy = current.y - this.dragState.pointer.y;
++        const world = { x: this.dragState.centerWorld.x - dx, y: this.dragState.centerWorld.y - dy };
++        this.center = worldToLatLng(world.x, world.y, this.zoom);
++        this.scheduleRender();
++      } else if (points.length >= 2 && this.pinchState) {
++        const currentMid = midpoint(points[0], points[1]);
++        const ratio = Math.max(0.25, distance(points[0], points[1]) / Math.max(1, this.pinchState.distance));
++        const nextZoom = clamp(Math.round(this.pinchState.zoom + Math.log2(ratio)), this.options.minZoom, this.options.maxZoom);
++        const localMid = this._localPoint(currentMid.x, currentMid.y);
++        const worldFocus = latLngToWorld(this.pinchState.focus.lat, this.pinchState.focus.lng, nextZoom);
++        const width = this.viewport.clientWidth;
++        const height = this.viewport.clientHeight;
++        const centerWorld = {
++          x: worldFocus.x - (localMid.x - width / 2),
++          y: worldFocus.y - (localMid.y - height / 2)
++        };
++        this.zoom = nextZoom;
++        this.center = worldToLatLng(centerWorld.x, centerWorld.y, nextZoom);
++        this.scheduleRender();
++      }
++    }
++
++    _pointerUp(event) {
++      if (!this.pointerMap.has(event.pointerId)) return;
++      this.pointerMap.delete(event.pointerId);
++      try { this.viewport.releasePointerCapture?.(event.pointerId); } catch (_) { /* already released */ }
++      this._resetGestureState();
++    }
++
++    _resetGestureState() {
++      const points = Array.from(this.pointerMap.values());
++      this.dragState = null;
++      this.pinchState = null;
++      if (points.length === 1) {
++        this.dragState = {
++          pointer: { ...points[0] },
++          centerWorld: latLngToWorld(this.center.lat, this.center.lng, this.zoom)
++        };
++      } else if (points.length >= 2) {
++        const mid = midpoint(points[0], points[1]);
++        const localMid = this._localPoint(mid.x, mid.y);
++        const centerWorld = latLngToWorld(this.center.lat, this.center.lng, this.zoom);
++        const focusWorld = {
++          x: centerWorld.x + localMid.x - this.viewport.clientWidth / 2,
++          y: centerWorld.y + localMid.y - this.viewport.clientHeight / 2
++        };
++        this.pinchState = {
++          distance: distance(points[0], points[1]),
++          zoom: this.zoom,
++          focus: worldToLatLng(focusWorld.x, focusWorld.y, this.zoom)
++        };
++      }
++    }
++
++    _wheel(event) {
++      event.preventDefault();
++      const direction = event.deltaY < 0 ? 1 : -1;
++      this._zoomAt(event.clientX, event.clientY, this.zoom + direction);
++    }
++
++    _zoomAt(clientX, clientY, nextZoom) {
++      const zoom = clamp(Math.round(nextZoom), this.options.minZoom, this.options.maxZoom);
++      if (zoom === this.zoom) return;
++      const local = this._localPoint(clientX, clientY);
++      const oldCenterWorld = latLngToWorld(this.center.lat, this.center.lng, this.zoom);
++      const focusWorld = {
++        x: oldCenterWorld.x + local.x - this.viewport.clientWidth / 2,
++        y: oldCenterWorld.y + local.y - this.viewport.clientHeight / 2
++      };
++      const focus = worldToLatLng(focusWorld.x, focusWorld.y, this.zoom);
++      const newFocusWorld = latLngToWorld(focus.lat, focus.lng, zoom);
++      const newCenterWorld = {
++        x: newFocusWorld.x - (local.x - this.viewport.clientWidth / 2),
++        y: newFocusWorld.y - (local.y - this.viewport.clientHeight / 2)
++      };
++      this.zoom = zoom;
++      this.center = worldToLatLng(newCenterWorld.x, newCenterWorld.y, zoom);
++      this.closePopup();
++      this.scheduleRender();
++    }
++
++    destroy() {
++      this.destroyed = true;
++      if (this.renderFrame) global.cancelAnimationFrame(this.renderFrame);
++      this.resizeObserver?.disconnect?.();
++      if (this.onWindowResize) global.removeEventListener('resize', this.onWindowResize);
++      this.viewport?.removeEventListener('pointerdown', this.onPointerDown);
++      this.viewport?.removeEventListener('pointermove', this.onPointerMove);
++      this.viewport?.removeEventListener('pointerup', this.onPointerUp);
++      this.viewport?.removeEventListener('pointercancel', this.onPointerUp);
++      this.viewport?.removeEventListener('wheel', this.onWheel);
++      this.viewport?.removeEventListener('dblclick', this.onDoubleClick);
++      this.viewport?.removeEventListener('keydown', this.onKeyDown);
++      this.viewport?.removeEventListener('click', this.onControlClick);
++      this.markerPane?.removeEventListener('click', this.onMarkerClick);
++      this.container.innerHTML = '';
++    }
++  }
++
++  global.RaceSlippyMap = RaceSlippyMap;
++})(window);
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/app/ux-v1933.css /mnt/data/race-bib-logger-v19.3.4/app/ux-v1933.css
+--- /mnt/data/race-bib-logger-v19.3.3/app/ux-v1933.css	2026-08-02 12:48:37.417680249 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/app/ux-v1933.css	1970-01-01 00:00:00.000000000 +0000
+@@ -1,395 +0,0 @@
+-/* ── v19.3.3 compact mobile monitoring and stable scrolling ───────── */
+-/* Director section chips and their scroll observer were removed from markup and JavaScript. */
+-
+-.director-action-icon svg {
+-    width: 1.12rem;
+-    height: 1.12rem;
+-    display: block;
+-    fill: none;
+-    stroke: currentColor;
+-    stroke-width: 2;
+-    stroke-linecap: round;
+-    stroke-linejoin: round;
+-}
+-#directorSyncIcon.director-status-glyph {
+-    font-size: .68rem !important;
+-    line-height: 1;
+-}
+-#directorSyncBadge[data-state="syncing"] #directorSyncIcon { font-size: 1rem !important; }
+-#directorSyncBadge[data-state="error"] #directorSyncIcon { font-size: .82rem !important; font-weight: 950; }
+-.director-icon-action { box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+-
+-.director-back-to-top {
+-    right: max(.7rem, env(safe-area-inset-right, 0px));
+-    bottom: max(.8rem, env(safe-area-inset-bottom, 0px));
+-    width: 2.65rem;
+-    min-width: 2.65rem;
+-    height: 2.65rem;
+-    font-size: 1.18rem;
+-    font-weight: 950;
+-}
+-
+-/* Safety Log: compact, one-row command bar with icon controls. The available
+-   width is used without making buttons or text abnormally large. */
+-#safetyLogView > .max-w-\[1400px\] {
+-    padding: .72rem !important;
+-    gap: .65rem !important;
+-}
+-.safety-log-topbar {
+-    display: grid;
+-    grid-template-columns: minmax(0, 1fr) auto;
+-    align-items: center;
+-    gap: .65rem;
+-    min-height: 2.65rem;
+-}
+-.safety-log-title {
+-    min-width: 0;
+-    display: flex;
+-    align-items: center;
+-    gap: .48rem;
+-    margin: 0;
+-    font-size: clamp(1rem, 4.2vw, 1.32rem);
+-    line-height: 1.05;
+-    font-weight: 950;
+-    letter-spacing: -.02em;
+-    white-space: nowrap;
+-    overflow: hidden;
+-    text-overflow: ellipsis;
+-}
+-.safety-log-title > span:first-child { font-size: 1.15em; flex: 0 0 auto; }
+-.safety-log-actions {
+-    display: grid;
+-    grid-template-columns: repeat(4, 2.45rem);
+-    gap: .34rem;
+-    align-items: center;
+-}
+-.safety-icon-action {
+-    width: 2.45rem;
+-    min-width: 2.45rem;
+-    height: 2.45rem;
+-    min-height: 2.45rem;
+-    display: inline-flex;
+-    align-items: center;
+-    justify-content: center;
+-    padding: 0 !important;
+-    border: 1px solid var(--border-color);
+-    border-radius: .72rem;
+-    background: var(--input-bg);
+-    color: var(--text-main);
+-    font-size: 1rem !important;
+-    font-weight: 950;
+-    line-height: 1;
+-    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 4px 12px rgba(0,0,0,.16);
+-    transition: transform .08s ease, filter .12s ease, border-color .12s ease;
+-}
+-.safety-icon-action:active { transform: scale(.94); filter: brightness(1.12); }
+-.safety-icon-action:disabled { opacity: .58; cursor: wait; }
+-.safety-icon-primary { color: #bfdbfe; border-color: rgba(59,130,246,.5); background: rgba(37,99,235,.34); }
+-.safety-icon-danger { color: #fecaca; border-color: rgba(239,68,68,.48); background: rgba(127,29,29,.34); }
+-.safety-icon-neutral { color: var(--text-muted); }
+-.safety-icon-status { border-radius: 999px; font-size: .66rem !important; }
+-.safety-icon-status[data-state="ready"] { color: #34d399; border-color: rgba(16,185,129,.46); background: rgba(6,95,70,.26); }
+-.safety-icon-status[data-state="syncing"] { color: #60a5fa; border-color: rgba(59,130,246,.48); background: rgba(30,64,175,.25); font-size: .95rem !important; }
+-.safety-icon-status[data-state="error"] { color: #fbbf24; border-color: rgba(245,158,11,.5); background: rgba(120,53,15,.28); font-size: .82rem !important; }
+-.safety-toolbar-hint {
+-    min-height: 0;
+-    max-height: 0;
+-    opacity: 0;
+-    overflow: hidden;
+-    margin: 0;
+-    padding: 0 .65rem;
+-    border: 0 solid var(--border-color);
+-    border-radius: .65rem;
+-    background: var(--card-tint);
+-    color: var(--text-muted);
+-    font-size: .67rem;
+-    font-weight: 850;
+-    line-height: 1.3;
+-    transition: opacity .15s ease, max-height .18s ease, padding .18s ease, border-width .18s ease;
+-}
+-.safety-toolbar-hint.is-visible {
+-    max-height: 3rem;
+-    opacity: 1;
+-    padding: .42rem .65rem;
+-    border-width: 1px;
+-}
+-#safetyRosterLoadState {
+-    margin: 0;
+-    min-height: 0;
+-    padding: .42rem .62rem;
+-    border-radius: .58rem;
+-    font-size: .66rem;
+-    line-height: 1.32;
+-}
+-
+-/* Keep Setup's action aligned with the readiness and checkpoint summary badges.
+-   ID selectors intentionally survive applyLockState() replacing className. */
+-#setupHeaderRow { gap: .48rem; align-items: center; }
+-#setupHeaderRow > h2 {
+-    min-width: 0;
+-    flex: 1 1 auto;
+-    flex-wrap: nowrap !important;
+-    overflow: hidden;
+-}
+-#setupHeaderRow #setupSummary {
+-    min-width: 0;
+-    max-width: 100%;
+-    height: 2.05rem;
+-    display: inline-flex;
+-    align-items: center;
+-    overflow: hidden;
+-    text-overflow: ellipsis;
+-    white-space: nowrap;
+-    padding: .35rem .58rem !important;
+-    border-radius: .58rem !important;
+-}
+-#setupHeaderRow #setupSummary.hidden { display: none !important; }
+-#lockBtn {
+-    flex: 0 0 auto;
+-    height: 2.05rem;
+-    min-height: 2.05rem !important;
+-    max-height: 2.05rem;
+-    padding: .35rem .62rem !important;
+-    border-radius: .58rem !important;
+-    font-size: .66rem !important;
+-    line-height: 1 !important;
+-    white-space: nowrap;
+-    overflow: hidden;
+-    text-overflow: ellipsis;
+-}
+-
+-@media (max-width: 430px) {
+-    .director-mode-actions { gap: .38rem !important; }
+-    .director-icon-action,
+-    .director-icon-action.is-expanded { height: 2.55rem !important; min-height: 2.55rem !important; border-radius: .7rem !important; }
+-    .director-action-icon svg { width: 1.02rem; height: 1.02rem; }
+-    .safety-log-actions { grid-template-columns: repeat(4, 2.25rem); gap: .28rem; }
+-    .safety-icon-action { width: 2.25rem; min-width: 2.25rem; height: 2.25rem; min-height: 2.25rem; border-radius: .65rem; }
+-    .safety-log-title { font-size: .98rem; }
+-    #setupHeaderRow > h2 { gap: .32rem; }
+-    #setupReadinessBadge { flex: 0 0 auto; }
+-    #setupHeaderRow #setupSummary { font-size: .58rem !important; }
+-    #lockBtn { max-width: 5.6rem; }
+-}
+-
+-/* ── v19.3.3 entry and command-view refinements ───────────────────── */
+-/* Quick Entry keeps only the large numeric pad visible. ABC hands control to
+-   the native keyboard without replacing the race-day number pad with tiny keys. */
+-.minimal-keyboard-tabs-two { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+-.minimal-native-bib-input {
+-    position: absolute;
+-    inset: 0;
+-    z-index: 3;
+-    width: 100%;
+-    height: 100%;
+-    padding: 0 4.7rem 0 1rem;
+-    border: 0;
+-    border-radius: inherit;
+-    outline: 0;
+-    background: transparent;
+-    color: transparent;
+-    caret-color: transparent;
+-    opacity: .01;
+-    text-transform: uppercase;
+-}
+-.minimal-native-keyboard-hint {
+-    min-height: 3rem;
+-    display: flex;
+-    align-items: center;
+-    justify-content: center;
+-    padding: .55rem .75rem;
+-    border: 1px solid #282a32;
+-    border-radius: .75rem;
+-    background: #0d0e12;
+-    color: #9ca3af;
+-    font-size: .68rem;
+-    font-weight: 850;
+-    text-align: center;
+-}
+-.minimal-native-keyboard-hint.hidden { display: none !important; }
+-.minimal-bib-display-wrap:has(.minimal-native-bib-input:focus) {
+-    box-shadow: 0 0 0 2px #3b82f6, 0 12px 28px rgba(37,99,235,.2);
+-}
+-
+-/* Main and Quick Last-4 use exactly the same frequency colour token. */
+-.minimal-last4-card[class*="last4-repeat-"] strong {
+-    color: inherit !important;
+-    text-shadow: var(--last4-shadow);
+-}
+-
+-/* Spaces are invalid BIB characters. Feedback is brief, local, and highly visible. */
+-.minimal-space-feedback,
+-.bib-space-feedback {
+-    margin-top: .35rem;
+-    padding: .5rem .7rem;
+-    border: 1px solid rgba(248,113,113,.78);
+-    border-radius: .65rem;
+-    background: rgba(127,29,29,.88);
+-    color: #fee2e2;
+-    font-size: .69rem;
+-    line-height: 1.25;
+-    font-weight: 900;
+-    text-align: center;
+-    box-shadow: 0 6px 18px rgba(127,29,29,.28);
+-}
+-.minimal-space-feedback.hidden,
+-.bib-space-feedback.hidden { display: none !important; }
+-.minimal-space-feedback:not(.hidden),
+-.bib-space-feedback:not(.hidden) { animation: bibSpacePulseV1933 .22s ease-out 1; }
+-@keyframes bibSpacePulseV1933 {
+-    0% { transform: scale(.97); filter: brightness(1.5); }
+-    100% { transform: scale(1); filter: brightness(1); }
+-}
+-
+-/* OCR and keyboard controls are absent unless focus is inside the BIB field/tool shell. */
+-.bib-input-shell:not(:focus-within) .bib-input-tools,
+-.bib-input-shell:not(.tools-visible) .bib-input-tools {
+-    opacity: 0;
+-    visibility: hidden;
+-    pointer-events: none;
+-}
+-.bib-input-shell:focus-within.tools-visible .bib-input-tools {
+-    opacity: 1;
+-    visibility: visible;
+-    pointer-events: auto;
+-}
+-body.minimal-bib-open .bib-input-tools { display: none !important; }
+-
+-/* Duplicate confirmation remains above Quick Entry and fits without scrolling. */
+-#v19DecisionModal { z-index: 220 !important; }
+-#v19DecisionModal[data-kind="duplicate"] { padding: .65rem !important; align-items: center !important; }
+-#v19DecisionModal[data-kind="duplicate"] #v19DecisionCard {
+-    width: min(94vw, 24rem) !important;
+-    max-height: none !important;
+-    padding: .85rem !important;
+-    gap: .65rem !important;
+-    border-radius: .9rem !important;
+-}
+-#v19DecisionModal[data-kind="duplicate"] #v19DecisionTitle {
+-    margin: 0;
+-    font-size: .94rem !important;
+-    line-height: 1.15;
+-}
+-#v19DecisionModal[data-kind="duplicate"] #v19DecisionReasonWrap { display: none !important; }
+-#v19DecisionModal[data-kind="duplicate"] #v19DecisionBody { font-size: .72rem; }
+-#v19DecisionModal[data-kind="duplicate"] #v19DecisionCard > .grid { gap: .45rem !important; }
+-#v19DecisionModal[data-kind="duplicate"] #v19DecisionCancel,
+-#v19DecisionModal[data-kind="duplicate"] #v19DecisionConfirm {
+-    min-height: 2.65rem;
+-    padding: .55rem .6rem !important;
+-    border-radius: .7rem !important;
+-    font-size: .76rem;
+-}
+-.v19-duplicate-compact {
+-    display: grid;
+-    gap: .24rem;
+-    padding: .62rem .7rem;
+-    border: 1px solid rgba(245,158,11,.42);
+-    border-radius: .72rem;
+-    background: rgba(120,53,15,.16);
+-}
+-.v19-duplicate-compact strong { color: #fbbf24; font-size: .82rem; line-height: 1.18; }
+-.v19-duplicate-compact span { color: var(--text-main); font-size: .69rem; line-height: 1.25; }
+-.v19-duplicate-compact small { color: var(--text-muted); font-size: .62rem; line-height: 1.2; }
+-
+-/* History scope and limit indicators no longer consume card-sized space. */
+-.scan-history-limit-strip {
+-    min-height: 1.75rem;
+-    display: inline-flex;
+-    align-items: center;
+-    align-self: flex-start;
+-    gap: .35rem;
+-    width: auto;
+-    max-width: 100%;
+-    padding: .25rem .55rem;
+-    border-radius: 999px !important;
+-    font-size: .62rem;
+-    line-height: 1;
+-    font-weight: 800;
+-    white-space: nowrap;
+-}
+-#scanHistoryHeader { padding: .45rem .62rem !important; gap: .45rem !important; }
+-.scan-history-scope-toggle { padding: .12rem !important; border-radius: .5rem !important; }
+-.scan-history-scope-toggle button { min-height: 1.55rem; padding: .18rem .48rem !important; line-height: 1; }
+-#expandCollapseAllBtn { min-height: 1.7rem; padding: .15rem .45rem !important; }
+-#searchBar { min-height: 1.85rem; padding-block: .3rem !important; }
+-
+-/* Setup header: remove the now-unused event-distance strip and align Edit Setup. */
+-#eventConfigStrip { display: none !important; }
+-#setupHeaderRow { min-height: 2.1rem; }
+-#setupHeaderRow > div:last-child { height: 2.05rem; display: flex; align-items: stretch; }
+-#lockBtn {
+-    display: inline-flex !important;
+-    align-items: center !important;
+-    justify-content: center !important;
+-    vertical-align: middle;
+-    transform: none !important;
+-}
+-
+-/* Centrally managed map credentials are informational, not an end-user form. */
+-.director-map-managed-card { min-height: 2.55rem; padding: .5rem .65rem !important; }
+-
+-/* Slim command header: one compact title band and a low-profile icon rail. */
+-.director-mode-header {
+-    padding: max(.4rem, env(safe-area-inset-top, 0px)) .65rem .45rem !important;
+-    gap: .42rem !important;
+-}
+-.director-mode-title { font-size: clamp(.86rem, 3.8vw, 1.15rem) !important; line-height: 1.05 !important; }
+-.director-mode-heading { min-height: 1.45rem; }
+-.director-mode-actions { gap: .32rem !important; }
+-.director-icon-action,
+-.director-icon-action.is-expanded,
+-#directorEventProfileBadge {
+-    width: 2.18rem !important;
+-    min-width: 2.18rem !important;
+-    max-width: 2.18rem !important;
+-    height: 2.18rem !important;
+-    min-height: 2.18rem !important;
+-    padding: 0 !important;
+-    border-radius: .62rem !important;
+-    overflow: hidden;
+-    flex: 0 0 2.18rem !important;
+-}
+-#directorEventProfileBadge {
+-    color: transparent !important;
+-    font-size: 0 !important;
+-    position: relative;
+-}
+-#directorEventProfileBadge::before {
+-    content: "⚑";
+-    color: currentColor;
+-    color: #fbbf24;
+-    font-size: .92rem;
+-    line-height: 1;
+-}
+-.director-action-icon svg { width: .94rem !important; height: .94rem !important; }
+-#directorSyncIcon.director-status-glyph { font-size: .55rem !important; }
+-
+-@media (max-width: 900px) {
+-    .director-mode-header {
+-        grid-template-columns: minmax(0, 1fr) auto !important;
+-        align-items: center !important;
+-    }
+-    .director-mode-title { white-space: nowrap !important; }
+-    .director-mode-actions { width: auto !important; justify-content: flex-end !important; }
+-    #directorExitButton { margin-right: 0 !important; order: 0 !important; }
+-}
+-@media (max-width: 430px) {
+-    .director-mode-header { padding-inline: .45rem !important; }
+-    .director-mode-heading { gap: .3rem !important; }
+-    .director-mode-title { max-width: 9.7rem; }
+-    .director-icon-action,
+-    .director-icon-action.is-expanded,
+-    #directorEventProfileBadge {
+-        width: 2rem !important;
+-        min-width: 2rem !important;
+-        max-width: 2rem !important;
+-        height: 2rem !important;
+-        min-height: 2rem !important;
+-        flex-basis: 2rem !important;
+-    }
+-    #scanHistoryHeader { flex-wrap: wrap !important; }
+-    #scanHistoryHeader > div:first-child { flex-wrap: nowrap !important; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+-    #scanHistoryHeader > div:first-child::-webkit-scrollbar { display: none; }
+-    #scanHistoryHeader > div:last-child { flex: 1 1 100%; max-width: 100% !important; }
+-}
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/app/ux-v1933.js /mnt/data/race-bib-logger-v19.3.4/app/ux-v1933.js
+--- /mnt/data/race-bib-logger-v19.3.3/app/ux-v1933.js	2026-08-02 12:48:37.437680249 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/app/ux-v1933.js	1970-01-01 00:00:00.000000000 +0000
+@@ -1,317 +0,0 @@
+-/* Race Bib Logger v19.3.3 — non-invasive UI/UX enhancement layer.
+- * Loaded after the operational modules so it can improve presentation without
+- * changing record formats, sync contracts, or race calculations.
+- */
+-(() => {
+-  'use strict';
+-
+-  const VERSION = '19.3.3';
+-  const DIRECTOR_LABEL_MS = 5000;
+-  let directorHintTimer = 0;
+-  let directorExitArmedUntil = 0;
+-  let minimalWakeLock = null;
+-
+-  function byId(id) { return document.getElementById(id); }
+-  function storageGet(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
+-  function storageSet(key, value) { try { localStorage.setItem(key, value); } catch (_) { /* storage unavailable */ } }
+-  function isTextEntry(element) {
+-    return !!element && /^(INPUT|TEXTAREA|SELECT)$/.test(element.tagName) || !!element?.isContentEditable;
+-  }
+-
+-  function vibrate(pattern) {
+-    try {
+-      if (navigator.vibrate && storageGet('vibrateEnabled') !== 'false') navigator.vibrate(pattern);
+-    } catch (_) { /* unsupported or blocked */ }
+-  }
+-
+-  function showDirectorToolbarHint(label, durationMs = DIRECTOR_LABEL_MS) {
+-    const hint = byId('directorToolbarHint');
+-    if (!hint) return;
+-    const clean = String(label || '').trim();
+-    if (!clean) return;
+-    hint.textContent = clean;
+-    hint.classList.add('is-visible');
+-    clearTimeout(directorHintTimer);
+-    directorHintTimer = window.setTimeout(() => hint.classList.remove('is-visible'), Math.max(1200, Number(durationMs) || DIRECTOR_LABEL_MS));
+-  }
+-
+-  function showSafetyToolbarHint(label, durationMs = 2400) {
+-    const hint = byId('safetyToolbarHint');
+-    const clean = String(label || '').trim();
+-    if (!hint || !clean) return;
+-    hint.textContent = clean;
+-    hint.classList.add('is-visible');
+-    clearTimeout(showSafetyToolbarHint.timer);
+-    showSafetyToolbarHint.timer = window.setTimeout(() => hint.classList.remove('is-visible'), Math.max(1000, Number(durationMs) || 2400));
+-  }
+-  showSafetyToolbarHint.timer = 0;
+-  window.showSafetyToolbarHint_ = showSafetyToolbarHint;
+-
+-  function toolbarLabel(elementId, temporaryLabel) {
+-    const element = byId(elementId);
+-    if (!element) return '';
+-    return String(temporaryLabel || element.dataset.fullLabel || element.getAttribute('aria-label') || '').trim();
+-  }
+-
+-  function installStableDirectorToolbar() {
+-    // Preserve the earlier five-second label requirement without changing button width.
+-    // The label appears as an overlay, so the command bar never pushes off-screen.
+-    window.revealDirectorToolbarLabel_ = function revealDirectorToolbarLabelV193(elementId, temporaryLabel, durationMs = DIRECTOR_LABEL_MS) {
+-      showDirectorToolbarHint(toolbarLabel(elementId, temporaryLabel), durationMs);
+-    };
+-
+-    window.directorCustomizeAction_ = function directorCustomizeActionV193(event) {
+-      event?.preventDefault?.();
+-      showDirectorToolbarHint('Customize command view');
+-      if (typeof window.openDirectorCustomize === 'function') window.openDirectorCustomize(event);
+-    };
+-
+-    window.directorRefreshAction_ = function directorRefreshActionV193(event) {
+-      event?.preventDefault?.();
+-      showDirectorToolbarHint('Refreshing race data…');
+-      vibrate(12);
+-      if (typeof window.pullServerRecords === 'function') window.pullServerRecords();
+-      if (typeof window.attemptSync === 'function') window.attemptSync();
+-    };
+-
+-    window.directorExitAction_ = function directorExitActionV193(event) {
+-      event?.preventDefault?.();
+-      const button = byId('directorExitButton');
+-      const now = Date.now();
+-      if (now < directorExitArmedUntil) {
+-        directorExitArmedUntil = 0;
+-        button?.classList.remove('is-armed');
+-        showDirectorToolbarHint('Leaving Race Command View', 1200);
+-        if (typeof window.closeDirectorMode === 'function') window.closeDirectorMode();
+-        return;
+-      }
+-      directorExitArmedUntil = now + DIRECTOR_LABEL_MS;
+-      button?.classList.add('is-armed');
+-      button?.setAttribute('aria-label', 'Exit armed. Tap again within five seconds to leave Race Command View.');
+-      showDirectorToolbarHint('Tap Exit again to leave', DIRECTOR_LABEL_MS);
+-      window.setTimeout(() => {
+-        if (Date.now() >= directorExitArmedUntil) {
+-          button?.classList.remove('is-armed');
+-          button?.setAttribute('aria-label', 'Exit Director Mode. Tap once to arm, tap again to exit.');
+-        }
+-      }, DIRECTOR_LABEL_MS + 50);
+-    };
+-  }
+-
+-  function installDirectorNavigation() {
+-    const root = byId('directorModeView');
+-    const backToTop = byId('directorBackToTop');
+-    if (!root || !backToTop) return;
+-
+-    backToTop.addEventListener('click', () => {
+-      root.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+-      showDirectorToolbarHint('Top of command view', 1400);
+-    });
+-    root.addEventListener('scroll', () => backToTop.classList.toggle('is-visible', root.scrollTop > 520), { passive: true });
+-  }
+-
+-  function installWidgetHelpToggles() {
+-    document.querySelectorAll('#directorWidgetsGrid [data-widget]').forEach(section => {
+-      const header = section.firstElementChild;
+-      const description = header?.querySelector('p');
+-      if (!header || !description || header.querySelector('.widget-help-button')) return;
+-      description.classList.add('widget-help-text');
+-      const button = document.createElement('button');
+-      button.type = 'button';
+-      button.className = 'widget-help-button';
+-      button.textContent = 'i';
+-      button.setAttribute('aria-label', 'Show or hide widget explanation');
+-      button.setAttribute('aria-expanded', 'false');
+-      button.addEventListener('click', event => {
+-        event.stopPropagation();
+-        const open = section.classList.toggle('show-widget-help');
+-        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+-      });
+-      const controls = header.querySelector('.widget-width-controls');
+-      header.insertBefore(button, controls || null);
+-    });
+-  }
+-
+-  function installMapFullscreen() {
+-    const widget = byId('widget-map');
+-    const header = widget?.firstElementChild;
+-    if (!widget || !header || header.querySelector('.map-fullscreen-button')) return;
+-    const button = document.createElement('button');
+-    button.type = 'button';
+-    button.className = 'widget-help-button map-fullscreen-button';
+-    button.textContent = '⛶';
+-    button.setAttribute('aria-label', 'Open GPS map full screen');
+-    button.setAttribute('aria-pressed', 'false');
+-    button.addEventListener('click', event => {
+-      event.stopPropagation();
+-      const full = widget.classList.toggle('map-is-fullscreen');
+-      if (full) document.body.classList.add('overflow-hidden');
+-      else if (byId('directorModeView')?.classList.contains('hidden')) document.body.classList.remove('overflow-hidden');
+-      button.textContent = full ? '✕' : '⛶';
+-      button.setAttribute('aria-pressed', full ? 'true' : 'false');
+-      button.setAttribute('aria-label', full ? 'Close full-screen GPS map' : 'Open GPS map full screen');
+-      showDirectorToolbarHint(full ? 'GPS map full screen' : 'GPS map restored', 1600);
+-      window.setTimeout(() => window.dispatchEvent(new Event('resize')), 180);
+-    });
+-    const controls = header.querySelector('.widget-width-controls');
+-    header.insertBefore(button, controls || null);
+-  }
+-
+-  function updateMinimalActiveTarget() {
+-    const pill = byId('minimalActiveTargetPill');
+-    const wrap = byId('minimalBibDisplayWrap');
+-    const wakeStatus = byId('minimalWakeStatus');
+-    if (pill) pill.textContent = wrap?.classList.contains('is-active') ? 'BIB' : 'REMARK';
+-    if (wakeStatus && !('wakeLock' in navigator)) wakeStatus.textContent = 'Keep screen awake manually';
+-  }
+-
+-  async function requestMinimalWakeLock() {
+-    if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') {
+-      updateMinimalActiveTarget();
+-      return;
+-    }
+-    try {
+-      if (minimalWakeLock) return;
+-      minimalWakeLock = await navigator.wakeLock.request('screen');
+-      const status = byId('minimalWakeStatus');
+-      if (status) status.textContent = 'Screen kept awake';
+-      minimalWakeLock.addEventListener('release', () => {
+-        minimalWakeLock = null;
+-        const current = byId('minimalWakeStatus');
+-        if (current) current.textContent = 'Screen awake';
+-      });
+-    } catch (_) {
+-      const status = byId('minimalWakeStatus');
+-      if (status) status.textContent = 'Keep screen awake manually';
+-    }
+-  }
+-
+-  async function releaseMinimalWakeLock() {
+-    try { await minimalWakeLock?.release?.(); } catch (_) { /* already released */ }
+-    minimalWakeLock = null;
+-  }
+-
+-  function minimalViewIsOpen() {
+-    const view = byId('minimalBibModeView');
+-    return !!view && !view.classList.contains('hidden');
+-  }
+-
+-  function installMinimalModeEnhancements() {
+-    const view = byId('minimalBibModeView');
+-    const bibWrap = byId('minimalBibDisplayWrap');
+-    const remarkShell = byId('minimalRemarkShell');
+-    if (!view) return;
+-
+-    view.addEventListener('pointerdown', event => {
+-      const target = event.target.closest('.minimal-key, .minimal-bib-actions button, .minimal-backspace-btn, .minimal-keyboard-tab');
+-      if (!target) return;
+-      vibrate(target.id === 'minimalBibLogButton' ? 24 : 8);
+-    }, { passive: true });
+-
+-    const observer = new MutationObserver(() => {
+-      updateMinimalActiveTarget();
+-      if (minimalViewIsOpen()) requestMinimalWakeLock();
+-      else releaseMinimalWakeLock();
+-    });
+-    observer.observe(view, { attributes: true, attributeFilter: ['class'] });
+-    if (bibWrap) observer.observe(bibWrap, { attributes: true, attributeFilter: ['class'] });
+-    if (remarkShell) observer.observe(remarkShell, { attributes: true, attributeFilter: ['class'] });
+-
+-    document.addEventListener('visibilitychange', () => {
+-      if (document.visibilityState === 'visible' && minimalViewIsOpen()) requestMinimalWakeLock();
+-      else if (document.visibilityState !== 'visible') releaseMinimalWakeLock();
+-    });
+-    updateMinimalActiveTarget();
+-  }
+-
+-  function installSafetyToolbar() {
+-    const view = byId('safetyLogView');
+-    if (!view) return;
+-    view.addEventListener('pointerdown', event => {
+-      const control = event.target.closest('.safety-icon-action');
+-      if (control) vibrate(8);
+-    }, { passive: true });
+-    if ('MutationObserver' in window) {
+-      new MutationObserver(() => {
+-        if (view.classList.contains('hidden')) byId('safetyToolbarHint')?.classList.remove('is-visible');
+-      }).observe(view, { attributes: true, attributeFilter: ['class'] });
+-    }
+-  }
+-
+-  function installSafetyScrollHint() {
+-    const viewport = byId('safetyTableViewport');
+-    if (!viewport || byId('safetyScrollHint')) return;
+-    const hint = document.createElement('div');
+-    hint.id = 'safetyScrollHint';
+-    hint.className = 'safety-scroll-hint';
+-    hint.textContent = 'BIB stays pinned • swipe sideways for more columns';
+-    viewport.parentNode?.insertBefore(hint, viewport);
+-    const hide = () => {
+-      if (viewport.scrollLeft > 12) {
+-        hint.classList.add('is-hidden');
+-        storageSet('safetyScrollHintSeen_v193', '1');
+-      }
+-    };
+-    if (storageGet('safetyScrollHintSeen_v193') === '1') hint.classList.add('is-hidden');
+-    viewport.addEventListener('scroll', hide, { passive: true });
+-  }
+-
+-  function installDirectorKeyboardShortcuts() {
+-    document.addEventListener('keydown', event => {
+-      const root = byId('directorModeView');
+-      if (!root || root.classList.contains('hidden') || isTextEntry(event.target)) return;
+-      if (event.key === 'Escape') {
+-        event.preventDefault();
+-        window.directorExitAction_?.(event);
+-      } else if (event.shiftKey && event.key.toLowerCase() === 'r') {
+-        event.preventDefault();
+-        window.directorRefreshAction_?.(event);
+-      } else if (event.shiftKey && event.key.toLowerCase() === 'c') {
+-        event.preventDefault();
+-        window.directorCustomizeAction_?.(event);
+-      }
+-    }, true);
+-  }
+-
+-  function installAppModeObserver() {
+-    const director = byId('directorModeView');
+-    if (!director || !('MutationObserver' in window)) return;
+-    new MutationObserver(() => {
+-      if (!director.classList.contains('hidden')) {
+-        window.requestAnimationFrame(() => {
+-          installWidgetHelpToggles();
+-          installMapFullscreen();
+-        });
+-      } else {
+-        directorExitArmedUntil = 0;
+-        byId('directorExitButton')?.classList.remove('is-armed');
+-        byId('directorBackToTop')?.classList.remove('is-visible');
+-        byId('directorToolbarHint')?.classList.remove('is-visible');
+-        const mapWidget = byId('widget-map');
+-        mapWidget?.classList.remove('map-is-fullscreen');
+-        const mapButton = mapWidget?.querySelector('.map-fullscreen-button');
+-        if (mapButton) {
+-          mapButton.textContent = '⛶';
+-          mapButton.setAttribute('aria-pressed', 'false');
+-          mapButton.setAttribute('aria-label', 'Open GPS map full screen');
+-        }
+-      }
+-    }).observe(director, { attributes: true, attributeFilter: ['class'] });
+-  }
+-
+-  function init() {
+-    document.documentElement.dataset.uxVersion = VERSION;
+-    installStableDirectorToolbar();
+-    installDirectorNavigation();
+-    installWidgetHelpToggles();
+-    installMapFullscreen();
+-    installMinimalModeEnhancements();
+-    installSafetyToolbar();
+-    installSafetyScrollHint();
+-    installDirectorKeyboardShortcuts();
+-    installAppModeObserver();
+-  }
+-
+-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+-  else init();
+-})();
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/app/ux-v1934.css /mnt/data/race-bib-logger-v19.3.4/app/ux-v1934.css
+--- /mnt/data/race-bib-logger-v19.3.3/app/ux-v1934.css	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/app/ux-v1934.css	2026-08-02 13:06:16.301653756 +0000
+@@ -0,0 +1,617 @@
++/* ── v19.3.4 compact mobile monitoring and stable scrolling ───────── */
++/* Director section chips and their scroll observer were removed from markup and JavaScript. */
++
++.director-action-icon svg {
++    width: 1.12rem;
++    height: 1.12rem;
++    display: block;
++    fill: none;
++    stroke: currentColor;
++    stroke-width: 2;
++    stroke-linecap: round;
++    stroke-linejoin: round;
++}
++#directorSyncIcon.director-status-glyph {
++    font-size: .68rem !important;
++    line-height: 1;
++}
++#directorSyncBadge[data-state="syncing"] #directorSyncIcon { font-size: 1rem !important; }
++#directorSyncBadge[data-state="error"] #directorSyncIcon { font-size: .82rem !important; font-weight: 950; }
++.director-icon-action { box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
++
++.director-back-to-top {
++    right: max(.7rem, env(safe-area-inset-right, 0px));
++    bottom: max(.8rem, env(safe-area-inset-bottom, 0px));
++    width: 2.65rem;
++    min-width: 2.65rem;
++    height: 2.65rem;
++    font-size: 1.18rem;
++    font-weight: 950;
++}
++
++/* Safety Log: compact, one-row command bar with icon controls. The available
++   width is used without making buttons or text abnormally large. */
++#safetyLogView > .max-w-\[1400px\] {
++    padding: .72rem !important;
++    gap: .65rem !important;
++}
++.safety-log-topbar {
++    display: grid;
++    grid-template-columns: minmax(0, 1fr) auto;
++    align-items: center;
++    gap: .65rem;
++    min-height: 2.65rem;
++}
++.safety-log-title {
++    min-width: 0;
++    display: flex;
++    align-items: center;
++    gap: .48rem;
++    margin: 0;
++    font-size: clamp(1rem, 4.2vw, 1.32rem);
++    line-height: 1.05;
++    font-weight: 950;
++    letter-spacing: -.02em;
++    white-space: nowrap;
++    overflow: hidden;
++    text-overflow: ellipsis;
++}
++.safety-log-title > span:first-child { font-size: 1.15em; flex: 0 0 auto; }
++.safety-log-actions {
++    display: grid;
++    grid-template-columns: repeat(4, 2.45rem);
++    gap: .34rem;
++    align-items: center;
++}
++.safety-icon-action {
++    width: 2.45rem;
++    min-width: 2.45rem;
++    height: 2.45rem;
++    min-height: 2.45rem;
++    display: inline-flex;
++    align-items: center;
++    justify-content: center;
++    padding: 0 !important;
++    border: 1px solid var(--border-color);
++    border-radius: .72rem;
++    background: var(--input-bg);
++    color: var(--text-main);
++    font-size: 1rem !important;
++    font-weight: 950;
++    line-height: 1;
++    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 4px 12px rgba(0,0,0,.16);
++    transition: transform .08s ease, filter .12s ease, border-color .12s ease;
++}
++.safety-icon-action:active { transform: scale(.94); filter: brightness(1.12); }
++.safety-icon-action:disabled { opacity: .58; cursor: wait; }
++.safety-icon-primary { color: #bfdbfe; border-color: rgba(59,130,246,.5); background: rgba(37,99,235,.34); }
++.safety-icon-danger { color: #fecaca; border-color: rgba(239,68,68,.48); background: rgba(127,29,29,.34); }
++.safety-icon-neutral { color: var(--text-muted); }
++.safety-icon-status { border-radius: 999px; font-size: .66rem !important; }
++.safety-icon-status[data-state="ready"] { color: #34d399; border-color: rgba(16,185,129,.46); background: rgba(6,95,70,.26); }
++.safety-icon-status[data-state="syncing"] { color: #60a5fa; border-color: rgba(59,130,246,.48); background: rgba(30,64,175,.25); font-size: .95rem !important; }
++.safety-icon-status[data-state="error"] { color: #fbbf24; border-color: rgba(245,158,11,.5); background: rgba(120,53,15,.28); font-size: .82rem !important; }
++.safety-toolbar-hint {
++    min-height: 0;
++    max-height: 0;
++    opacity: 0;
++    overflow: hidden;
++    margin: 0;
++    padding: 0 .65rem;
++    border: 0 solid var(--border-color);
++    border-radius: .65rem;
++    background: var(--card-tint);
++    color: var(--text-muted);
++    font-size: .67rem;
++    font-weight: 850;
++    line-height: 1.3;
++    transition: opacity .15s ease, max-height .18s ease, padding .18s ease, border-width .18s ease;
++}
++.safety-toolbar-hint.is-visible {
++    max-height: 3rem;
++    opacity: 1;
++    padding: .42rem .65rem;
++    border-width: 1px;
++}
++#safetyRosterLoadState {
++    margin: 0;
++    min-height: 0;
++    padding: .42rem .62rem;
++    border-radius: .58rem;
++    font-size: .66rem;
++    line-height: 1.32;
++}
++
++/* Keep Setup's action aligned with the readiness and checkpoint summary badges.
++   ID selectors intentionally survive applyLockState() replacing className. */
++#setupHeaderRow { gap: .48rem; align-items: center; }
++#setupHeaderRow > h2 {
++    min-width: 0;
++    flex: 1 1 auto;
++    flex-wrap: nowrap !important;
++    overflow: hidden;
++}
++#setupHeaderRow #setupSummary {
++    min-width: 0;
++    max-width: 100%;
++    height: 2.05rem;
++    display: inline-flex;
++    align-items: center;
++    overflow: hidden;
++    text-overflow: ellipsis;
++    white-space: nowrap;
++    padding: .35rem .58rem !important;
++    border-radius: .58rem !important;
++}
++#setupHeaderRow #setupSummary.hidden { display: none !important; }
++#lockBtn {
++    flex: 0 0 auto;
++    height: 2.05rem;
++    min-height: 2.05rem !important;
++    max-height: 2.05rem;
++    padding: .35rem .62rem !important;
++    border-radius: .58rem !important;
++    font-size: .66rem !important;
++    line-height: 1 !important;
++    white-space: nowrap;
++    overflow: hidden;
++    text-overflow: ellipsis;
++}
++
++@media (max-width: 430px) {
++    .director-mode-actions { gap: .38rem !important; }
++    .director-icon-action,
++    .director-icon-action.is-expanded { height: 2.55rem !important; min-height: 2.55rem !important; border-radius: .7rem !important; }
++    .director-action-icon svg { width: 1.02rem; height: 1.02rem; }
++    .safety-log-actions { grid-template-columns: repeat(4, 2.25rem); gap: .28rem; }
++    .safety-icon-action { width: 2.25rem; min-width: 2.25rem; height: 2.25rem; min-height: 2.25rem; border-radius: .65rem; }
++    .safety-log-title { font-size: .98rem; }
++    #setupHeaderRow > h2 { gap: .32rem; }
++    #setupReadinessBadge { flex: 0 0 auto; }
++    #setupHeaderRow #setupSummary { font-size: .58rem !important; }
++    #lockBtn { max-width: 5.6rem; }
++}
++
++/* ── v19.3.4 entry and command-view refinements ───────────────────── */
++/* Quick Entry keeps only the large numeric pad visible. ABC hands control to
++   the native keyboard without replacing the race-day number pad with tiny keys. */
++.minimal-keyboard-tabs-two { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
++.minimal-native-bib-input {
++    position: absolute;
++    inset: 0;
++    z-index: 3;
++    width: 100%;
++    height: 100%;
++    padding: 0 4.7rem 0 1rem;
++    border: 0;
++    border-radius: inherit;
++    outline: 0;
++    background: transparent;
++    color: transparent;
++    caret-color: transparent;
++    opacity: .01;
++    text-transform: uppercase;
++}
++.minimal-native-keyboard-hint {
++    min-height: 3rem;
++    display: flex;
++    align-items: center;
++    justify-content: center;
++    padding: .55rem .75rem;
++    border: 1px solid #282a32;
++    border-radius: .75rem;
++    background: #0d0e12;
++    color: #9ca3af;
++    font-size: .68rem;
++    font-weight: 850;
++    text-align: center;
++}
++.minimal-native-keyboard-hint.hidden { display: none !important; }
++.minimal-bib-display-wrap:has(.minimal-native-bib-input:focus) {
++    box-shadow: 0 0 0 2px #3b82f6, 0 12px 28px rgba(37,99,235,.2);
++}
++
++/* Main and Quick Last-4 use exactly the same frequency colour token. */
++.minimal-last4-card[class*="last4-repeat-"] strong {
++    color: inherit !important;
++    text-shadow: var(--last4-shadow);
++}
++
++/* Spaces are invalid BIB characters. Feedback is brief, local, and highly visible. */
++.minimal-space-feedback,
++.bib-space-feedback {
++    margin-top: .35rem;
++    padding: .5rem .7rem;
++    border: 1px solid rgba(248,113,113,.78);
++    border-radius: .65rem;
++    background: rgba(127,29,29,.88);
++    color: #fee2e2;
++    font-size: .69rem;
++    line-height: 1.25;
++    font-weight: 900;
++    text-align: center;
++    box-shadow: 0 6px 18px rgba(127,29,29,.28);
++}
++.minimal-space-feedback.hidden,
++.bib-space-feedback.hidden { display: none !important; }
++.minimal-space-feedback:not(.hidden),
++.bib-space-feedback:not(.hidden) { animation: bibSpacePulseV1933 .22s ease-out 1; }
++@keyframes bibSpacePulseV1933 {
++    0% { transform: scale(.97); filter: brightness(1.5); }
++    100% { transform: scale(1); filter: brightness(1); }
++}
++
++/* OCR and keyboard controls are absent unless focus is inside the BIB field/tool shell. */
++.bib-input-shell:not(:focus-within) .bib-input-tools,
++.bib-input-shell:not(.tools-visible) .bib-input-tools {
++    opacity: 0;
++    visibility: hidden;
++    pointer-events: none;
++}
++.bib-input-shell:focus-within.tools-visible .bib-input-tools {
++    opacity: 1;
++    visibility: visible;
++    pointer-events: auto;
++}
++body.minimal-bib-open .bib-input-tools { display: none !important; }
++
++/* Duplicate confirmation remains above Quick Entry and fits without scrolling. */
++#v19DecisionModal { z-index: 220 !important; }
++#v19DecisionModal[data-kind="duplicate"] { padding: .65rem !important; align-items: center !important; }
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionCard {
++    width: min(94vw, 24rem) !important;
++    max-height: none !important;
++    padding: .85rem !important;
++    gap: .65rem !important;
++    border-radius: .9rem !important;
++}
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionTitle {
++    margin: 0;
++    font-size: .94rem !important;
++    line-height: 1.15;
++}
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionReasonWrap { display: none !important; }
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionBody { font-size: .72rem; }
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionCard > .grid { gap: .45rem !important; }
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionCancel,
++#v19DecisionModal[data-kind="duplicate"] #v19DecisionConfirm {
++    min-height: 2.65rem;
++    padding: .55rem .6rem !important;
++    border-radius: .7rem !important;
++    font-size: .76rem;
++}
++.v19-duplicate-compact {
++    display: grid;
++    gap: .24rem;
++    padding: .62rem .7rem;
++    border: 1px solid rgba(245,158,11,.42);
++    border-radius: .72rem;
++    background: rgba(120,53,15,.16);
++}
++.v19-duplicate-compact strong { color: #fbbf24; font-size: .82rem; line-height: 1.18; }
++.v19-duplicate-compact span { color: var(--text-main); font-size: .69rem; line-height: 1.25; }
++.v19-duplicate-compact small { color: var(--text-muted); font-size: .62rem; line-height: 1.2; }
++
++/* History scope and limit indicators no longer consume card-sized space. */
++.scan-history-limit-strip {
++    min-height: 1.75rem;
++    display: inline-flex;
++    align-items: center;
++    align-self: flex-start;
++    gap: .35rem;
++    width: auto;
++    max-width: 100%;
++    padding: .25rem .55rem;
++    border-radius: 999px !important;
++    font-size: .62rem;
++    line-height: 1;
++    font-weight: 800;
++    white-space: nowrap;
++}
++#scanHistoryHeader { padding: .45rem .62rem !important; gap: .45rem !important; }
++.scan-history-scope-toggle { padding: .12rem !important; border-radius: .5rem !important; }
++.scan-history-scope-toggle button { min-height: 1.55rem; padding: .18rem .48rem !important; line-height: 1; }
++#expandCollapseAllBtn { min-height: 1.7rem; padding: .15rem .45rem !important; }
++#searchBar { min-height: 1.85rem; padding-block: .3rem !important; }
++
++/* Setup header: remove the now-unused event-distance strip and align Edit Setup. */
++#eventConfigStrip { display: none !important; }
++#setupHeaderRow { min-height: 2.1rem; }
++#setupHeaderRow > div:last-child { height: 2.05rem; display: flex; align-items: stretch; }
++#lockBtn {
++    display: inline-flex !important;
++    align-items: center !important;
++    justify-content: center !important;
++    vertical-align: middle;
++    transform: none !important;
++}
++
++/* Centrally managed map credentials are informational, not an end-user form. */
++.director-map-managed-card { min-height: 2.55rem; padding: .5rem .65rem !important; }
++
++/* Slim command header: one compact title band and a low-profile icon rail. */
++.director-mode-header {
++    padding: max(.4rem, env(safe-area-inset-top, 0px)) .65rem .45rem !important;
++    gap: .42rem !important;
++}
++.director-mode-title { font-size: clamp(.86rem, 3.8vw, 1.15rem) !important; line-height: 1.05 !important; }
++.director-mode-heading { min-height: 1.45rem; }
++.director-mode-actions { gap: .32rem !important; }
++.director-icon-action,
++.director-icon-action.is-expanded,
++#directorEventProfileBadge {
++    width: 2.18rem !important;
++    min-width: 2.18rem !important;
++    max-width: 2.18rem !important;
++    height: 2.18rem !important;
++    min-height: 2.18rem !important;
++    padding: 0 !important;
++    border-radius: .62rem !important;
++    overflow: hidden;
++    flex: 0 0 2.18rem !important;
++}
++#directorEventProfileBadge {
++    color: transparent !important;
++    font-size: 0 !important;
++    position: relative;
++}
++#directorEventProfileBadge::before {
++    content: "⚑";
++    color: currentColor;
++    color: #fbbf24;
++    font-size: .92rem;
++    line-height: 1;
++}
++.director-action-icon svg { width: .94rem !important; height: .94rem !important; }
++#directorSyncIcon.director-status-glyph { font-size: .55rem !important; }
++
++@media (max-width: 900px) {
++    .director-mode-header {
++        grid-template-columns: minmax(0, 1fr) auto !important;
++        align-items: center !important;
++    }
++    .director-mode-title { white-space: nowrap !important; }
++    .director-mode-actions { width: auto !important; justify-content: flex-end !important; }
++    #directorExitButton { margin-right: 0 !important; order: 0 !important; }
++}
++@media (max-width: 430px) {
++    .director-mode-header { padding-inline: .45rem !important; }
++    .director-mode-heading { gap: .3rem !important; }
++    .director-mode-title { max-width: 9.7rem; }
++    .director-icon-action,
++    .director-icon-action.is-expanded,
++    #directorEventProfileBadge {
++        width: 2rem !important;
++        min-width: 2rem !important;
++        max-width: 2rem !important;
++        height: 2rem !important;
++        min-height: 2rem !important;
++        flex-basis: 2rem !important;
++    }
++    #scanHistoryHeader { flex-wrap: wrap !important; }
++    #scanHistoryHeader > div:first-child { flex-wrap: nowrap !important; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
++    #scanHistoryHeader > div:first-child::-webkit-scrollbar { display: none; }
++    #scanHistoryHeader > div:last-child { flex: 1 1 100%; max-width: 100% !important; }
++}
++
++/* ── v19.3.4 keyboard LOG and key-free interactive map ───────────── */
++.minimal-backspace-btn { z-index: 6; }
++.minimal-inline-log-btn {
++    display: none;
++    position: absolute;
++    z-index: 6;
++    right: 3.55rem;
++    top: 50%;
++    transform: translateY(-50%);
++    width: 3.65rem;
++    height: 2.65rem;
++    border: 1px solid rgba(96,165,250,.88);
++    border-radius: .72rem;
++    background: linear-gradient(135deg, #1d4ed8, #4338ca);
++    color: #fff;
++    font-size: .73rem;
++    font-weight: 950;
++    letter-spacing: .04em;
++    box-shadow: 0 4px 16px rgba(37,99,235,.28);
++    touch-action: manipulation;
++}
++.minimal-inline-log-btn:active { transform: translateY(-50%) scale(.96); }
++.minimal-inline-log-btn:disabled { opacity: .42; box-shadow: none; }
++.minimal-bib-display-wrap.native-keyboard-active,
++.minimal-bib-display-wrap:has(.minimal-native-bib-input.is-active) {
++    padding-right: 8.1rem;
++}
++.minimal-bib-display-wrap.native-keyboard-active .minimal-inline-log-btn,
++.minimal-bib-display-wrap:has(.minimal-native-bib-input.is-active) .minimal-inline-log-btn {
++    display: block;
++}
++.minimal-bib-display-wrap.native-keyboard-active .minimal-native-bib-input,
++.minimal-bib-display-wrap:has(.minimal-native-bib-input.is-active) .minimal-native-bib-input {
++    padding-right: 8.35rem;
++}
++
++.director-gps-map-stage { touch-action: none !important; }
++.director-open-map-canvas,
++.race-slippy-map {
++    width: 100%;
++    height: 100%;
++    min-height: 24rem;
++}
++.race-slippy-map {
++    position: relative;
++    overflow: hidden;
++    background:
++        linear-gradient(rgba(44,62,80,.08) 1px, transparent 1px),
++        linear-gradient(90deg, rgba(44,62,80,.08) 1px, transparent 1px),
++        #dbe8ee;
++    background-size: 32px 32px;
++    cursor: grab;
++    touch-action: none;
++    user-select: none;
++    -webkit-user-select: none;
++    outline: none;
++}
++.race-slippy-map:active { cursor: grabbing; }
++.race-slippy-map:focus-visible { box-shadow: inset 0 0 0 3px #3b82f6; }
++.race-slippy-tiles,
++.race-slippy-lines,
++.race-slippy-markers {
++    position: absolute;
++    inset: 0;
++}
++.race-slippy-tiles img {
++    position: absolute;
++    width: 256px;
++    height: 256px;
++    max-width: none;
++    pointer-events: none;
++    -webkit-user-drag: none;
++}
++.race-slippy-lines { overflow: visible; pointer-events: none; }
++.race-slippy-markers { pointer-events: none; }
++.race-slippy-marker {
++    --marker-color: #22c55e;
++    position: absolute;
++    z-index: 8;
++    display: grid;
++    place-items: center;
++    transform: translate(-50%, -50%);
++    pointer-events: auto;
++    color: #fff;
++    font: 900 11px/1 ui-sans-serif, system-ui, sans-serif;
++    text-shadow: 0 1px 1px rgba(0,0,0,.55);
++    box-shadow: 0 3px 12px rgba(0,0,0,.36);
++    touch-action: manipulation;
++}
++.race-slippy-marker.is-device {
++    width: 2rem;
++    height: 2rem;
++    border: 2px solid #07120b;
++    border-radius: 999px;
++    background: var(--marker-color);
++}
++.race-slippy-marker.is-device::after {
++    content: '';
++    position: absolute;
++    inset: -.32rem;
++    border: 2px solid rgba(34,197,94,.42);
++    border-radius: inherit;
++    pointer-events: none;
++}
++.race-slippy-marker.is-device.is-stale::after,
++.race-slippy-marker.is-device.is-quiet::after { display: none; }
++.race-slippy-marker.is-checkpoint {
++    width: 1.9rem;
++    height: 1.9rem;
++    border: 2px solid #111827;
++    border-radius: .42rem .42rem .42rem .1rem;
++    background: #f59e0b;
++    transform: translate(-50%, -90%) rotate(45deg);
++}
++.race-slippy-checkpoint-flag {
++    transform: rotate(-45deg);
++    font-size: 1rem;
++    color: #111827;
++    text-shadow: none;
++}
++.race-slippy-controls {
++    position: absolute;
++    z-index: 20;
++    top: .65rem;
++    left: .65rem;
++    display: grid;
++    gap: .35rem;
++}
++.race-slippy-controls button {
++    width: 2.45rem;
++    height: 2.45rem;
++    display: grid;
++    place-items: center;
++    border: 1px solid rgba(15,23,42,.38);
++    border-radius: .62rem;
++    background: rgba(255,255,255,.94);
++    color: #0f172a;
++    font-size: 1.25rem;
++    font-weight: 950;
++    line-height: 1;
++    box-shadow: 0 3px 12px rgba(15,23,42,.22);
++    touch-action: manipulation;
++}
++.race-slippy-controls button:active { transform: scale(.95); background: #dbeafe; }
++.race-slippy-popup {
++    position: absolute;
++    z-index: 30;
++    width: min(18rem, calc(100% - 1.5rem));
++    transform: translate(-50%, -100%);
++    padding: .68rem 2rem .68rem .75rem;
++    border: 1px solid rgba(15,23,42,.28);
++    border-radius: .72rem;
++    background: rgba(255,255,255,.97);
++    color: #0f172a;
++    font-size: .68rem;
++    line-height: 1.42;
++    box-shadow: 0 8px 28px rgba(15,23,42,.32);
++    pointer-events: auto;
++}
++.race-slippy-popup::after {
++    content: '';
++    position: absolute;
++    left: 50%;
++    bottom: -.42rem;
++    width: .8rem;
++    height: .8rem;
++    transform: translateX(-50%) rotate(45deg);
++    background: inherit;
++    border-right: 1px solid rgba(15,23,42,.22);
++    border-bottom: 1px solid rgba(15,23,42,.22);
++}
++.race-slippy-popup.hidden { display: none !important; }
++.race-slippy-popup strong { font-size: .76rem; }
++.race-slippy-popup-close {
++    position: absolute;
++    top: .32rem;
++    right: .38rem;
++    width: 1.5rem;
++    height: 1.5rem;
++    border-radius: 999px;
++    background: #e2e8f0;
++    color: #0f172a;
++    font-weight: 950;
++}
++.race-slippy-attribution {
++    position: absolute;
++    z-index: 20;
++    right: .32rem;
++    bottom: .25rem;
++    padding: .18rem .34rem;
++    border-radius: .28rem;
++    background: rgba(255,255,255,.9);
++    color: #334155;
++    font-size: .52rem;
++    line-height: 1;
++    text-decoration: none;
++}
++.race-slippy-tile-status {
++    position: absolute;
++    z-index: 19;
++    left: 50%;
++    top: .7rem;
++    transform: translateX(-50%);
++    max-width: calc(100% - 8rem);
++    padding: .38rem .58rem;
++    border: 1px solid rgba(245,158,11,.7);
++    border-radius: .55rem;
++    background: rgba(120,53,15,.92);
++    color: #fffbeb;
++    font-size: .58rem;
++    font-weight: 800;
++    text-align: center;
++}
++.race-slippy-tile-status.hidden { display: none !important; }
++@media (max-width: 520px) {
++    .director-gps-map-stage,
++    .director-open-map-canvas,
++    .race-slippy-map { min-height: 20rem; height: 20rem; }
++    .race-slippy-controls button { width: 2.25rem; height: 2.25rem; }
++    .race-slippy-popup { font-size: .64rem; }
++}
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/app/ux-v1934.js /mnt/data/race-bib-logger-v19.3.4/app/ux-v1934.js
+--- /mnt/data/race-bib-logger-v19.3.3/app/ux-v1934.js	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/app/ux-v1934.js	2026-08-02 13:00:25.033662545 +0000
+@@ -0,0 +1,317 @@
++/* Race Bib Logger v19.3.4 — non-invasive UI/UX enhancement layer.
++ * Loaded after the operational modules so it can improve presentation without
++ * changing record formats, sync contracts, or race calculations.
++ */
++(() => {
++  'use strict';
++
++  const VERSION = '19.3.4';
++  const DIRECTOR_LABEL_MS = 5000;
++  let directorHintTimer = 0;
++  let directorExitArmedUntil = 0;
++  let minimalWakeLock = null;
++
++  function byId(id) { return document.getElementById(id); }
++  function storageGet(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
++  function storageSet(key, value) { try { localStorage.setItem(key, value); } catch (_) { /* storage unavailable */ } }
++  function isTextEntry(element) {
++    return !!element && /^(INPUT|TEXTAREA|SELECT)$/.test(element.tagName) || !!element?.isContentEditable;
++  }
++
++  function vibrate(pattern) {
++    try {
++      if (navigator.vibrate && storageGet('vibrateEnabled') !== 'false') navigator.vibrate(pattern);
++    } catch (_) { /* unsupported or blocked */ }
++  }
++
++  function showDirectorToolbarHint(label, durationMs = DIRECTOR_LABEL_MS) {
++    const hint = byId('directorToolbarHint');
++    if (!hint) return;
++    const clean = String(label || '').trim();
++    if (!clean) return;
++    hint.textContent = clean;
++    hint.classList.add('is-visible');
++    clearTimeout(directorHintTimer);
++    directorHintTimer = window.setTimeout(() => hint.classList.remove('is-visible'), Math.max(1200, Number(durationMs) || DIRECTOR_LABEL_MS));
++  }
++
++  function showSafetyToolbarHint(label, durationMs = 2400) {
++    const hint = byId('safetyToolbarHint');
++    const clean = String(label || '').trim();
++    if (!hint || !clean) return;
++    hint.textContent = clean;
++    hint.classList.add('is-visible');
++    clearTimeout(showSafetyToolbarHint.timer);
++    showSafetyToolbarHint.timer = window.setTimeout(() => hint.classList.remove('is-visible'), Math.max(1000, Number(durationMs) || 2400));
++  }
++  showSafetyToolbarHint.timer = 0;
++  window.showSafetyToolbarHint_ = showSafetyToolbarHint;
++
++  function toolbarLabel(elementId, temporaryLabel) {
++    const element = byId(elementId);
++    if (!element) return '';
++    return String(temporaryLabel || element.dataset.fullLabel || element.getAttribute('aria-label') || '').trim();
++  }
++
++  function installStableDirectorToolbar() {
++    // Preserve the earlier five-second label requirement without changing button width.
++    // The label appears as an overlay, so the command bar never pushes off-screen.
++    window.revealDirectorToolbarLabel_ = function revealDirectorToolbarLabelV193(elementId, temporaryLabel, durationMs = DIRECTOR_LABEL_MS) {
++      showDirectorToolbarHint(toolbarLabel(elementId, temporaryLabel), durationMs);
++    };
++
++    window.directorCustomizeAction_ = function directorCustomizeActionV193(event) {
++      event?.preventDefault?.();
++      showDirectorToolbarHint('Customize command view');
++      if (typeof window.openDirectorCustomize === 'function') window.openDirectorCustomize(event);
++    };
++
++    window.directorRefreshAction_ = function directorRefreshActionV193(event) {
++      event?.preventDefault?.();
++      showDirectorToolbarHint('Refreshing race data…');
++      vibrate(12);
++      if (typeof window.pullServerRecords === 'function') window.pullServerRecords();
++      if (typeof window.attemptSync === 'function') window.attemptSync();
++    };
++
++    window.directorExitAction_ = function directorExitActionV193(event) {
++      event?.preventDefault?.();
++      const button = byId('directorExitButton');
++      const now = Date.now();
++      if (now < directorExitArmedUntil) {
++        directorExitArmedUntil = 0;
++        button?.classList.remove('is-armed');
++        showDirectorToolbarHint('Leaving Race Command View', 1200);
++        if (typeof window.closeDirectorMode === 'function') window.closeDirectorMode();
++        return;
++      }
++      directorExitArmedUntil = now + DIRECTOR_LABEL_MS;
++      button?.classList.add('is-armed');
++      button?.setAttribute('aria-label', 'Exit armed. Tap again within five seconds to leave Race Command View.');
++      showDirectorToolbarHint('Tap Exit again to leave', DIRECTOR_LABEL_MS);
++      window.setTimeout(() => {
++        if (Date.now() >= directorExitArmedUntil) {
++          button?.classList.remove('is-armed');
++          button?.setAttribute('aria-label', 'Exit Director Mode. Tap once to arm, tap again to exit.');
++        }
++      }, DIRECTOR_LABEL_MS + 50);
++    };
++  }
++
++  function installDirectorNavigation() {
++    const root = byId('directorModeView');
++    const backToTop = byId('directorBackToTop');
++    if (!root || !backToTop) return;
++
++    backToTop.addEventListener('click', () => {
++      root.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
++      showDirectorToolbarHint('Top of command view', 1400);
++    });
++    root.addEventListener('scroll', () => backToTop.classList.toggle('is-visible', root.scrollTop > 520), { passive: true });
++  }
++
++  function installWidgetHelpToggles() {
++    document.querySelectorAll('#directorWidgetsGrid [data-widget]').forEach(section => {
++      const header = section.firstElementChild;
++      const description = header?.querySelector('p');
++      if (!header || !description || header.querySelector('.widget-help-button')) return;
++      description.classList.add('widget-help-text');
++      const button = document.createElement('button');
++      button.type = 'button';
++      button.className = 'widget-help-button';
++      button.textContent = 'i';
++      button.setAttribute('aria-label', 'Show or hide widget explanation');
++      button.setAttribute('aria-expanded', 'false');
++      button.addEventListener('click', event => {
++        event.stopPropagation();
++        const open = section.classList.toggle('show-widget-help');
++        button.setAttribute('aria-expanded', open ? 'true' : 'false');
++      });
++      const controls = header.querySelector('.widget-width-controls');
++      header.insertBefore(button, controls || null);
++    });
++  }
++
++  function installMapFullscreen() {
++    const widget = byId('widget-map');
++    const header = widget?.firstElementChild;
++    if (!widget || !header || header.querySelector('.map-fullscreen-button')) return;
++    const button = document.createElement('button');
++    button.type = 'button';
++    button.className = 'widget-help-button map-fullscreen-button';
++    button.textContent = '⛶';
++    button.setAttribute('aria-label', 'Open GPS map full screen');
++    button.setAttribute('aria-pressed', 'false');
++    button.addEventListener('click', event => {
++      event.stopPropagation();
++      const full = widget.classList.toggle('map-is-fullscreen');
++      if (full) document.body.classList.add('overflow-hidden');
++      else if (byId('directorModeView')?.classList.contains('hidden')) document.body.classList.remove('overflow-hidden');
++      button.textContent = full ? '✕' : '⛶';
++      button.setAttribute('aria-pressed', full ? 'true' : 'false');
++      button.setAttribute('aria-label', full ? 'Close full-screen GPS map' : 'Open GPS map full screen');
++      showDirectorToolbarHint(full ? 'GPS map full screen' : 'GPS map restored', 1600);
++      window.setTimeout(() => window.dispatchEvent(new Event('resize')), 180);
++    });
++    const controls = header.querySelector('.widget-width-controls');
++    header.insertBefore(button, controls || null);
++  }
++
++  function updateMinimalActiveTarget() {
++    const pill = byId('minimalActiveTargetPill');
++    const wrap = byId('minimalBibDisplayWrap');
++    const wakeStatus = byId('minimalWakeStatus');
++    if (pill) pill.textContent = wrap?.classList.contains('is-active') ? 'BIB' : 'REMARK';
++    if (wakeStatus && !('wakeLock' in navigator)) wakeStatus.textContent = 'Keep screen awake manually';
++  }
++
++  async function requestMinimalWakeLock() {
++    if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') {
++      updateMinimalActiveTarget();
++      return;
++    }
++    try {
++      if (minimalWakeLock) return;
++      minimalWakeLock = await navigator.wakeLock.request('screen');
++      const status = byId('minimalWakeStatus');
++      if (status) status.textContent = 'Screen kept awake';
++      minimalWakeLock.addEventListener('release', () => {
++        minimalWakeLock = null;
++        const current = byId('minimalWakeStatus');
++        if (current) current.textContent = 'Screen awake';
++      });
++    } catch (_) {
++      const status = byId('minimalWakeStatus');
++      if (status) status.textContent = 'Keep screen awake manually';
++    }
++  }
++
++  async function releaseMinimalWakeLock() {
++    try { await minimalWakeLock?.release?.(); } catch (_) { /* already released */ }
++    minimalWakeLock = null;
++  }
++
++  function minimalViewIsOpen() {
++    const view = byId('minimalBibModeView');
++    return !!view && !view.classList.contains('hidden');
++  }
++
++  function installMinimalModeEnhancements() {
++    const view = byId('minimalBibModeView');
++    const bibWrap = byId('minimalBibDisplayWrap');
++    const remarkShell = byId('minimalRemarkShell');
++    if (!view) return;
++
++    view.addEventListener('pointerdown', event => {
++      const target = event.target.closest('.minimal-key, .minimal-bib-actions button, .minimal-backspace-btn, .minimal-keyboard-tab');
++      if (!target) return;
++      vibrate(target.id === 'minimalBibLogButton' ? 24 : 8);
++    }, { passive: true });
++
++    const observer = new MutationObserver(() => {
++      updateMinimalActiveTarget();
++      if (minimalViewIsOpen()) requestMinimalWakeLock();
++      else releaseMinimalWakeLock();
++    });
++    observer.observe(view, { attributes: true, attributeFilter: ['class'] });
++    if (bibWrap) observer.observe(bibWrap, { attributes: true, attributeFilter: ['class'] });
++    if (remarkShell) observer.observe(remarkShell, { attributes: true, attributeFilter: ['class'] });
++
++    document.addEventListener('visibilitychange', () => {
++      if (document.visibilityState === 'visible' && minimalViewIsOpen()) requestMinimalWakeLock();
++      else if (document.visibilityState !== 'visible') releaseMinimalWakeLock();
++    });
++    updateMinimalActiveTarget();
++  }
++
++  function installSafetyToolbar() {
++    const view = byId('safetyLogView');
++    if (!view) return;
++    view.addEventListener('pointerdown', event => {
++      const control = event.target.closest('.safety-icon-action');
++      if (control) vibrate(8);
++    }, { passive: true });
++    if ('MutationObserver' in window) {
++      new MutationObserver(() => {
++        if (view.classList.contains('hidden')) byId('safetyToolbarHint')?.classList.remove('is-visible');
++      }).observe(view, { attributes: true, attributeFilter: ['class'] });
++    }
++  }
++
++  function installSafetyScrollHint() {
++    const viewport = byId('safetyTableViewport');
++    if (!viewport || byId('safetyScrollHint')) return;
++    const hint = document.createElement('div');
++    hint.id = 'safetyScrollHint';
++    hint.className = 'safety-scroll-hint';
++    hint.textContent = 'BIB stays pinned • swipe sideways for more columns';
++    viewport.parentNode?.insertBefore(hint, viewport);
++    const hide = () => {
++      if (viewport.scrollLeft > 12) {
++        hint.classList.add('is-hidden');
++        storageSet('safetyScrollHintSeen_v193', '1');
++      }
++    };
++    if (storageGet('safetyScrollHintSeen_v193') === '1') hint.classList.add('is-hidden');
++    viewport.addEventListener('scroll', hide, { passive: true });
++  }
++
++  function installDirectorKeyboardShortcuts() {
++    document.addEventListener('keydown', event => {
++      const root = byId('directorModeView');
++      if (!root || root.classList.contains('hidden') || isTextEntry(event.target)) return;
++      if (event.key === 'Escape') {
++        event.preventDefault();
++        window.directorExitAction_?.(event);
++      } else if (event.shiftKey && event.key.toLowerCase() === 'r') {
++        event.preventDefault();
++        window.directorRefreshAction_?.(event);
++      } else if (event.shiftKey && event.key.toLowerCase() === 'c') {
++        event.preventDefault();
++        window.directorCustomizeAction_?.(event);
++      }
++    }, true);
++  }
++
++  function installAppModeObserver() {
++    const director = byId('directorModeView');
++    if (!director || !('MutationObserver' in window)) return;
++    new MutationObserver(() => {
++      if (!director.classList.contains('hidden')) {
++        window.requestAnimationFrame(() => {
++          installWidgetHelpToggles();
++          installMapFullscreen();
++        });
++      } else {
++        directorExitArmedUntil = 0;
++        byId('directorExitButton')?.classList.remove('is-armed');
++        byId('directorBackToTop')?.classList.remove('is-visible');
++        byId('directorToolbarHint')?.classList.remove('is-visible');
++        const mapWidget = byId('widget-map');
++        mapWidget?.classList.remove('map-is-fullscreen');
++        const mapButton = mapWidget?.querySelector('.map-fullscreen-button');
++        if (mapButton) {
++          mapButton.textContent = '⛶';
++          mapButton.setAttribute('aria-pressed', 'false');
++          mapButton.setAttribute('aria-label', 'Open GPS map full screen');
++        }
++      }
++    }).observe(director, { attributes: true, attributeFilter: ['class'] });
++  }
++
++  function init() {
++    document.documentElement.dataset.uxVersion = VERSION;
++    installStableDirectorToolbar();
++    installDirectorNavigation();
++    installWidgetHelpToggles();
++    installMapFullscreen();
++    installMinimalModeEnhancements();
++    installSafetyToolbar();
++    installSafetyScrollHint();
++    installDirectorKeyboardShortcuts();
++    installAppModeObserver();
++  }
++
++  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
++  else init();
++})();
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/docs/DEVICE-TEST-MATRIX-v19.3.3.md /mnt/data/race-bib-logger-v19.3.4/docs/DEVICE-TEST-MATRIX-v19.3.3.md
+--- /mnt/data/race-bib-logger-v19.3.3/docs/DEVICE-TEST-MATRIX-v19.3.3.md	2026-08-02 12:13:45.813732581 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/docs/DEVICE-TEST-MATRIX-v19.3.3.md	1970-01-01 00:00:00.000000000 +0000
+@@ -1,17 +0,0 @@
+-# Physical-device test matrix — v19.3.3
+-
+-| Area | Recent iPhone PWA | Older iPhone | Android PWA | Tablet | Desktop |
+-|---|---|---|---|---|---|
+-| Large 123 Quick keypad fits without overlap | Required | Required | Required | Required | Required |
+-| ABC opens native keyboard; 123 returns to keypad | Required | Required | Required | Required | Required |
+-| BIB spaces rejected with red feedback | Required | Required | Required | Required | Required |
+-| Duplicate dialog remains fully visible in Quick Entry | Required | Required | Required | Required | Required |
+-| Last 4 repeat colours match main screen | Required | Required | Required | Required | Required |
+-| OCR/keyboard controls hidden until BIB focus | Required | Required | Required | Required | Required |
+-| Scan History header remains compact | Required | Required | Required | Required | Required |
+-| Director header remains slim and scroll stays stable | Required | Required | Required | Required | Required |
+-| Google map pan/pinch/wheel zoom | Required | Recommended | Required | Required | Required |
+-| Offline logging and reconnect synchronization | Required | Required | Required | Required | Required |
+-| Service-worker update from v19.3.1/v19.3.2 | Required | Required | Required | Required | Required |
+-
+-Also test reduced motion, large text, landscape orientation, poor connectivity, low-memory Android, GPS denied, GPS stale, and multiple devices synchronizing concurrently.
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/docs/DEVICE-TEST-MATRIX-v19.3.4.md /mnt/data/race-bib-logger-v19.3.4/docs/DEVICE-TEST-MATRIX-v19.3.4.md
+--- /mnt/data/race-bib-logger-v19.3.3/docs/DEVICE-TEST-MATRIX-v19.3.4.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/docs/DEVICE-TEST-MATRIX-v19.3.4.md	2026-08-02 13:01:08.581661455 +0000
+@@ -0,0 +1,16 @@
++# Physical-device test matrix — v19.3.4
++
++| Device / condition | Quick ABC keyboard | Inline LOG | Duplicate modal | Map pan | Pinch zoom | +/− zoom | CP markers | PWA markers | Result |
++|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
++| Recent iPhone PWA | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | Pending |
++| Older supported iPhone | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | Pending |
++| Recent Android PWA | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | Pending |
++| Low-memory Android | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | Pending |
++| Tablet portrait | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | Pending |
++| Tablet landscape | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | Pending |
++| Desktop mouse / wheel | N/A | N/A | ☐ | ☐ | N/A | ☐ | ☐ | ☐ | Pending |
++| Large text / zoomed UI | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | Pending |
++| Poor network | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | Pending |
++| Offline after shell cached | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | Pending |
++
++Offline expectation: the packaged renderer, markers, trails, and controls load; external OpenStreetMap base tiles may be unavailable.
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/docs/GOOGLE-MAPS-SETUP-v19.3.3.md /mnt/data/race-bib-logger-v19.3.4/docs/GOOGLE-MAPS-SETUP-v19.3.3.md
+--- /mnt/data/race-bib-logger-v19.3.3/docs/GOOGLE-MAPS-SETUP-v19.3.3.md	2026-08-02 12:48:37.809680239 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/docs/GOOGLE-MAPS-SETUP-v19.3.3.md	1970-01-01 00:00:00.000000000 +0000
+@@ -1,19 +0,0 @@
+-# Centrally managed Google Maps setup — v19.3.3
+-
+-The Director map does not request a key from race-day users. `Code.gs` reads deployment-level Apps Script properties and sends the map configuration with normal configuration and Director summary responses.
+-
+-## One-time deployment configuration
+-
+-In the bound Apps Script project, open **Project Settings → Script Properties** and add:
+-
+-- `GOOGLE_MAPS_BROWSER_API_KEY` — required for the interactive Google map
+-- `GOOGLE_MAPS_MAP_ID` — optional
+-
+-The browser key should be restricted in Google Cloud to:
+-
+-- the deployed PWA/site origin; and
+-- the Maps JavaScript API.
+-
+-Do not put the key in `index.html`, `localStorage`, Settings UI, source-control secrets, or screenshots. A browser Maps key is delivered to the browser by design, so origin/API restrictions are the security boundary.
+-
+-When no deployment key is present, Director Mode shows a configuration status instead of asking a checkpoint operator to enter credentials.
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/docs/IMPLEMENTATION-STATUS-v19.3.3.md /mnt/data/race-bib-logger-v19.3.4/docs/IMPLEMENTATION-STATUS-v19.3.3.md
+--- /mnt/data/race-bib-logger-v19.3.3/docs/IMPLEMENTATION-STATUS-v19.3.3.md	2026-08-02 12:13:45.813732581 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/docs/IMPLEMENTATION-STATUS-v19.3.3.md	1970-01-01 00:00:00.000000000 +0000
+@@ -1,24 +0,0 @@
+-# Implementation status — v19.3.3
+-
+-## Complete in code
+-
+-- Numeric-only custom Quick Entry keypad with native ABC keyboard handoff.
+-- Whitespace rejection and temporary red feedback.
+-- Compact duplicate confirmation above Quick Entry with no duplicate reason selector.
+-- Shared repeat-frequency colours across main and Quick Last 4.
+-- Focus-bound normal-entry camera and keyboard controls.
+-- Compact Scan History scope/limit controls.
+-- Removed Setup event-distance strip.
+-- Aligned Setup action sizing.
+-- Slimmer Director title/action rail.
+-- Removed Shift Handover and Post-Race Command Report surfaces.
+-- Server-only Google Maps configuration path.
+-- Service-worker and deployment asset versioning for v19.3.3.
+-
+-## Still requires deployment/device validation
+-
+-- Production Google Maps browser key restrictions and marker rendering.
+-- iPhone and Android native-keyboard transitions.
+-- Installed-PWA service-worker replacement.
+-- Live Apps Script synchronization under weak connectivity.
+-- Physical GPS movement and multi-device soak tests.
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/docs/IMPLEMENTATION-STATUS-v19.3.4.md /mnt/data/race-bib-logger-v19.3.4/docs/IMPLEMENTATION-STATUS-v19.3.4.md
+--- /mnt/data/race-bib-logger-v19.3.3/docs/IMPLEMENTATION-STATUS-v19.3.4.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/docs/IMPLEMENTATION-STATUS-v19.3.4.md	2026-08-02 13:01:08.577661455 +0000
+@@ -0,0 +1,22 @@
++# Implementation status — v19.3.4
++
++## Implemented
++
++- Native-keyboard Quick Entry LOG control beside BIB backspace.
++- Pointer-down submission so the keyboard does not need to be lowered before LOG.
++- Shared busy/disabled state between bottom LOG and keyboard-level LOG.
++- Dependency-free interactive OpenStreetMap renderer.
++- Panning, wheel zoom, pinch zoom, +/− controls, fit-all control, popups, checkpoint markers, PWA markers, and movement trails.
++- DeviceHealth coordinates merged with geotagged logs to show active PWAs during quiet periods.
++- No Google Maps key or Map ID configuration.
++- Service-worker cache rotation and local app-shell caching for the map renderer.
++- OpenStreetMap tile requests excluded from custom service-worker caching.
++- Automated asset, checksum, unit, syntax, and static-integration validation.
++
++## Physical validation still required
++
++- Native iPhone and Android keyboard behaviour.
++- Pointer-down LOG with a real software keyboard and duplicate modal.
++- Two-finger pinch behaviour on installed PWAs.
++- Live checkpoint and DeviceHealth coordinates from the production Apps Script deployment.
++- Poor-network and multi-device race-day soak testing.
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/docs/INTERACTIVE-MAP-v19.3.4.md /mnt/data/race-bib-logger-v19.3.4/docs/INTERACTIVE-MAP-v19.3.4.md
+--- /mnt/data/race-bib-logger-v19.3.3/docs/INTERACTIVE-MAP-v19.3.4.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/docs/INTERACTIVE-MAP-v19.3.4.md	2026-08-02 13:01:08.577661455 +0000
+@@ -0,0 +1,25 @@
++# Interactive Director map — v19.3.4
++
++Director Mode now uses a built-in slippy-map renderer with OpenStreetMap raster tiles. It requires no Google Cloud project, API key, Map ID, or user-entered credential.
++
++## What is plotted
++
++- Configured CheckpointGPS coordinates as checkpoint/station markers.
++- Latest PWA coordinates from geotagged BIB logs.
++- Newer DeviceHealth coordinates when a device reports location while no runner is being logged.
++- Up to the latest 30 reported points per PWA as a movement trail.
++- Marker popups with checkpoint, volunteer, GPS age, accuracy, battery, queue, online status, and last-sync age when available.
++
++## Controls
++
++- Drag with one finger or mouse to pan.
++- Pinch, mouse wheel, or +/− controls to zoom.
++- Press ◎ to fit every checkpoint and PWA marker.
++- Tap a checkpoint or PWA marker for details.
++- Use the existing Director widget full-screen control for a larger map.
++
++## Connectivity
++
++The JavaScript map renderer is packaged locally and remains available offline. The OpenStreetMap base-map tiles require an internet connection. When tiles cannot load, the app keeps showing a coordinate grid, markers, trails, controls, and an unobtrusive tile-status message.
++
++The app requests only tiles required for the current viewport and does not prefetch or offer offline tile downloads.
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/index.html /mnt/data/race-bib-logger-v19.3.4/index.html
+--- /mnt/data/race-bib-logger-v19.3.3/index.html	2026-08-02 12:48:37.537680246 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/index.html	2026-08-02 13:06:46.517653000 +0000
+@@ -3289,7 +3289,7 @@
+ 
+ 
+         /* =====================================================================
+-           v19.3.3 — Compact entry, duplicate, setup, and Director refinements
++           v19.3.4 — Compact entry, duplicate, setup, and Director refinements
+            Keeps operational behaviour unchanged while making primary actions
+            easier to hit, reducing layout shift, and improving small-screen use.
+            ===================================================================== */
+@@ -3598,7 +3598,7 @@
+     
+ 
+ </style>
+-<link rel="stylesheet" href="app/ux-v1933.css">
++<link rel="stylesheet" href="app/ux-v1934.css">
+ </head>
+ <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
+ 
+@@ -3642,16 +3642,6 @@
+                 </div>
+                 <div id="testConnectionStatusFeedback" class="text-[10px] font-bold hidden leading-tight"></div>
+             </div>
+-
+-            <!-- Google Maps is deployment-managed; checkpoint users never enter credentials. -->
+-            <div class="theme-card director-map-managed-card flex items-center justify-between gap-3">
+-                <div class="min-w-0">
+-                    <h4 class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">🗺️ Director Google Map</h4>
+-                    <p class="text-[9px] theme-text-muted leading-snug mt-0.5">Loaded automatically from the Apps Script deployment configuration.</p>
+-                </div>
+-                <span id="googleMapsSettingsState" class="text-[9px] font-black theme-text-muted whitespace-nowrap">Checking…</span>
+-            </div>
+-
+             <!-- Event Profile: live, server-driven category/KM configuration -->
+             <div class="theme-card flex flex-col gap-2">
+                 <div class="flex items-center justify-between gap-2">
+@@ -3967,7 +3957,8 @@
+                     <div id="minimalBibDisplay" class="is-placeholder" role="textbox" aria-label="BIB being entered" aria-live="polite">Tap the keypad</div>
+                     <input id="minimalNativeBibInput" class="minimal-native-bib-input" type="text" inputmode="text" enterkeyhint="done" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" aria-label="Native keyboard BIB input" onkeydown="handleMinimalNativeBibKeydown_(event)" oninput="handleMinimalNativeBibInput_(this)" onblur="handleMinimalNativeKeyboardBlur_()">
+                     <span id="minimalBibRepeatHint" class="minimal-bib-repeat-hint" aria-live="polite">Previously recorded</span>
+-                    <button type="button" class="minimal-backspace-btn" onclick="event.stopPropagation(); minimalBibBackspace_('bib')" aria-label="Delete last BIB character" title="Backspace BIB">⌫</button>
++                    <button type="button" id="minimalKeyboardLogButton" class="minimal-inline-log-btn" onpointerdown="submitMinimalBibFromKeyboard_(event)" onkeydown="if(event.key==='Enter'||event.key===' '){submitMinimalBibFromKeyboard_(event)}" aria-label="Log this BIB while the phone keyboard is open" title="Log BIB">LOG</button>
++                    <button type="button" class="minimal-backspace-btn" onpointerdown="event.preventDefault(); event.stopPropagation(); minimalBibBackspace_('bib')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); minimalBibBackspace_('bib')}" aria-label="Delete last BIB character" title="Backspace BIB">⌫</button>
+                 </div>
+                 <div id="minimalRemarkShell" class="minimal-remark-shell">
+                     <label for="minimalRemarkInput">Remark for this BIB <span>Optional · press ABC for phone keyboard</span></label>
+@@ -4923,9 +4914,10 @@
+     <script src="app/errors.js"></script>
+     <script src="app/components.js"></script>
+     <script src="app/integrity.js"></script>
++    <script src="app/slippy-map-v1934.js"></script>
+     <script src="app/main.js"></script>
+     <script src="app/operations-v19.js"></script>
+     <script src="app/director-ops-v192.js"></script>
+-    <script src="app/ux-v1933.js"></script>
++    <script src="app/ux-v1934.js"></script>
+ </body>
+ </html>
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/manifest.json /mnt/data/race-bib-logger-v19.3.4/manifest.json
+--- /mnt/data/race-bib-logger-v19.3.3/manifest.json	2026-08-02 12:08:59.669739740 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/manifest.json	2026-08-02 12:56:35.865668279 +0000
+@@ -2,7 +2,7 @@
+   "id": "./",
+   "name": "Race Bib Logger",
+   "short_name": "Race Log",
+-  "description": "Offline-first race logging with keypad-priority BIB entry, compact duplicate protection, safety analytics, forecasts, route anomaly detection, and centrally configured interactive GPS device mapping.",
++  "description": "Offline-first race logging with keypad-priority BIB entry, compact duplicate protection, safety analytics, forecasts, route anomaly detection, and built-in interactive GPS device mapping with no map API key.",
+   "lang": "en",
+   "dir": "ltr",
+   "start_url": "./index.html",
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/package.json /mnt/data/race-bib-logger-v19.3.4/package.json
+--- /mnt/data/race-bib-logger-v19.3.3/package.json	2026-08-02 12:08:59.669739740 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/package.json	2026-08-02 12:56:35.865668279 +0000
+@@ -1,7 +1,7 @@
+ {
+-  "name": "race-bib-logger-v19-3-3",
++  "name": "race-bib-logger-v19-3-4",
+   "private": true,
+-  "version": "19.3.3",
++  "version": "19.3.4",
+   "scripts": {
+     "validate:assets": "node scripts/validate-assets.mjs",
+     "test:unit": "node tests/unit-integrity.mjs && node tests/checksum-parity.mjs && node tests/fnv-parity.mjs",
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/scripts/validate-assets.mjs /mnt/data/race-bib-logger-v19.3.4/scripts/validate-assets.mjs
+--- /mnt/data/race-bib-logger-v19.3.3/scripts/validate-assets.mjs	2026-08-02 12:10:50.925736956 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/scripts/validate-assets.mjs	2026-08-02 12:58:11.333665890 +0000
+@@ -8,8 +8,8 @@
+ const required = [
+   'index.html', 'tailwind.css', 'manifest.json', 'sw.js', 'Code.gs',
+   'app/constants.js', 'app/contracts.js', 'app/state-store.js', 'app/errors.js',
+-  'app/components.js', 'app/integrity.js', 'app/main.js', 'app/operations-v19.js',
+-  'app/director-ops-v192.js', 'app/ux-v1933.js', 'app/ux-v1933.css'
++  'app/components.js', 'app/integrity.js', 'app/slippy-map-v1934.js', 'app/main.js', 'app/operations-v19.js',
++  'app/director-ops-v192.js', 'app/ux-v1934.js', 'app/ux-v1934.css'
+ ];
+ 
+ function exists(relative) {
+@@ -52,7 +52,7 @@
+   else {
+     for (const match of cacheArray[1].matchAll(/["'](\.\/[^"']+)["']/g)) exists(match[1]);
+   }
+-  if (!/race-logger-static-v19-3-3/.test(sw)) errors.push('Service-worker static cache is not versioned for v19.3.3.');
++  if (!/race-logger-static-v19-3-4/.test(sw)) errors.push('Service-worker static cache is not versioned for v19.3.4.');
+ } catch (error) {
+   errors.push(`Could not inspect sw.js: ${error.message}`);
+ }
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/sw.js /mnt/data/race-bib-logger-v19.3.4/sw.js
+--- /mnt/data/race-bib-logger-v19.3.3/sw.js	2026-08-02 12:08:59.669739740 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/sw.js	2026-08-02 12:58:02.221666118 +0000
+@@ -1,9 +1,9 @@
+-// Race Bib Logger v19.3.3 UI, sync, and interactive-map revision.
++// Race Bib Logger v19.3.4 UI, sync, and interactive-map revision.
+ // Keeps the existing IndexedDB/background-sync logic below unchanged while making
+ // app-shell caching safe for subdirectory deployments and shared web origins.
+ const CACHE_PREFIX = 'race-logger-';
+-const STATIC_CACHE = 'race-logger-static-v19-3-3-r1';
+-const RUNTIME_CACHE = 'race-logger-runtime-v19-3-3-r1';
++const STATIC_CACHE = 'race-logger-static-v19-3-4-r1';
++const RUNTIME_CACHE = 'race-logger-runtime-v19-3-4-r1';
+ const NETWORK_TIMEOUT_MS = 4500;
+ const MAX_RUNTIME_ENTRIES = 80;
+ 
+@@ -22,11 +22,12 @@
+   './app/errors.js',
+   './app/components.js',
+   './app/integrity.js',
++  './app/slippy-map-v1934.js',
+   './app/main.js',
+   './app/operations-v19.js',
+   './app/director-ops-v192.js',
+-  './app/ux-v1933.js',
+-  './app/ux-v1933.css',
++  './app/ux-v1934.js',
++  './app/ux-v1934.css',
+   './icons/icon-192.png',
+   './icons/icon-512.png',
+   './icons/icon-512-maskable.png'
+@@ -61,6 +62,10 @@
+   // Never cache Apps Script/API traffic or non-HTTP(S) requests.
+   if (!/^https?:$/.test(url.protocol)) return false;
+   if (url.hostname === 'script.google.com' || url.hostname.endsWith('.googleusercontent.com')) return false;
++  // Let the browser honour OpenStreetMap's HTTP cache headers directly. The app
++  // never prefetches tiles and the service worker must not turn them into a custom
++  // offline tile store.
++  if (url.hostname === 'tile.openstreetmap.org') return false;
+   return true;
+ }
+ 
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/tests/browser-offline.spec.js /mnt/data/race-bib-logger-v19.3.4/tests/browser-offline.spec.js
+--- /mnt/data/race-bib-logger-v19.3.3/tests/browser-offline.spec.js	2026-08-02 12:10:50.925736956 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/tests/browser-offline.spec.js	2026-08-02 13:00:25.033662545 +0000
+@@ -3,7 +3,7 @@
+ const { test, expect } = require('@playwright/test');
+ const baseURL = process.env.BASE_URL || 'http://127.0.0.1:8765/index.html';
+ 
+-test('v19.3.3 entry and command controls load without runtime errors', async ({ page }) => {
++test('v19.3.4 entry and command controls load without runtime errors', async ({ page }) => {
+   const errors = [];
+   page.on('pageerror', (error) => errors.push(error.message));
+   await page.goto(baseURL, { waitUntil: 'networkidle' });
+diff -ruN '--exclude=*.png' '--exclude=SHA256SUMS.txt' '--exclude=*.patch' '--exclude=TEST-RESULTS*' '--exclude=RELEASE-NOTES*' /mnt/data/race-bib-logger-v19.3.3/tests/static-checks.mjs /mnt/data/race-bib-logger-v19.3.4/tests/static-checks.mjs
+--- /mnt/data/race-bib-logger-v19.3.3/tests/static-checks.mjs	2026-08-02 12:10:50.373736970 +0000
++++ /mnt/data/race-bib-logger-v19.3.4/tests/static-checks.mjs	2026-08-02 12:58:27.505665485 +0000
+@@ -9,12 +9,13 @@
+ const main = read('app/main.js');
+ const ops = read('app/operations-v19.js');
+ const command = read('app/director-ops-v192.js');
+-const ux = read('app/ux-v1933.js');
+-const uxCss = read('app/ux-v1933.css');
++const ux = read('app/ux-v1934.js');
++const uxCss = read('app/ux-v1934.css');
++const slippy = read('app/slippy-map-v1934.js');
+ const backend = read('Code.gs');
+ const sw = read('sw.js');
+ 
+-assert.match(backend, /const APP_VERSION = "19\.3\.3"/);
++assert.match(backend, /const APP_VERSION = "19\.3\.4"/);
+ assert.match(backend, /const DATA_COLUMN_COUNT = 29/);
+ assert.match(backend, /"Reason Code".*"Reconciliation Flags".*"Record Checksum"/s);
+ assert.match(backend, /action === "reconciliation_count"/);
+@@ -29,13 +30,13 @@
+   'v19DecisionModal', 'clockDriftBlocker', 'reconciliationView', 'recoveryWizard',
+   'offlineSafetyActionCard', 'directorCheckpointHealthBody', 'directorMapBody',
+   'safetyBibHeader', 'safetyLastSeenHeader', 'minimalBibRepeatHint',
+-  'minimalNativeBibInput', 'minimalSpaceFeedback', 'bibSpaceFeedback'
++  'minimalNativeBibInput', 'minimalKeyboardLogButton', 'minimalSpaceFeedback', 'bibSpaceFeedback'
+ ]) assert.match(html, new RegExp(`id=["']${id}["']`), `Missing UI element #${id}`);
+ 
+-for (const file of ['constants', 'contracts', 'state-store', 'errors', 'components', 'integrity', 'main', 'operations-v19', 'director-ops-v192', 'ux-v1933']) {
++for (const file of ['constants', 'contracts', 'state-store', 'errors', 'components', 'integrity', 'slippy-map-v1934', 'main', 'operations-v19', 'director-ops-v192', 'ux-v1934']) {
+   assert.match(html, new RegExp(`app/${file}\\.js`), `Missing module script ${file}.js`);
+ }
+-assert.match(html, /app\/ux-v1933\.css/);
++assert.match(html, /app\/ux-v1934\.css/);
+ assert.ok(html.split('\n').length < 5000, 'index.html should remain presentation-first.');
+ assert.ok(main.split('\n').length > 10000, 'Existing application runtime should be preserved in app/main.js.');
+ 
+@@ -74,18 +75,28 @@
+ ]) assert.doesNotMatch(command.match(/const WIDGETS = \[[\s\S]*?\n  \];/)?.[0] || '', new RegExp(removedFeature));
+ assert.doesNotMatch(command, /renderHandover_|renderPostRaceReport_|downloadV192Report_/);
+ 
+-assert.match(main, /maps\.googleapis\.com\/maps\/api\/js/);
+-assert.match(main, /gestureHandling: 'greedy'/);
+-assert.match(backend, /GOOGLE_MAPS_BROWSER_API_KEY/);
+-assert.match(backend, /mapConfig: getGoogleMapsClientConfig_\(\)/);
+-assert.doesNotMatch(html, /googleMapsApiKeyInput|googleMapsMapIdInput/);
+-assert.match(html, /id="googleMapsSettingsState"/);
++assert.match(main, /window\.RaceSlippyMap/);
++assert.match(main, /directorOpenMapCanvas/);
++assert.match(main, /serverOperationsSummary_\?\.devices/);
++assert.doesNotMatch(main, /maps\.googleapis\.com|google\.maps|GOOGLE_MAPS_BROWSER_API_KEY/);
++assert.match(backend, /provider: 'openstreetmap'/);
++assert.doesNotMatch(backend, /getProperty\('GOOGLE_MAPS_BROWSER_API_KEY'\)/);
++assert.doesNotMatch(html, /googleMapsApiKeyInput|googleMapsMapIdInput|googleMapsSettingsState/);
++assert.match(slippy, /tile\.openstreetmap\.org/);
++assert.match(slippy, /fitBounds\(/);
++assert.match(slippy, /_wheel\(/);
++assert.match(slippy, /pointerdown/);
++assert.match(slippy, /OpenStreetMap contributors/);
++assert.match(main, /submitMinimalBibFromKeyboard_/);
++assert.match(uxCss, /minimal-inline-log-btn/);
+ 
+ assert.match(sw, /app\/operations-v19\.js/);
+ assert.match(sw, /app\/director-ops-v192\.js/);
+-assert.match(sw, /app\/ux-v1933\.js/);
+-assert.match(sw, /app\/ux-v1933\.css/);
+-assert.match(sw, /race-logger-static-v19-3-3/);
++assert.match(sw, /app\/slippy-map-v1934\.js/);
++assert.match(sw, /app\/ux-v1934\.js/);
++assert.match(sw, /app\/ux-v1934\.css/);
++assert.match(sw, /race-logger-static-v19-3-4/);
++assert.match(sw, /tile\.openstreetmap\.org/);
+ assert.match(ux, /showDirectorToolbarHint/);
+ assert.match(ux, /requestMinimalWakeLock/);
+ assert.doesNotMatch(ux, /buildDirectorSectionNav|scrollIntoView/, 'Director UX must not auto-scroll the command view.');

@@ -1,23 +1,22 @@
-RACE BIB LOGGER v19.3.3 — DEPLOYMENT
+RACE BIB LOGGER v19.3.4 — DEPLOYMENT
 ===================================
 
-1. Upload the package contents to the same web root. Preserve the app/ and icons/ folders.
+1. Upload every package file to the same web root. Preserve the app/, icons/, scripts/, tests/, and docs/ folders.
 2. Replace Code.gs in the bound Google Apps Script project, save, and deploy a new Web App version.
 3. Keep the Web App execution/access settings appropriate for the event deployment.
-4. In Apps Script Project Settings > Script Properties, configure once for the deployment:
-     GOOGLE_MAPS_BROWSER_API_KEY = your browser-restricted Maps JavaScript API key
-     GOOGLE_MAPS_MAP_ID = optional Google Cloud Map ID
-   Checkpoint users do not enter or store a Maps key on their device.
-5. Restrict the browser key in Google Cloud to the deployed website origin and the Maps JavaScript API.
-6. Confirm manifest.json, sw.js, app/ux-v1933.js, and app/ux-v1933.css are served from the same root.
-7. On installed PWAs, close all app windows, reopen online once, and allow the service worker to update.
-8. Validate on a real event device:
-   - Quick Entry shows the large 123 keypad only.
-   - ABC opens the phone keyboard and 123 returns to the large keypad.
-   - Space input is rejected with red feedback.
-   - Duplicate warning appears inside Quick Entry without scrolling.
-   - Last 4 repeated BIB colours match the main Last 4 strip.
-   - Race Command View scroll position remains stable.
-   - Google map pans and zooms and displays PWA/checkpoint markers.
+4. No Google Maps key, Map ID, or race-day map credential is required. Director Mode uses the built-in OpenStreetMap viewer.
+5. Confirm manifest.json, sw.js, app/slippy-map-v1934.js, app/ux-v1934.js, and app/ux-v1934.css are served from the same root.
+6. On installed PWAs, close every app window, reopen online once, and allow the service worker to replace the old shell cache.
+7. Validate on a real event device:
+   - Open Quick BIB Entry and press ABC.
+   - Confirm the small LOG button appears beside the BIB backspace button while the phone keyboard is active.
+   - Confirm pressing that LOG button does not require lowering the keyboard first.
+   - Confirm duplicate review remains visible inside Quick Entry.
+   - Open Director Mode and verify the map displays configured CP markers and PWA/device markers.
+   - Drag the map, pinch or use +/− to zoom, tap a marker, and press ◎ to fit all markers.
+   - Verify OpenStreetMap attribution remains visible at the bottom-right of the map.
+8. Test once with poor connectivity. Map markers and trails remain rendered even if external base-map tiles are unavailable.
 
-No Racelog sheet migration is required for v19.3.3.
+The map loads only tiles visible in the active viewport. Do not add tile-prefetch, area-download, or offline-map scraping features to the public OpenStreetMap tile endpoint.
+
+No Racelog sheet migration is required for v19.3.4.

@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Race Bib Logger",
   "short_name": "Race Log",
-  "description": "Offline-first race logging with keypad-priority BIB entry, compact duplicate protection, safety analytics, forecasts, route anomaly detection, and centrally configured interactive GPS device mapping.",
+  "description": "Offline-first race logging with keypad-priority BIB entry, compact duplicate protection, safety analytics, forecasts, route anomaly detection, and built-in interactive GPS device mapping with no map API key.",
   "lang": "en",
   "dir": "ltr",
   "start_url": "./index.html",

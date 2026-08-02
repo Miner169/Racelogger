@@ -1,11 +1,11 @@
-/* Race Bib Logger v19.3.3 director analytics suite.
+/* Race Bib Logger v19.3.4 director analytics suite.
  * Keeps high-value forecasting, safety analysis and reporting while removing
  * the operational boards requested for a cleaner command view.
  */
 (function (global) {
   'use strict';
 
-  const VERSION = '19.3.3';
+  const VERSION = '19.3.4';
   const STORE_KEY = 'raceCommandOps_v19_2';
   const HEATMAP_WINDOW_KEY = 'directorHeatmapWindow_v19_2';
   const OPS_EPOCH_KEY = 'raceCommandOpsEventEpoch_v19_2';

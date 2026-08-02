@@ -9,12 +9,13 @@ const html = read('index.html');
 const main = read('app/main.js');
 const ops = read('app/operations-v19.js');
 const command = read('app/director-ops-v192.js');
-const ux = read('app/ux-v1933.js');
-const uxCss = read('app/ux-v1933.css');
+const ux = read('app/ux-v1934.js');
+const uxCss = read('app/ux-v1934.css');
+const slippy = read('app/slippy-map-v1934.js');
 const backend = read('Code.gs');
 const sw = read('sw.js');
 
-assert.match(backend, /const APP_VERSION = "19\.3\.3"/);
+assert.match(backend, /const APP_VERSION = "19\.3\.4"/);
 assert.match(backend, /const DATA_COLUMN_COUNT = 29/);
 assert.match(backend, /"Reason Code".*"Reconciliation Flags".*"Record Checksum"/s);
 assert.match(backend, /action === "reconciliation_count"/);
@@ -29,13 +30,13 @@ for (const id of [
   'v19DecisionModal', 'clockDriftBlocker', 'reconciliationView', 'recoveryWizard',
   'offlineSafetyActionCard', 'directorCheckpointHealthBody', 'directorMapBody',
   'safetyBibHeader', 'safetyLastSeenHeader', 'minimalBibRepeatHint',
-  'minimalNativeBibInput', 'minimalSpaceFeedback', 'bibSpaceFeedback'
+  'minimalNativeBibInput', 'minimalKeyboardLogButton', 'minimalSpaceFeedback', 'bibSpaceFeedback'
 ]) assert.match(html, new RegExp(`id=["']${id}["']`), `Missing UI element #${id}`);
 
-for (const file of ['constants', 'contracts', 'state-store', 'errors', 'components', 'integrity', 'main', 'operations-v19', 'director-ops-v192', 'ux-v1933']) {
+for (const file of ['constants', 'contracts', 'state-store', 'errors', 'components', 'integrity', 'slippy-map-v1934', 'main', 'operations-v19', 'director-ops-v192', 'ux-v1934']) {
   assert.match(html, new RegExp(`app/${file}\\.js`), `Missing module script ${file}.js`);
 }
-assert.match(html, /app\/ux-v1933\.css/);
+assert.match(html, /app\/ux-v1934\.css/);
 assert.ok(html.split('\n').length < 5000, 'index.html should remain presentation-first.');
 assert.ok(main.split('\n').length > 10000, 'Existing application runtime should be preserved in app/main.js.');
 
@@ -74,18 +75,28 @@ for (const removedFeature of [
 ]) assert.doesNotMatch(command.match(/const WIDGETS = \[[\s\S]*?\n  \];/)?.[0] || '', new RegExp(removedFeature));
 assert.doesNotMatch(command, /renderHandover_|renderPostRaceReport_|downloadV192Report_/);
 
-assert.match(main, /maps\.googleapis\.com\/maps\/api\/js/);
-assert.match(main, /gestureHandling: 'greedy'/);
-assert.match(backend, /GOOGLE_MAPS_BROWSER_API_KEY/);
-assert.match(backend, /mapConfig: getGoogleMapsClientConfig_\(\)/);
-assert.doesNotMatch(html, /googleMapsApiKeyInput|googleMapsMapIdInput/);
-assert.match(html, /id="googleMapsSettingsState"/);
+assert.match(main, /window\.RaceSlippyMap/);
+assert.match(main, /directorOpenMapCanvas/);
+assert.match(main, /serverOperationsSummary_\?\.devices/);
+assert.doesNotMatch(main, /maps\.googleapis\.com|google\.maps|GOOGLE_MAPS_BROWSER_API_KEY/);
+assert.match(backend, /provider: 'openstreetmap'/);
+assert.doesNotMatch(backend, /getProperty\('GOOGLE_MAPS_BROWSER_API_KEY'\)/);
+assert.doesNotMatch(html, /googleMapsApiKeyInput|googleMapsMapIdInput|googleMapsSettingsState/);
+assert.match(slippy, /tile\.openstreetmap\.org/);
+assert.match(slippy, /fitBounds\(/);
+assert.match(slippy, /_wheel\(/);
+assert.match(slippy, /pointerdown/);
+assert.match(slippy, /OpenStreetMap contributors/);
+assert.match(main, /submitMinimalBibFromKeyboard_/);
+assert.match(uxCss, /minimal-inline-log-btn/);
 
 assert.match(sw, /app\/operations-v19\.js/);
 assert.match(sw, /app\/director-ops-v192\.js/);
-assert.match(sw, /app\/ux-v1933\.js/);
-assert.match(sw, /app\/ux-v1933\.css/);
-assert.match(sw, /race-logger-static-v19-3-3/);
+assert.match(sw, /app\/slippy-map-v1934\.js/);
+assert.match(sw, /app\/ux-v1934\.js/);
+assert.match(sw, /app\/ux-v1934\.css/);
+assert.match(sw, /race-logger-static-v19-3-4/);
+assert.match(sw, /tile\.openstreetmap\.org/);
 assert.match(ux, /showDirectorToolbarHint/);
 assert.match(ux, /requestMinimalWakeLock/);
 assert.doesNotMatch(ux, /buildDirectorSectionNav|scrollIntoView/, 'Director UX must not auto-scroll the command view.');

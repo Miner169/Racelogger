@@ -3289,7 +3289,7 @@
 
 
         /* =====================================================================
-           v19.3.3 — Compact entry, duplicate, setup, and Director refinements
+           v19.3.4 — Compact entry, duplicate, setup, and Director refinements
            Keeps operational behaviour unchanged while making primary actions
            easier to hit, reducing layout shift, and improving small-screen use.
            ===================================================================== */
@@ -3598,7 +3598,7 @@
     
 
 </style>
-<link rel="stylesheet" href="app/ux-v1933.css">
+<link rel="stylesheet" href="app/ux-v1934.css">
 </head>
 <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
 
@@ -3642,16 +3642,6 @@
                 </div>
                 <div id="testConnectionStatusFeedback" class="text-[10px] font-bold hidden leading-tight"></div>
             </div>
-
-            <!-- Google Maps is deployment-managed; checkpoint users never enter credentials. -->
-            <div class="theme-card director-map-managed-card flex items-center justify-between gap-3">
-                <div class="min-w-0">
-                    <h4 class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">🗺️ Director Google Map</h4>
-                    <p class="text-[9px] theme-text-muted leading-snug mt-0.5">Loaded automatically from the Apps Script deployment configuration.</p>
-                </div>
-                <span id="googleMapsSettingsState" class="text-[9px] font-black theme-text-muted whitespace-nowrap">Checking…</span>
-            </div>
-
             <!-- Event Profile: live, server-driven category/KM configuration -->
             <div class="theme-card flex flex-col gap-2">
                 <div class="flex items-center justify-between gap-2">
@@ -3967,7 +3957,8 @@
                     <div id="minimalBibDisplay" class="is-placeholder" role="textbox" aria-label="BIB being entered" aria-live="polite">Tap the keypad</div>
                     <input id="minimalNativeBibInput" class="minimal-native-bib-input" type="text" inputmode="text" enterkeyhint="done" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" aria-label="Native keyboard BIB input" onkeydown="handleMinimalNativeBibKeydown_(event)" oninput="handleMinimalNativeBibInput_(this)" onblur="handleMinimalNativeKeyboardBlur_()">
                     <span id="minimalBibRepeatHint" class="minimal-bib-repeat-hint" aria-live="polite">Previously recorded</span>
-                    <button type="button" class="minimal-backspace-btn" onclick="event.stopPropagation(); minimalBibBackspace_('bib')" aria-label="Delete last BIB character" title="Backspace BIB">⌫</button>
+                    <button type="button" id="minimalKeyboardLogButton" class="minimal-inline-log-btn" onpointerdown="submitMinimalBibFromKeyboard_(event)" onkeydown="if(event.key==='Enter'||event.key===' '){submitMinimalBibFromKeyboard_(event)}" aria-label="Log this BIB while the phone keyboard is open" title="Log BIB">LOG</button>
+                    <button type="button" class="minimal-backspace-btn" onpointerdown="event.preventDefault(); event.stopPropagation(); minimalBibBackspace_('bib')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); minimalBibBackspace_('bib')}" aria-label="Delete last BIB character" title="Backspace BIB">⌫</button>
                 </div>
                 <div id="minimalRemarkShell" class="minimal-remark-shell">
                     <label for="minimalRemarkInput">Remark for this BIB <span>Optional · press ABC for phone keyboard</span></label>
@@ -4923,9 +4914,10 @@
     <script src="app/errors.js"></script>
     <script src="app/components.js"></script>
     <script src="app/integrity.js"></script>
+    <script src="app/slippy-map-v1934.js"></script>
     <script src="app/main.js"></script>
     <script src="app/operations-v19.js"></script>
     <script src="app/director-ops-v192.js"></script>
-    <script src="app/ux-v1933.js"></script>
+    <script src="app/ux-v1934.js"></script>
 </body>
 </html>

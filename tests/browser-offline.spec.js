@@ -3,7 +3,7 @@
 const { test, expect } = require('@playwright/test');
 const baseURL = process.env.BASE_URL || 'http://127.0.0.1:8765/index.html';
 
-test('v19.3.3 entry and command controls load without runtime errors', async ({ page }) => {
+test('v19.3.4 entry and command controls load without runtime errors', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(baseURL, { waitUntil: 'networkidle' });

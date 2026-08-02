@@ -1,9 +1,9 @@
-// Race Bib Logger v19.3.3 UI, sync, and interactive-map revision.
+// Race Bib Logger v19.3.4 UI, sync, and interactive-map revision.
 // Keeps the existing IndexedDB/background-sync logic below unchanged while making
 // app-shell caching safe for subdirectory deployments and shared web origins.
 const CACHE_PREFIX = 'race-logger-';
-const STATIC_CACHE = 'race-logger-static-v19-3-3-r1';
-const RUNTIME_CACHE = 'race-logger-runtime-v19-3-3-r1';
+const STATIC_CACHE = 'race-logger-static-v19-3-4-r1';
+const RUNTIME_CACHE = 'race-logger-runtime-v19-3-4-r1';
 const NETWORK_TIMEOUT_MS = 4500;
 const MAX_RUNTIME_ENTRIES = 80;
 
@@ -22,11 +22,12 @@ const ASSETS_TO_CACHE = [
   './app/errors.js',
   './app/components.js',
   './app/integrity.js',
+  './app/slippy-map-v1934.js',
   './app/main.js',
   './app/operations-v19.js',
   './app/director-ops-v192.js',
-  './app/ux-v1933.js',
-  './app/ux-v1933.css',
+  './app/ux-v1934.js',
+  './app/ux-v1934.css',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
@@ -61,6 +62,10 @@ function canRuntimeCache_(request, response) {
   // Never cache Apps Script/API traffic or non-HTTP(S) requests.
   if (!/^https?:$/.test(url.protocol)) return false;
   if (url.hostname === 'script.google.com' || url.hostname.endsWith('.googleusercontent.com')) return false;
+  // Let the browser honour OpenStreetMap's HTTP cache headers directly. The app
+  // never prefetches tiles and the service worker must not turn them into a custom
+  // offline tile store.
+  if (url.hostname === 'tile.openstreetmap.org') return false;
   return true;
 }
 
