@@ -1,4 +1,4 @@
-        const APP_VERSION = "19.2.0";
+        const APP_VERSION = "19.3.0";
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let db;
         let dbReady_ = false;
@@ -175,6 +175,15 @@
             syncUrl = DEFAULT_SYNC_URL;
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
+
+        let googleMapsApiKey_ = localStorage.getItem('googleMapsApiKey_v1') || '';
+        let googleMapsMapId_ = localStorage.getItem('googleMapsMapId_v1') || '';
+        let serverGoogleMapsConfig_ = {};
+        let googleMapsLoadPromise_ = null;
+        let googleMapsLoadedKey_ = '';
+        let directorGoogleMapInstance_ = null;
+        let directorGoogleMapInfoWindow_ = null;
+        let directorGoogleMapOverlays_ = [];
 
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         if (!isStandalone) {
@@ -2234,6 +2243,13 @@
             modal.setAttribute('aria-hidden', 'false');
             document.body.classList.add('overflow-hidden');
             document.getElementById("syncUrlInput").value = syncUrl;
+            const mapsKeyInput = document.getElementById('googleMapsApiKeyInput');
+            const mapsIdInput = document.getElementById('googleMapsMapIdInput');
+            if (mapsKeyInput) mapsKeyInput.value = googleMapsApiKey_;
+            if (mapsIdInput) mapsIdInput.value = googleMapsMapId_;
+            const mapsFeedback = document.getElementById('googleMapsTestFeedback');
+            if (mapsFeedback) mapsFeedback.className = 'hidden';
+            updateGoogleMapsSettingsState_();
             document.getElementById("testConnectionStatusFeedback").className = "hidden";
             const saveBtn = document.getElementById('settingsSaveBtn');
             if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Settings'; }
@@ -2299,6 +2315,7 @@
                         feedback.className = "text-[10px] text-emerald-600 dark:text-emerald-500 font-bold block leading-tight mt-1";
                         if (parsed.summary) renderSummaryDashboard(parsed.summary, parsed.configMeta);
                         applyRouteModelsFromPayload_(parsed);
+                        applyGoogleMapsConfigFromPayload_(parsed);
                     } else {
                         feedback.textContent = `❌ Script error context: ${txt.slice(0, 60)}`;
                         feedback.className = "text-[10px] text-red-600 dark:text-red-500 font-bold block leading-tight mt-1";
@@ -2328,6 +2345,10 @@
             if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
             syncUrl = document.getElementById("syncUrlInput").value.trim() || DEFAULT_SYNC_URL; 
             localStorage.setItem("syncUrl", syncUrl); 
+            googleMapsApiKey_ = (document.getElementById('googleMapsApiKeyInput')?.value || '').trim();
+            googleMapsMapId_ = (document.getElementById('googleMapsMapIdInput')?.value || '').trim();
+            localStorage.setItem('googleMapsApiKey_v1', googleMapsApiKey_);
+            localStorage.setItem('googleMapsMapId_v1', googleMapsMapId_);
             syncMetaToDb_();
             let requestedDupWindow = parseInt(document.getElementById("dupWindowInput").value, 10) || 20;
             requestedDupWindow = Math.min(120, Math.max(3, requestedDupWindow));
@@ -2416,6 +2437,9 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             cotAlertsEnabled_ = localStorage.getItem('cotAlertsEnabled_v1') !== 'false';
             appTextScale_ = localStorage.getItem('appTextScale_v1') || 'normal';
             screenReaderAnnouncements_ = localStorage.getItem('screenReaderAnnouncements_v1') !== 'false';
+            googleMapsApiKey_ = localStorage.getItem('googleMapsApiKey_v1') || '';
+            googleMapsMapId_ = localStorage.getItem('googleMapsMapId_v1') || '';
+            updateGoogleMapsSettingsState_();
 
             document.getElementById("vibrateToggle").checked = vibrateEnabled;
             document.getElementById("soundToggle").checked = soundEnabled;
@@ -2922,14 +2946,18 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             }
         }
 
-        function triggerSuccessToast() {
+        function triggerSuccessToast(bib = '', checkpoint = '') {
             const toast = document.getElementById("successToast");
             if (!toast) return;
+            const bibLabel = document.getElementById('successToastBib');
+            const detail = document.getElementById('successToastDetail');
+            if (bibLabel) bibLabel.textContent = bib ? `BIB ${bib} logged` : 'BIB logged';
+            if (detail) detail.textContent = checkpoint ? `${checkpoint} • saved on this device` : 'Saved on this device';
             clearTimeout(successToastTimeout);
             toast.classList.remove("animate-pop-scale", "hidden");
-            void toast.offsetWidth; 
+            void toast.offsetWidth;
             toast.classList.add("animate-pop-scale");
-            successToastTimeout = setTimeout(() => { hideSuccessToast(); }, 2000); 
+            successToastTimeout = setTimeout(() => { hideSuccessToast(); }, 1400);
         }
 
         function hideSuccessToast() {
@@ -3335,7 +3363,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 loadHistory();
                 if (vibrateEnabled && navigator.vibrate) navigator.vibrate(50);
                 playSuccessSound();
-                triggerSuccessToast();
+                triggerSuccessToast(entry.bib, entry.checkpoint);
                 if (syncIntervalMs > 0) attemptSync();
                 requestBackgroundSync_();
                 announceToScreenReader_(entry.status === 'Location Spam'
@@ -4774,12 +4802,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             { id: 'progress', label: '📈 Category Progress', explain: 'Unique bibs seen so far vs. each category\'s registered runner count.' },
             { id: 'flagged', label: '🚩 Flagged Entries', explain: 'Entries with a remark, or marked REMAKE REQUIRED — likely need a decision.' },
             { id: 'devices', label: '📱 Checkpoint Device Activity', explain: 'When each submitting device was last heard from.' },
-            { id: 'map', label: '🗺️ GPS Recording Map', explain: 'Offline event map of configured checkpoints and the latest GPS position recorded by each PWA device.' },
+            { id: 'map', label: '🗺️ GPS Recording Map', explain: 'Interactive Google map with checkpoints, PWA positions, trails, pan, and zoom.' },
             { id: 'operations', label: '🧭 Operations Monitor', explain: 'Arrival windows, quiet checkpoints, duplicate rate, safety alerts, and data freshness.' },
             { id: 'cot', label: '⏱️ Cutoff Countdown', explain: 'Time remaining until each category\'s cutoff (COT).' },
             { id: 'forecast', label: '🌊 Arrival Forecast', explain: 'Forecast runner volume expected at each checkpoint over the next 10, 20, and 30 minutes.' },
             { id: 'health', label: '🩺 Device Health', explain: 'Battery, queue age, storage, app version, clock drift, and last contact.' },
-            { id: 'incidents', label: '🚨 Incident Board', explain: 'Open medical, transport, search, and withdrawal workflows.' },
             { id: 'integrity', label: '🧪 Data Integrity', explain: 'Malformed times, uncategorized bibs, route jumps, stale devices, and mapping gaps.' },
         ];
         const DIRECTOR_WIDGET_PREFS_KEY = 'directorWidgetPrefs_v1';
@@ -4975,18 +5002,12 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             cot: 'directorCotBody',
             forecast: 'directorForecastBody',
             health: 'directorHealthBody',
-            incidents: 'directorIncidentsBody',
             integrity: 'directorIntegrityBody',
             heatmap: 'director-heatmap-body',
             'cot-funnel': 'director-cot-funnel-body',
-            'missing-runners': 'director-missing-runners-body',
             'route-anomalies': 'director-route-anomalies-body',
             'finish-projection': 'director-finish-projection-body',
             outcomes: 'director-outcomes-body',
-            'medical-capacity': 'director-medical-capacity-body',
-            'transport-sweep': 'director-transport-sweep-body',
-            'weather-risk': 'director-weather-risk-body',
-            supplies: 'director-supplies-body',
             handover: 'director-handover-body',
             'post-race-report': 'director-post-race-report-body',
         };
@@ -6612,164 +6633,234 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             }).join('');
         }
 
-        function renderDirectorGpsMap_(allLogs) {
+        function getEffectiveGoogleMapsConfig_() {
+            return {
+                apiKey: String(googleMapsApiKey_ || serverGoogleMapsConfig_.apiKey || '').trim(),
+                mapId: String(googleMapsMapId_ || serverGoogleMapsConfig_.mapId || '').trim()
+            };
+        }
+
+        function updateGoogleMapsSettingsState_() {
+            const state = document.getElementById('googleMapsSettingsState');
+            if (!state) return;
+            const cfg = getEffectiveGoogleMapsConfig_();
+            if (googleMapsApiKey_) state.textContent = 'Local key ready';
+            else if (cfg.apiKey) state.textContent = 'Server key ready';
+            else state.textContent = 'Key required';
+        }
+
+        function applyGoogleMapsConfigFromPayload_(payload) {
+            const incoming = payload?.mapConfig || payload?.googleMaps || null;
+            if (!incoming || typeof incoming !== 'object') return;
+            serverGoogleMapsConfig_ = {
+                apiKey: String(incoming.apiKey || '').trim(),
+                mapId: String(incoming.mapId || '').trim()
+            };
+            updateGoogleMapsSettingsState_();
+        }
+
+        function ensureGoogleMapsApi_(overrideKey) {
+            const key = String(overrideKey || getEffectiveGoogleMapsConfig_().apiKey || '').trim();
+            if (!key) return Promise.reject(new Error('Google Maps browser API key is not configured.'));
+            if (window.google?.maps?.Map) {
+                googleMapsLoadedKey_ = googleMapsLoadedKey_ || key;
+                return Promise.resolve(window.google.maps);
+            }
+            if (googleMapsLoadPromise_) return googleMapsLoadPromise_;
+            googleMapsLoadPromise_ = new Promise((resolve, reject) => {
+                const callbackName = '__raceBibGoogleMapsReady';
+                let completed = false;
+                const finishError = message => {
+                    if (completed) return;
+                    completed = true;
+                    googleMapsLoadPromise_ = null;
+                    try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+                    reject(new Error(message || 'Google Maps JavaScript API could not load.'));
+                };
+                window[callbackName] = () => {
+                    if (completed) return;
+                    completed = true;
+                    googleMapsLoadedKey_ = key;
+                    try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+                    resolve(window.google.maps);
+                };
+                const old = document.getElementById('raceGoogleMapsApiScript');
+                if (old) old.remove();
+                const script = document.createElement('script');
+                script.id = 'raceGoogleMapsApiScript';
+                script.async = true;
+                script.defer = true;
+                script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) + '&loading=async&callback=' + callbackName + '&v=weekly';
+                script.onerror = () => finishError('Google Maps could not be downloaded. Check the API key, referrer restrictions, and internet connection.');
+                document.head.appendChild(script);
+                setTimeout(() => finishError('Google Maps loading timed out after 20 seconds.'), 20000);
+            });
+            return googleMapsLoadPromise_;
+        }
+
+        async function testGoogleMapsConnection_() {
+            const key = (document.getElementById('googleMapsApiKeyInput')?.value || '').trim() || String(serverGoogleMapsConfig_.apiKey || '').trim();
+            const feedback = document.getElementById('googleMapsTestFeedback');
+            const button = document.getElementById('googleMapsTesterBtn');
+            if (button) button.disabled = true;
+            if (feedback) {
+                feedback.textContent = '⏳ Loading Google Maps JavaScript API…';
+                feedback.className = 'text-[10px] text-neutral-600 dark:text-neutral-400 font-bold block leading-tight';
+            }
+            try {
+                await ensureGoogleMapsApi_(key);
+                if (feedback) {
+                    feedback.textContent = '✅ Google Maps loaded. The Director GPS map can pan and zoom.';
+                    feedback.className = 'text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block leading-tight';
+                }
+            } catch (error) {
+                if (feedback) {
+                    feedback.textContent = '❌ ' + (error?.message || 'Google Maps test failed.');
+                    feedback.className = 'text-[10px] text-red-600 dark:text-red-400 font-bold block leading-tight';
+                }
+            } finally {
+                if (button) button.disabled = false;
+            }
+        }
+
+        function clearDirectorGoogleMapOverlays_() {
+            directorGoogleMapOverlays_.forEach(item => {
+                try { item.setMap?.(null); } catch (_) { /* no-op */ }
+            });
+            directorGoogleMapOverlays_ = [];
+        }
+
+        async function renderDirectorGpsMap_(allLogs) {
             const container = document.getElementById('directorMapBody');
             if (!container) return;
             const logsWithGps = (allLogs || []).filter(log =>
-                log && !log.pendingDelete &&
-                log.latitude !== null && log.latitude !== undefined && String(log.latitude).trim() !== '' &&
-                log.longitude !== null && log.longitude !== undefined && String(log.longitude).trim() !== '' &&
-                Number.isFinite(Number(log.latitude)) &&
-                Number.isFinite(Number(log.longitude))
+                log && !log.pendingDelete && Number.isFinite(Number(log.latitude)) && Number.isFinite(Number(log.longitude))
             );
             const byDevice = new Map();
             logsWithGps.forEach(log => {
                 const key = String(log.device || log.creatorId || `${log.checkpoint || 'Unknown'} · ${log.volunteer || 'PWA'}`).trim() || 'Unknown PWA';
                 const ts = parseCustomOrIsoDate(log.time).getTime();
                 const point = {
-                    latitude: Number(log.latitude),
-                    longitude: Number(log.longitude),
+                    latitude: Number(log.latitude), longitude: Number(log.longitude),
                     accuracy: Number(log.gpsAccuracyM || log.accuracy || 0) || null,
                     checkpoint: String(log.checkpoint || 'Unspecified').trim() || 'Unspecified',
-                    volunteer: String(log.volunteer || '').trim(),
-                    time: Number.isFinite(ts) ? ts : 0
+                    volunteer: String(log.volunteer || '').trim(), time: Number.isFinite(ts) ? ts : 0
                 };
                 if (!byDevice.has(key)) byDevice.set(key, { key, points: [], latest: point, count: 0 });
                 const group = byDevice.get(key);
-                group.points.push(point);
-                group.count += 1;
+                group.points.push(point); group.count += 1;
                 if (!group.latest || point.time >= group.latest.time) group.latest = point;
             });
-            byDevice.forEach(group => {
-                group.points = group.points.sort((a, b) => a.time - b.time).slice(-30);
-            });
+            byDevice.forEach(group => { group.points = group.points.sort((a,b) => a.time - b.time).slice(-30); });
 
             const configured = (typeof checkpointGpsProfiles_ === 'function' ? checkpointGpsProfiles_() : [])
-                .filter(profile => profile &&
-                    profile.latitude !== null && profile.latitude !== undefined && String(profile.latitude).trim() !== '' &&
-                    profile.longitude !== null && profile.longitude !== undefined && String(profile.longitude).trim() !== '' &&
-                    Number.isFinite(Number(profile.latitude)) && Number.isFinite(Number(profile.longitude)))
+                .filter(profile => profile && Number.isFinite(Number(profile.latitude)) && Number.isFinite(Number(profile.longitude)))
                 .map(profile => ({
-                    latitude: Number(profile.latitude),
-                    longitude: Number(profile.longitude),
-                    checkpoint: String(profile.checkpoint || profile.name || 'Checkpoint').trim() || 'Checkpoint',
-                    source: String(profile.source || 'configured')
+                    latitude: Number(profile.latitude), longitude: Number(profile.longitude),
+                    checkpoint: String(profile.checkpoint || profile.name || 'Checkpoint').trim() || 'Checkpoint'
                 }));
-            const configuredSeen = new Set();
+            const seen = new Set();
             const checkpointPoints = configured.filter(point => {
                 const key = `${point.checkpoint.toUpperCase()}|${point.latitude.toFixed(6)}|${point.longitude.toFixed(6)}`;
-                if (configuredSeen.has(key)) return false;
-                configuredSeen.add(key);
-                return true;
+                if (seen.has(key)) return false; seen.add(key); return true;
             });
-
-            const deviceGroups = Array.from(byDevice.values()).sort((a, b) => (b.latest?.time || 0) - (a.latest?.time || 0));
+            const deviceGroups = Array.from(byDevice.values()).sort((a,b) => (b.latest?.time || 0) - (a.latest?.time || 0));
             const allCoordinates = checkpointPoints.concat(deviceGroups.flatMap(group => group.points));
             if (!allCoordinates.length) {
-                container.innerHTML = `<div class="text-center theme-text-muted text-xs p-4">No GPS coordinates have been recorded yet. Coordinates appear after a PWA logs a BIB with location permission.</div>`;
+                container.innerHTML = '<div class="text-center theme-text-muted text-xs p-4">No GPS coordinates have been recorded yet. Coordinates appear after a PWA logs a BIB with location permission.</div>';
                 setDirectorWidgetEmptyState_('map', true);
                 return;
             }
             setDirectorWidgetEmptyState_('map', false);
 
-            let minLat = Math.min(...allCoordinates.map(point => Number(point.latitude)));
-            let maxLat = Math.max(...allCoordinates.map(point => Number(point.latitude)));
-            let minLon = Math.min(...allCoordinates.map(point => Number(point.longitude)));
-            let maxLon = Math.max(...allCoordinates.map(point => Number(point.longitude)));
-            const latSpanRaw = Math.max(0.00008, maxLat - minLat);
-            const lonSpanRaw = Math.max(0.00008, maxLon - minLon);
-            minLat -= latSpanRaw * 0.12;
-            maxLat += latSpanRaw * 0.12;
-            minLon -= lonSpanRaw * 0.12;
-            maxLon += lonSpanRaw * 0.12;
-
-            const width = 900;
-            const height = 420;
-            const paddingX = 54;
-            const paddingY = 38;
-            const project = point => ({
-                x: paddingX + ((Number(point.longitude) - minLon) / Math.max(0.000001, maxLon - minLon)) * (width - paddingX * 2),
-                y: paddingY + ((maxLat - Number(point.latitude)) / Math.max(0.000001, maxLat - minLat)) * (height - paddingY * 2)
-            });
             const now = Date.now();
-            const stateForAge = ageMs => ageMs > 30 * 60000 ? 'is-quiet' : ageMs > 10 * 60000 ? 'is-stale' : '';
             const labelForAge = ageMs => {
                 const mins = Math.max(0, Math.floor(ageMs / 60000));
                 if (mins < 1) return 'just now';
                 if (mins < 60) return `${mins}m ago`;
                 return `${Math.floor(mins / 60)}h ${mins % 60}m ago`;
             };
-
-            const trails = deviceGroups.map(group => {
-                if (group.points.length < 2) return '';
-                const d = group.points.map((point, index) => {
-                    const p = project(point);
-                    return `${index ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
-                }).join(' ');
-                return `<path class="gps-trail" d="${d}"><title>${escapeHtml_(`${getDeviceLabel(group.key)} · last ${group.points.length} GPS records`)}</title></path>`;
-            }).join('');
-
-            const checkpointMarkers = checkpointPoints.map((point, index) => {
-                const p = project(point);
-                const labelY = Math.max(14, p.y - 10);
-                return `<g>
-                    <rect class="gps-checkpoint-marker" x="${(p.x - 6).toFixed(1)}" y="${(p.y - 6).toFixed(1)}" width="12" height="12" rx="2"><title>${escapeHtml_(`${point.checkpoint} · ${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}`)}</title></rect>
-                    <text class="gps-map-label" x="${(p.x + 9).toFixed(1)}" y="${labelY.toFixed(1)}">${escapeHtml_(point.checkpoint.slice(0, 24))}</text>
-                </g>`;
-            }).join('');
-
-            const deviceMarkers = deviceGroups.map((group, index) => {
-                const latest = group.latest;
-                const p = project(latest);
-                const ageMs = latest.time ? Math.max(0, now - latest.time) : Infinity;
-                const stateClass = stateForAge(ageMs);
-                const label = getDeviceLabel(group.key) || group.key;
-                const labelOffsetY = index % 2 ? 20 : -12;
-                const labelY = Math.min(height - 8, Math.max(14, p.y + labelOffsetY));
-                const title = `${label} · ${latest.checkpoint} · ${group.count} GPS record${group.count === 1 ? '' : 's'} · ${labelForAge(ageMs)} · ${latest.latitude.toFixed(6)}, ${latest.longitude.toFixed(6)}${latest.accuracy ? ` · ±${Math.round(latest.accuracy)}m` : ''}`;
-                return `<g>
-                    <circle class="gps-device-marker ${stateClass}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="8"><title>${escapeHtml_(title)}</title></circle>
-                    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.2" fill="#ffffff" pointer-events="none"></circle>
-                    <text class="gps-map-label" x="${(p.x + 11).toFixed(1)}" y="${labelY.toFixed(1)}">${escapeHtml_(label.slice(0, 22))}</text>
-                </g>`;
-            }).join('');
-
-            const coordinateLabel = (value, axis) => {
-                const numeric = Number(value);
-                const suffix = axis === 'lat' ? (numeric < 0 ? 'S' : 'N') : (numeric < 0 ? 'W' : 'E');
-                return `${Math.abs(numeric).toFixed(5)}° ${suffix}`;
-            };
-            const svg = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="GPS positions of PWA devices and configured checkpoints">
-                <text class="gps-coordinate-label" x="10" y="16">${coordinateLabel(maxLat, 'lat')}</text>
-                <text class="gps-coordinate-label" x="10" y="${height - 10}">${coordinateLabel(minLat, 'lat')}</text>
-                <text class="gps-coordinate-label" x="${width - 122}" y="${height - 10}">${coordinateLabel(maxLon, 'lon')}</text>
-                ${trails}${checkpointMarkers}${deviceMarkers}
-            </svg>`;
-
+            const stateForAge = ageMs => ageMs > 30 * 60000 ? 'is-quiet' : ageMs > 10 * 60000 ? 'is-stale' : '';
+            const newest = deviceGroups[0]?.latest?.time || 0;
             const legend = deviceGroups.map(group => {
                 const latest = group.latest;
                 const ageMs = latest.time ? Math.max(0, now - latest.time) : Infinity;
                 const stateClass = stateForAge(ageMs);
                 const label = getDeviceLabel(group.key) || group.key;
-                return `<div class="director-gps-device-row">
-                    <span class="director-gps-dot ${stateClass}" aria-hidden="true"></span>
-                    <div class="min-w-0"><strong class="theme-text block truncate">${escapeHtml_(label)}</strong><span class="theme-text-muted block truncate">${escapeHtml_(latest.checkpoint)}${latest.volunteer ? ` · ${escapeHtml_(latest.volunteer)}` : ''} · ${group.count} GPS record${group.count === 1 ? '' : 's'}</span></div>
-                    <div class="text-right whitespace-nowrap"><strong class="theme-text">${escapeHtml_(labelForAge(ageMs))}</strong>${latest.accuracy ? `<span class="theme-text-muted block">±${Math.round(latest.accuracy)}m</span>` : ''}</div>
-                </div>`;
+                return `<div class="director-gps-device-row"><span class="director-gps-dot ${stateClass}" aria-hidden="true"></span><div class="min-w-0"><strong class="theme-text block truncate">${escapeHtml_(label)}</strong><span class="theme-text-muted block truncate">${escapeHtml_(latest.checkpoint)}${latest.volunteer ? ` · ${escapeHtml_(latest.volunteer)}` : ''} · ${group.count} GPS record${group.count === 1 ? '' : 's'}</span></div><div class="text-right whitespace-nowrap"><strong class="theme-text">${escapeHtml_(labelForAge(ageMs))}</strong>${latest.accuracy ? `<span class="theme-text-muted block">±${Math.round(latest.accuracy)}m</span>` : ''}</div></div>`;
             }).join('');
+            container.innerHTML = `<div class="director-gps-map-shell"><div class="director-gps-map-summary"><span>${deviceGroups.length} PWA device${deviceGroups.length === 1 ? '' : 's'} with GPS</span><span>${logsWithGps.length} geotagged log${logsWithGps.length === 1 ? '' : 's'}</span><span>${checkpointPoints.length} checkpoint marker${checkpointPoints.length === 1 ? '' : 's'}</span><span>Newest ${newest ? escapeHtml_(labelForAge(Math.max(0, now - newest))) : 'unknown'}</span></div><div class="director-gps-map-stage"><div id="directorGoogleMapCanvas" class="director-google-map-canvas"><div class="director-map-message">Loading Google Maps…</div></div></div>${legend ? `<div class="director-gps-map-legend">${legend}</div>` : ''}<p class="text-[9px] theme-text-muted leading-snug">Use one finger or mouse drag to pan, pinch or the wheel to zoom, and the map-type control to switch street or satellite view. Device trails show up to the last 30 geotagged records.</p></div>`;
 
-            const newest = deviceGroups[0]?.latest?.time || 0;
-            container.innerHTML = `<div class="director-gps-map-shell">
-                <div class="director-gps-map-summary">
-                    <span>${deviceGroups.length} PWA device${deviceGroups.length === 1 ? '' : 's'} with GPS</span>
-                    <span>${logsWithGps.length} geotagged log${logsWithGps.length === 1 ? '' : 's'}</span>
-                    <span>${checkpointPoints.length} checkpoint marker${checkpointPoints.length === 1 ? '' : 's'}</span>
-                    <span>Newest ${newest ? escapeHtml_(labelForAge(Math.max(0, now - newest))) : 'unknown'}</span>
-                </div>
-                <div class="director-gps-map-stage">${svg}</div>
-                ${legend ? `<div class="director-gps-map-legend">${legend}</div>` : '<div class="text-[10px] theme-text-muted">Configured checkpoints are visible, but no PWA device has submitted a GPS-tagged log yet.</div>'}
-                <p class="text-[9px] theme-text-muted leading-snug">This is an auto-fitted offline coordinate map, not a street map. Square markers are configured checkpoints; circles are each PWA device's latest recorded position. Trails show up to the last 30 geotagged records per device.</p>
-            </div>`;
+            const cfg = getEffectiveGoogleMapsConfig_();
+            if (!cfg.apiKey) {
+                const canvas = document.getElementById('directorGoogleMapCanvas');
+                if (canvas) canvas.innerHTML = '<div class="director-map-message"><div><strong class="theme-text">Google Maps key required</strong><p class="mt-1">Add a restricted Maps JavaScript API browser key in Settings, or configure GOOGLE_MAPS_BROWSER_API_KEY in Apps Script properties.</p><button type="button" onclick="openSettings()">Open Settings</button></div></div>';
+                return;
+            }
+            try {
+                await ensureGoogleMapsApi_();
+                const canvas = document.getElementById('directorGoogleMapCanvas');
+                if (!canvas || !document.body.contains(canvas)) return;
+                clearDirectorGoogleMapOverlays_();
+                const centerSource = deviceGroups[0]?.latest || checkpointPoints[0] || allCoordinates[0];
+                directorGoogleMapInstance_ = new google.maps.Map(canvas, {
+                    center: { lat: Number(centerSource.latitude), lng: Number(centerSource.longitude) },
+                    zoom: 14, mapId: cfg.mapId || undefined,
+                    gestureHandling: 'greedy', zoomControl: true, mapTypeControl: true,
+                    streetViewControl: true, fullscreenControl: true, scaleControl: true,
+                    clickableIcons: false, keyboardShortcuts: true
+                });
+                directorGoogleMapInfoWindow_ = directorGoogleMapInfoWindow_ || new google.maps.InfoWindow();
+                const bounds = new google.maps.LatLngBounds();
+                checkpointPoints.forEach(point => {
+                    const position = { lat: point.latitude, lng: point.longitude };
+                    bounds.extend(position);
+                    const marker = new google.maps.Marker({
+                        map: directorGoogleMapInstance_, position, title: point.checkpoint,
+                        icon: { path: 'M -7,-7 7,-7 7,7 -7,7 z', fillColor: '#f59e0b', fillOpacity: 1, strokeColor: '#111827', strokeWeight: 2, scale: 1 }
+                    });
+                    marker.addListener('click', () => {
+                        directorGoogleMapInfoWindow_.setContent(`<strong>${escapeHtml_(point.checkpoint)}</strong><br><span>${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}</span>`);
+                        directorGoogleMapInfoWindow_.open({ map: directorGoogleMapInstance_, anchor: marker });
+                    });
+                    directorGoogleMapOverlays_.push(marker);
+                });
+                deviceGroups.forEach(group => {
+                    const ageMs = group.latest.time ? Math.max(0, now - group.latest.time) : Infinity;
+                    const state = stateForAge(ageMs);
+                    const color = state === 'is-quiet' ? '#ef4444' : state === 'is-stale' ? '#f97316' : '#22c55e';
+                    const path = group.points.map(point => ({ lat: point.latitude, lng: point.longitude }));
+                    path.forEach(position => bounds.extend(position));
+                    if (path.length > 1) {
+                        const trail = new google.maps.Polyline({ map: directorGoogleMapInstance_, path, geodesic: true, strokeColor: color, strokeOpacity: .58, strokeWeight: 4 });
+                        directorGoogleMapOverlays_.push(trail);
+                    }
+                    const latest = group.latest;
+                    const position = { lat: latest.latitude, lng: latest.longitude };
+                    const label = getDeviceLabel(group.key) || group.key;
+                    const marker = new google.maps.Marker({
+                        map: directorGoogleMapInstance_, position, title: label,
+                        label: { text: String(deviceGroups.indexOf(group) + 1), color: '#ffffff', fontWeight: '900', fontSize: '11px' },
+                        icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: color, fillOpacity: 1, strokeColor: '#07120b', strokeWeight: 2, scale: 11 }
+                    });
+                    marker.addListener('click', () => {
+                        const html = `<strong>${escapeHtml_(label)}</strong><br>${escapeHtml_(latest.checkpoint)}${latest.volunteer ? ` · ${escapeHtml_(latest.volunteer)}` : ''}<br>${group.count} GPS record${group.count === 1 ? '' : 's'} · ${escapeHtml_(labelForAge(ageMs))}${latest.accuracy ? `<br>Accuracy ±${Math.round(latest.accuracy)}m` : ''}<br>${latest.latitude.toFixed(6)}, ${latest.longitude.toFixed(6)}`;
+                        directorGoogleMapInfoWindow_.setContent(html);
+                        directorGoogleMapInfoWindow_.open({ map: directorGoogleMapInstance_, anchor: marker });
+                    });
+                    directorGoogleMapOverlays_.push(marker);
+                });
+                if (allCoordinates.length === 1) directorGoogleMapInstance_.setZoom(16);
+                else {
+                    directorGoogleMapInstance_.fitBounds(bounds, 54);
+                    google.maps.event.addListenerOnce(directorGoogleMapInstance_, 'idle', () => {
+                        if (directorGoogleMapInstance_.getZoom() > 18) directorGoogleMapInstance_.setZoom(18);
+                    });
+                }
+            } catch (error) {
+                const canvas = document.getElementById('directorGoogleMapCanvas');
+                if (canvas) canvas.innerHTML = `<div class="director-map-message"><div><strong class="text-red-600 dark:text-red-400">Google Maps unavailable</strong><p class="mt-1">${escapeHtml_(error?.message || 'Map failed to load.')}</p><button type="button" onclick="openSettings()">Check map settings</button></div></div>`;
+            }
         }
 
         /** ⏱️ Cutoff Countdown — grouped by KM, with the categories that share each cutoff. */
@@ -10375,8 +10466,28 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             return SAFETY_VIRTUAL_ROW_HEIGHT_;
         }
 
+        function updateSafetyBibColumnWidth_(roster) {
+            const table = document.getElementById('safetyLogTable');
+            if (!table) return;
+            const values = (roster || []).slice(0, 3000).map(row => String(row?.bib || '').trim()).filter(Boolean);
+            let measured = 0;
+            try {
+                const canvas = updateSafetyBibColumnWidth_.canvas || (updateSafetyBibColumnWidth_.canvas = document.createElement('canvas'));
+                const context = canvas.getContext('2d');
+                if (context) {
+                    context.font = '900 12px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                    measured = Math.max(context.measureText('BIB ↑').width, ...values.map(value => context.measureText(value).width));
+                }
+            } catch (_) { measured = 0; }
+            if (!measured) measured = Math.max(34, ...values.map(value => Math.min(22, value.length) * 7.2));
+            const hasBadges = (roster || []).some(row => row?._routeIssue || row?.bibCollision || row?._bibCollision);
+            const width = Math.max(72, Math.min(220, Math.ceil(measured + (hasBadges ? 62 : 34))));
+            table.style.setProperty('--safety-bib-col-width', width + 'px');
+        }
+
         function setSafetyVirtualRoster_(roster) {
             safetyVirtualRoster_ = roster || [];
+            updateSafetyBibColumnWidth_(safetyVirtualRoster_);
             safetyVirtualRenderToken_++;
             const viewport = document.getElementById('safetyTableViewport');
             if (viewport && viewport.scrollTop > safetyVirtualRoster_.length * getSafetyVirtualRowHeight_()) viewport.scrollTop = 0;
@@ -10492,6 +10603,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 if (data.status !== 'success') throw new Error(data.message || 'Operations summary rejected');
                 serverOperationsSummary_ = data;
                 applyRouteModelsFromPayload_(data);
+                applyGoogleMapsConfigFromPayload_(data);
                 if (data.serverTime) updateClockDriftSample_(data.serverTime, started, Date.now());
                 if (Array.isArray(data.incidents)) mergeIncidentsIntoLocal_(data.incidents);
                 if (Array.isArray(data.cotAlerts)) mergeCotAlertsIntoLocal_(data.cotAlerts);
@@ -10513,8 +10625,8 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 ['Arrivals 5 min', arrivals.last5 || 0, `${arrivals.last15 || 0} in 15 min · ${arrivals.last60 || 0} in 60 min`],
                 ['Active checkpoints', `${activeCps}/${Object.keys(cps).length}`, 'Cached server summary'],
                 ['Unique runners', totals.uniqueBibs || 0, `${totals.activeScans || 0} active scans`],
-                ['Open incidents', totals.openIncidents || 0, `${totals.safetyAttention || 0} safety notes need attention`],
-                ['COT unacknowledged', totals.unacknowledgedCotAlerts || 0, 'Shared acknowledgements'],
+                ['Pending BIB sync', Number(window.RaceState?.getState?.().queueSummary?.logs || 0), 'Operational records sync in the background'],
+                ['COT requiring action', totals.unacknowledgedCotAlerts || 0, 'Open cutoff risks only'],
                 ['Generated', formatLogTime(s.generatedAt), `Server v${s.appVersion || '?'}`]
             ];
             container.innerHTML = `<div class="monitor-stat-grid">${cards.map(c=>`<div class="monitor-stat-card"><div class="monitor-label">${escapeHtml_(c[0])}</div><div class="monitor-value">${escapeHtml_(String(c[1]))}</div><div class="monitor-sub">${escapeHtml_(c[2])}</div></div>`).join('')}</div>`;

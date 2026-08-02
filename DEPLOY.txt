@@ -1,91 +1,80 @@
-RACE BIB LOGGER v19.2.0 — COMMAND-CENTRE OPERATIONS
-====================================================
+RACE BIB LOGGER v19.3.0 — UI AND UX REFINEMENT
+==============================================
 
-1. BACK UP AND FREEZE THE RELEASE
----------------------------------
+1. BACK UP
+----------
 - Copy the production Google Sheet and Apps Script project.
-- Export each device's offline queue and generate a post-race/shift-handover report.
-- Confirm all CommandOps records show synchronized before a Start Fresh Event.
-- Retain the current production deployment until acceptance passes.
+- Export pending BIB queues from active devices.
+- Keep the current production Web App deployment available until acceptance passes.
 - Run: npm test
-  Every stage must pass before upload.
 
 2. GOOGLE APPS SCRIPT
 ---------------------
-1) Replace Code.gs with the supplied v19.2.0 Code.gs.
+1) Replace Code.gs with the supplied v19.3.0 Code.gs.
 2) Keep Fornula cell.gs only when the existing project uses it.
-3) Save and deploy a new Web App version while retaining the current Web App URL where possible.
-4) Open the web app once with an authorized event account so auxiliary sheets can be created/extended.
+3) Save and deploy a NEW Web App version.
+4) Keep the existing Web App URL where possible.
+5) Confirm the PWA connection test reports server version 19.3.0.
 
-Racelog remains A:AC; no Racelog migration is required.
-
-The backend creates or extends these auxiliary sheets without deleting existing rows:
-- CommandOps: missing-runner, medical, transport/sweep, and checkpoint-supply records.
-- WeatherRisk: manual weather values, thresholds, alert text, and optional provider URL.
-- Incidents: acknowledgement/resolution timing, call/search counts, sighting, destination.
-- DeviceHealth: connectivity and latest GPS-health fields.
-- COTAlerts: resolved state, resolver, resolution time, and resolution note.
-
-Optional weather integration:
-- Manual: enter values in row 2 of WeatherRisk.
-- Provider: set Apps Script Property WEATHER_PROVIDER_URL to an approved HTTPS JSON endpoint.
-- Expected provider fields may include temperatureC, rainMmPerHour, windKph,
-  lightningDistanceKm, observedAt, alert, and optional thresholds.
-- Verify the provider's licensing, availability, privacy, and emergency-use suitability.
-- Weather data is advisory; event emergency procedures remain authoritative.
+Racelog remains A:AC. No spreadsheet migration is required.
 
 3. STATIC PWA HOST
 ------------------
-Upload the complete package:
+Upload the complete package, including:
 - index.html, sw.js, tailwind.css, manifest.json
-- app/ including app/director-ops-v192.js
-- icons/icon-192.png
-- icons/icon-512.png
-- icons/icon-512-maskable.png
+- app/
+- icons/
 
 New cache names:
-- race-logger-static-v19-2-0-r1
-- race-logger-runtime-v19-2-0-r1
+- race-logger-static-v19-3-0-r1
+- race-logger-runtime-v19-3-0-r1
 
-Open each PWA online once, wait for service-worker readiness, perform the app's
-hard-refresh action, and confirm version 19.2.0.
+The new app-shell asset is:
+- app/ux-v193.js
 
-4. DESKTOP / STATIC ACCEPTANCE
-------------------------------
-- Run npm test.
-- Run node --check on app/main.js, app/director-ops-v192.js, and sw.js.
-- Copy Code.gs to a temporary .js file and run node --check on that copy.
-- Confirm deployment validation fails when a referenced module or icon is removed.
-- Confirm every new Director widget appears in Customize and can be reordered,
-  resized, hidden, restored, and scrolled at desktop and mobile widths.
+Open each installed PWA online once so the new service worker can activate. On iPhone, fully close and reopen the installed PWA after the update if the old layout remains cached.
 
-5. LIVE BACKEND ACCEPTANCE
---------------------------
-- CommandOps: create, edit, synchronize, reload, and resolve one record of every type.
-- Event epoch: start a test event reset and confirm old CommandOps records do not re-sync.
-- Arrival forecast: compare 10/20/30-minute estimates against controlled scan traffic.
-- Heatmap: verify 60/120/240-minute windows and sticky checkpoint labels.
-- COT funnel: acknowledge and resolve an alert; verify the resolution note persists.
-- Missing runner: increment calls/searches, record a sighting, assign an owner, resolve.
-- Incident timers: acknowledge, respond, resolve, reload, and verify timestamps.
-- Device map: confirm battery, connection, queue, GPS age, accuracy, and last sync.
-- Route anomalies: test skipped, reverse, impossible-speed, and approved-exception cases.
-- Outcomes: explicitly mark DNS, DNF, withdrawn, and medical statuses.
-- Finish projection: verify separate KM/category groupings and projected windows.
-- Medical/transport/supplies: verify records persist offline and synchronize in a batch.
-- Weather: test normal, warning, critical, stale, unavailable, and provider-error states.
-- Handover: generate, copy, download, and compare against current open work.
-- Post-race report: export HTML and JSON and verify timeline, incidents, COT, devices,
-  checkpoint performance, weather, integrity, and reconciliation sections.
+4. GOOGLE MAPS
+--------------
+The Director GPS map still requires the configured Google Maps JavaScript API browser key. No key is embedded in this package. Follow docs/GOOGLE-MAPS-SETUP-v19.3.0.md.
 
-6. PHYSICAL DEVICE AND SOAK TESTS
----------------------------------
-Use docs/DEVICE-TEST-MATRIX-v19.2.0.md. At minimum test:
-- recent and older iPhone PWA;
-- recent and low-memory Android PWA;
-- tablet, landscape, large text, reduced motion;
-- offline cold-open, weak/variable network, background/foreground transitions;
-- real GPS, denied GPS, stale GPS, low battery, and growing offline queues;
-- two-hour multi-device race traffic and command-centre refresh/load behavior.
+5. UI ACCEPTANCE CHECKS
+-----------------------
+Quick Entry:
+- At 390 × 844, all 12 numeric keypad buttons, Clear, LOG, and the status line fit without overlap.
+- Entering BIB / Entering Remark changes correctly.
+- Phone keyboard remains closed in minimalist mode.
+- Screen Wake Lock status is informative but never blocks logging.
+- Repeated BIB colour and duplicate review remain intact.
+
+Main Entry:
+- OCR/keyboard controls do not shift the BIB text unexpectedly.
+- Success confirmation is compact, shows BIB/checkpoint, and does not cover the entry controls.
+- LOG remains usable with large text and on older iPhones.
+
+Director Mode:
+- Four command controls fit across a phone without horizontal clipping.
+- Pressing a command icon shows a floating label for about five seconds without resizing the bar.
+- Exit still requires two presses.
+- Section navigation jumps to visible sections and follows scrolling.
+- Back to Top appears only after scrolling.
+- Widget help toggles work on compact screens.
+- GPS map full-screen mode opens and closes without losing map interaction.
+
+Safety Log:
+- Frozen BIB width auto-fits short and long BIB labels.
+- Horizontal scrolling keeps the BIB visible.
+- The swipe hint disappears after use.
+
+6. OPERATIONAL REGRESSION CHECKS
+--------------------------------
+- BIB logging, duplicate review, unknown-BIB silent logging, route exceptions, GPS validation, offline queueing, reconciliation, safety notes, and sync checksums behave as in v19.2.1.
+- Google Maps failure never blocks BIB logging.
+- Offline cold-open succeeds after one online load.
+- No false Sync Issue is shown for successful compatible server responses.
+
+7. PHYSICAL DEVICE MATRIX
+-------------------------
+Use docs/DEVICE-TEST-MATRIX-v19.3.0.md. At minimum test recent and older iPhones, recent and low-memory Android devices, tablet, landscape, large text, reduced motion, offline/reconnection, weak network, real/stale/denied GPS, and multiple devices at one checkpoint.
 
 Do not deploy to a live race based only on local automated checks.

@@ -220,19 +220,9 @@
     const configuredRunner = global.findCategoryConfigForBib_(bib, global.categoryConfig || []);
     const unknownBib = !configuredRunner;
     if (unknownBib) {
-      const decision = await openDecision_({
-        title: 'Runner not found',
-        bodyHtml: '<div class="v19-warning-hero"><strong>BIB ' + UI.escapeHtml(bib) + ' is not in the current Setup configuration</strong><span>You can still preserve the passage as an unknown runner for later reconciliation.</span></div><p class="v19-modal-note">The record will be flagged <strong>Unknown BIB</strong> and excluded from silent “normal” handling.</p>',
-        reasons: RC.reasonCodes.unknown,
-        confirmLabel: 'Log unknown runner',
-        cancelLabel: 'Cancel'
-      });
-      if (!decision.approved) {
-        global.finishBibSubmission_();
-        global.announceToScreenReader_('Unknown runner entry cancelled.');
-        return;
-      }
-      reasonCodes.push(decision.reasonCode);
+      // Preserve the passage without interrupting race-day entry. Reconciliation
+      // can resolve Setup/configuration gaps later.
+      reasonCodes.push('UNKNOWN_NOT_IN_SETUP');
       flags.push('unknown-bib');
     }
 
@@ -320,13 +310,17 @@
     const text = document.getElementById('queueSummaryText');
     const detail = document.getElementById('queueExactSummary');
     const exactSentence = queueSummarySentence_(summary);
-    if (count) count.textContent = '';
-    if (text) text.textContent = summary.total ? exactSentence.replace(/ waiting$/, '') : 'Synced';
+    const bibQueueSentence = summary.logs
+      ? summary.logs + ' BIB log' + (summary.logs === 1 ? '' : 's') + ' pending'
+      : 'BIB logs synchronized';
+    if (count) count.textContent = summary.logs ? String(summary.logs) : '';
+    if (text) text.textContent = summary.logs ? bibQueueSentence : 'Synced';
+    // Keep the full operational breakdown inside the queue inspector only.
     if (detail) detail.textContent = exactSentence;
     if (badge) {
-      badge.classList.toggle('hidden', summary.total === 0);
-      badge.setAttribute('aria-label', exactSentence);
-      badge.title = exactSentence;
+      badge.classList.toggle('hidden', summary.logs === 0);
+      badge.setAttribute('aria-label', bibQueueSentence);
+      badge.title = bibQueueSentence;
     }
     return summary;
   }
@@ -652,7 +646,17 @@
       }, 25005);
       const data = JSON.parse(await response.text());
       if (data.status !== 'success') throw new Error(data.message || 'Sync rejected.');
-      if (data.checksumVerified !== true || data.recordChecksumsVerified !== true || data.ackChecksum !== prepared.checksum) {
+      const hasChecksumAcknowledgement =
+        Object.prototype.hasOwnProperty.call(data, 'checksumVerified') ||
+        Object.prototype.hasOwnProperty.call(data, 'recordChecksumsVerified') ||
+        Object.prototype.hasOwnProperty.call(data, 'ackChecksum');
+      // New servers return explicit checksum acknowledgement. Older deployed
+      // Apps Script versions can still be accepted when the write succeeded and
+      // confirmed record IDs are returned, avoiding a false permanent Sync Issue.
+      if (hasChecksumAcknowledgement &&
+          (data.checksumVerified !== true ||
+           data.recordChecksumsVerified !== true ||
+           data.ackChecksum !== prepared.checksum)) {
         const mismatch = new Error('Batch or record checksum acknowledgement did not match.');
         mismatch.code = RC.errorCodes.SYNC_CHECKSUM_MISMATCH;
         throw mismatch;

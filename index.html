@@ -2295,7 +2295,7 @@
                 max-height: calc(100dvh - 19rem);
             }
         }
-        #safetyLogTable { min-width: 920px; }
+        #safetyLogTable { min-width: calc(820px + var(--safety-bib-col-width, 5.5rem)); table-layout: auto; }
         #safetyLogTable thead th {
             position: sticky;
             top: 0;
@@ -2308,14 +2308,20 @@
         #safetyLogTable thead th:first-child {
             left: 0;
             z-index: 6;
-            min-width: 9rem;
+            width: var(--safety-bib-col-width, 5.5rem);
+            min-width: var(--safety-bib-col-width, 5.5rem);
+            max-width: var(--safety-bib-col-width, 5.5rem);
             box-shadow: 1px 1px 0 var(--border-color), 7px 0 12px rgba(0,0,0,.16);
         }
         #safetyLogTable tbody td:first-child:not(.virtual-spacer-cell) {
             position: sticky;
             left: 0;
             z-index: 2;
-            min-width: 9rem;
+            width: var(--safety-bib-col-width, 5.5rem);
+            min-width: var(--safety-bib-col-width, 5.5rem);
+            max-width: var(--safety-bib-col-width, 5.5rem);
+            overflow: hidden;
+            text-overflow: ellipsis;
             background: var(--panel-bg);
             box-shadow: 1px 0 0 var(--border-color), 7px 0 12px rgba(0,0,0,.12);
         }
@@ -2489,6 +2495,12 @@
             min-height: 2.35rem;
             white-space: nowrap;
         }
+
+        .header-icon-status { width: 2rem; height: 2rem; display: inline-grid; place-items: center; padding: 0; flex: 0 0 auto; line-height: 1; }
+        @media (max-width: 700px) {
+            #queueBadge #queueSummaryText { display: none; }
+            #queueBadge { min-width: 2rem; justify-content: center; padding-left: .4rem; padding-right: .4rem; }
+        }
         .director-gps-map-shell {
             display: grid;
             gap: .7rem;
@@ -2496,55 +2508,37 @@
         }
         .director-gps-map-stage {
             position: relative;
-            min-height: 18rem;
+            min-height: 24rem;
+            height: clamp(24rem, 58vh, 46rem);
             border: 1px solid var(--border-color);
             border-radius: .85rem;
             overflow: hidden;
-            background:
-                linear-gradient(rgba(59,130,246,.07) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59,130,246,.07) 1px, transparent 1px),
-                radial-gradient(circle at 25% 20%, rgba(14,165,233,.13), transparent 34%),
-                var(--input-bg);
-            background-size: 10% 10%, 10% 10%, auto, auto;
+            background: var(--input-bg);
+            touch-action: pan-x pan-y pinch-zoom;
         }
-        .director-gps-map-stage svg {
-            display: block;
+        .director-google-map-canvas {
             width: 100%;
             height: 100%;
+            min-height: 24rem;
+        }
+        .director-map-message {
             min-height: 18rem;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            padding: 1.25rem;
+            color: var(--text-muted);
+            font-size: .75rem;
         }
-        .director-gps-map-stage .gps-trail {
-            fill: none;
-            stroke: rgba(96,165,250,.42);
-            stroke-width: 1.6;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-        .director-gps-map-stage .gps-checkpoint-marker {
-            fill: #f59e0b;
-            stroke: #111827;
-            stroke-width: 2;
-        }
-        .director-gps-map-stage .gps-device-marker {
-            fill: #22c55e;
-            stroke: #07120b;
-            stroke-width: 2.25;
-        }
-        .director-gps-map-stage .gps-device-marker.is-stale { fill: #f97316; }
-        .director-gps-map-stage .gps-device-marker.is-quiet { fill: #ef4444; }
-        .director-gps-map-stage .gps-map-label {
-            fill: var(--text-main);
-            paint-order: stroke;
-            stroke: var(--input-bg);
-            stroke-width: 3px;
-            stroke-linejoin: round;
-            font-size: 12px;
+        .director-map-message button {
+            margin-top: .75rem;
+            border: 1px solid var(--border-color);
+            border-radius: .6rem;
+            padding: .55rem .8rem;
+            font-size: .68rem;
             font-weight: 900;
-        }
-        .director-gps-map-stage .gps-coordinate-label {
-            fill: var(--text-muted);
-            font-size: 9px;
-            font-family: ui-monospace, monospace;
+            background: var(--card-tint);
+            color: var(--text-main);
         }
         .director-gps-map-legend {
             display: grid;
@@ -3292,6 +3286,338 @@
         .v19-checkpoint-health-row { display:flex; align-items:center; justify-content:space-between; gap:.65rem; border-bottom:1px solid rgba(120,120,120,.16); padding:.55rem 0; }.v19-checkpoint-health-row>div{display:flex;flex-direction:column}.v19-checkpoint-health-row strong{font-size:.75rem}.v19-checkpoint-health-row span{font-size:.62rem;opacity:.68}.v19-checkpoint-status{border:1px solid rgba(120,120,120,.25);border-radius:.55rem;padding:.35rem .5rem;font-size:.65rem;font-weight:900;background:transparent}.v19-cp-operational{color:#059669}.v19-cp-busy{color:#d97706}.v19-cp-degraded,.v19-cp-offline{color:#dc2626}.v19-cp-closing{color:#7c3aed}.v19-cp-closed{color:#52525b}
         @media(max-width:700px){.v19-detail-grid,.v19-recon-grid,.v19-safety-card-grid{grid-template-columns:1fr}.v19-recon-wide{grid-column:auto}.v19-timeline-row{grid-template-columns:.65rem 1fr}.v19-timeline-row time{grid-column:2}.v19-recovery-row{grid-template-columns:2rem 1fr}.v19-recovery-row b{grid-column:2}.v19-checkpoint-health-row{align-items:flex-start;flex-direction:column}.v19-checkpoint-status{width:100%}}
 
+
+
+        /* =====================================================================
+           v19.3.0 — Race-day UI/UX refinement layer
+           Keeps operational behaviour unchanged while making primary actions
+           easier to hit, reducing layout shift, and improving small-screen use.
+           ===================================================================== */
+        :root {
+            --ux-focus-ring: rgba(96, 165, 250, .62);
+            --ux-raised-shadow: 0 12px 30px rgba(0, 0, 0, .22);
+            --ux-soft-shadow: 0 6px 18px rgba(0, 0, 0, .16);
+            --ux-header-glass: color-mix(in srgb, var(--header-bg) 90%, transparent);
+        }
+
+        :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+            outline: 3px solid var(--ux-focus-ring) !important;
+            outline-offset: 2px;
+        }
+        :where(button, [role="button"]) { min-height: 44px; }
+        :where(button, [role="button"]):active { transform: translateY(1px) scale(.985); }
+        input, select, textarea { scroll-margin-top: 7rem; }
+
+        /* Compact, non-blocking confirmation. Logging feedback no longer covers the
+           bib keypad or the runner queue during rapid entry. */
+        #successToast {
+            top: auto !important;
+            left: 50% !important;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem) !important;
+            transform: translateX(-50%) !important;
+            width: min(calc(100vw - 2rem), 25rem);
+            padding: .72rem .9rem !important;
+            border-radius: 1rem !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: .7rem;
+            pointer-events: none;
+            background: color-mix(in srgb, var(--panel-bg) 90%, transparent) !important;
+            color: var(--text-main);
+            box-shadow: var(--ux-raised-shadow);
+        }
+        @keyframes successToastInV193 {
+            from { transform: translate(-50%, .7rem) scale(.96); opacity: 0; }
+            to { transform: translate(-50%, 0) scale(1); opacity: 1; }
+        }
+        #successToast.animate-pop-scale { animation: successToastInV193 .18s ease-out forwards; }
+        #successToast .success-toast-check {
+            width: 2.35rem;
+            height: 2.35rem;
+            display: grid;
+            place-items: center;
+            flex: 0 0 auto;
+            border-radius: 999px;
+            background: rgba(16, 185, 129, .16);
+            color: #34d399;
+            font-size: 1.35rem;
+            font-weight: 950;
+        }
+        #successToast .success-toast-copy { min-width: 0; display: flex; flex-direction: column; text-align: left; }
+        #successToastBib { font-size: .9rem; font-weight: 950; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #successToastDetail { margin-top: .15rem; font-size: .65rem; font-weight: 750; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* Main entry: preserve BIB as the dominant action while keeping LOG a large,
+           stable target. The field/tool layout never jumps when OCR tools appear. */
+        .bib-entry-submit-grid { grid-template-columns: minmax(0, 1fr) clamp(4.75rem, 18vw, 7rem); }
+        #logActionButton { min-height: 4rem; border-radius: .9rem; box-shadow: 0 8px 20px rgba(37, 99, 235, .22); }
+        .bib-input-shell:focus-within #bibInput,
+        .bib-input-shell.tools-visible #bibInput { padding-left: 5.65rem; padding-right: .8rem; }
+        #bibInput { border-radius: .9rem; font-variant-numeric: tabular-nums; }
+        .remark-input-row { align-items: stretch; }
+        .minimal-mode-toggle { min-width: 3rem; min-height: 3rem; border-radius: .8rem; }
+
+        /* Quick entry: explicit active target, thumb-friendly keypad, stable action row,
+           safe-area spacing and wake-lock status. */
+        #minimalBibModeView { background: #050506; }
+        .minimal-bib-shell {
+            width: min(100%, 42rem);
+            margin-inline: auto;
+            min-height: 100dvh;
+            padding-left: max(.9rem, env(safe-area-inset-left, 0px));
+            padding-right: max(.9rem, env(safe-area-inset-right, 0px));
+        }
+        .minimal-entry-mode-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .65rem;
+            min-height: 2.2rem;
+            padding: .15rem .15rem 0;
+            color: #9ca3af;
+            font-size: .63rem;
+            font-weight: 850;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        .minimal-entry-mode-copy { display: flex; align-items: center; gap: .45rem; min-width: 0; }
+        #minimalActiveTargetPill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 4.35rem;
+            min-height: 1.8rem;
+            padding: .2rem .58rem;
+            border: 1px solid rgba(59, 130, 246, .62);
+            border-radius: 999px;
+            background: rgba(37, 99, 235, .18);
+            color: #93c5fd;
+            font-size: .65rem;
+            font-weight: 950;
+            letter-spacing: .08em;
+        }
+        #minimalWakeStatus { margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .minimal-bib-display-wrap {
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.025), 0 10px 28px rgba(0,0,0,.28);
+        }
+        .minimal-bib-display-wrap.is-active { box-shadow: 0 0 0 2px #3b82f6, 0 12px 28px rgba(37,99,235,.2); }
+        #minimalBibDisplay { font-variant-numeric: tabular-nums; text-wrap: balance; }
+        .minimal-keyboard-tabs { gap: .45rem; }
+        .minimal-keyboard-tab { min-height: 3rem; border-radius: .78rem; }
+        .minimal-key {
+            border-radius: .9rem !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 5px 12px rgba(0,0,0,.23);
+            transition: transform .06s ease, filter .08s ease, border-color .12s ease;
+        }
+        .minimal-key:active { transform: translateY(2px) scale(.975) !important; filter: brightness(1.14); }
+        #minimalBibKeyboard.numbers-layout .minimal-key { min-height: clamp(4.15rem, 8.7dvh, 5.3rem); font-size: clamp(1.45rem, 5.2vw, 2rem); }
+        #minimalBibKeyboard.numbers-layout .minimal-key.utility,
+        #minimalBibKeyboard.numbers-layout .minimal-key.danger { font-size: clamp(.72rem, 2.8vw, .95rem); letter-spacing: .04em; }
+        .minimal-bib-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 5;
+            padding-top: .65rem;
+            padding-bottom: max(.65rem, env(safe-area-inset-bottom, 0px));
+            background: linear-gradient(to bottom, transparent, #050506 18%, #050506 100%);
+        }
+        .minimal-bib-actions button { min-height: clamp(4.2rem, 8dvh, 5.2rem); border-radius: 1rem; }
+        #minimalBibStatus { min-height: 1.35rem; padding-bottom: max(.15rem, env(safe-area-inset-bottom, 0px)); }
+
+        /* Director command bar: fixed-size icons eliminate the horizontal jump seen
+           when labels expand. Labels are now announced in a floating hint instead. */
+        .director-mode-header {
+            background: var(--ux-header-glass) !important;
+            -webkit-backdrop-filter: blur(18px) saturate(1.25);
+            backdrop-filter: blur(18px) saturate(1.25);
+            box-shadow: 0 8px 26px rgba(0,0,0,.2) !important;
+        }
+        .director-mode-actions { flex-wrap: nowrap !important; }
+        .director-icon-action,
+        .director-icon-action.is-expanded {
+            width: 2.75rem !important;
+            min-width: 2.75rem !important;
+            max-width: 2.75rem !important;
+            height: 2.75rem !important;
+            min-height: 2.75rem !important;
+            padding: 0 !important;
+            gap: 0 !important;
+            border-radius: .82rem !important;
+            flex: 0 0 2.75rem;
+        }
+        .director-icon-action .director-action-label,
+        .director-icon-action.is-expanded .director-action-label { display: none !important; }
+        .director-icon-action .director-action-icon { font-size: 1.15rem; }
+        .director-toolbar-hint {
+            position: fixed;
+            z-index: 115;
+            left: 50%;
+            top: max(calc(env(safe-area-inset-top, 0px) + 4.2rem), 4.2rem);
+            transform: translate(-50%, -.5rem);
+            max-width: min(90vw, 30rem);
+            padding: .55rem .82rem;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--panel-bg) 92%, transparent);
+            color: var(--text-main);
+            box-shadow: var(--ux-raised-shadow);
+            font-size: .7rem;
+            font-weight: 900;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s ease, transform .18s ease;
+        }
+        .director-toolbar-hint.is-visible { opacity: 1; transform: translate(-50%, 0); }
+        .director-section-nav {
+            display: flex;
+            gap: .42rem;
+            overflow-x: auto;
+            padding: .62rem .15rem .1rem;
+            scrollbar-width: none;
+            scroll-snap-type: x proximity;
+        }
+        .director-section-nav::-webkit-scrollbar { display: none; }
+        .director-section-nav button {
+            min-height: 2.45rem;
+            flex: 0 0 auto;
+            scroll-snap-align: start;
+            padding: .42rem .72rem;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            background: var(--card-tint);
+            color: var(--text-muted);
+            font-size: .66rem;
+            font-weight: 850;
+            white-space: nowrap;
+        }
+        .director-section-nav button.is-active { color: #bfdbfe; border-color: rgba(59,130,246,.62); background: rgba(37,99,235,.2); }
+        #directorModeView section.theme-panel { box-shadow: var(--ux-soft-shadow); }
+        #directorModeView section.theme-panel > div:first-child { background: linear-gradient(90deg, color-mix(in srgb, var(--card-tint) 84%, #3b82f6 16%), var(--card-tint)) !important; }
+        .widget-help-button {
+            width: 2rem;
+            min-width: 2rem;
+            min-height: 2rem;
+            height: 2rem;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            background: var(--input-bg);
+            font-size: .72rem;
+            font-weight: 950;
+        }
+        .widget-help-text { transition: max-height .18s ease, opacity .15s ease, margin .18s ease; }
+        .director-back-to-top {
+            position: fixed;
+            right: max(1rem, env(safe-area-inset-right, 0px));
+            bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+            z-index: 80;
+            width: 3rem;
+            min-width: 3rem;
+            height: 3rem;
+            border-radius: 999px;
+            border: 1px solid rgba(96,165,250,.48);
+            background: rgba(29,78,216,.92);
+            color: white;
+            box-shadow: var(--ux-raised-shadow);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(.6rem);
+            transition: opacity .15s ease, transform .15s ease;
+        }
+        .director-back-to-top.is-visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        .map-fullscreen-button { margin-left: .2rem; }
+        #widget-map.map-is-fullscreen {
+            position: fixed !important;
+            inset: max(.5rem, env(safe-area-inset-top,0px)) max(.5rem, env(safe-area-inset-right,0px)) max(.5rem, env(safe-area-inset-bottom,0px)) max(.5rem, env(safe-area-inset-left,0px));
+            z-index: 110;
+            width: auto !important;
+            height: auto !important;
+            max-height: none !important;
+            grid-column: auto !important;
+            background: var(--panel-bg);
+            border-radius: 1rem;
+            box-shadow: 0 30px 90px rgba(0,0,0,.62);
+        }
+        #widget-map.map-is-fullscreen #directorMapBody { flex: 1; min-height: 0; overflow: auto; }
+        #widget-map.map-is-fullscreen .director-gps-map-stage { height: calc(100dvh - 10rem); min-height: 22rem; }
+
+        /* Safety table: pinned BIB remains compact, rows scan more easily, and a small
+           one-time hint explains horizontal scrolling without covering data. */
+        #safetyLogTable tbody tr:nth-child(even) td { background-color: color-mix(in srgb, var(--panel-bg) 96%, var(--header-text) 4%); }
+        #safetyLogTable tbody tr:hover td { background-color: color-mix(in srgb, var(--panel-bg) 86%, #3b82f6 14%); }
+        #safetyLogTable tbody td { min-height: 3rem; vertical-align: middle; }
+        .safety-scroll-hint {
+            position: sticky;
+            left: .55rem;
+            bottom: .55rem;
+            z-index: 8;
+            width: max-content;
+            max-width: calc(100vw - 2rem);
+            margin: .5rem;
+            padding: .42rem .62rem;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--panel-bg) 92%, transparent);
+            color: var(--text-muted);
+            box-shadow: var(--ux-soft-shadow);
+            font-size: .62rem;
+            font-weight: 850;
+            pointer-events: none;
+            transition: opacity .18s ease;
+        }
+        .safety-scroll-hint.is-hidden { opacity: 0; }
+
+        /* Mobile modals become reachable bottom sheets instead of vertically centered
+           cards that fight the on-screen keyboard and safe areas. */
+        @media (max-width: 640px) {
+            #v19DecisionModal, #recoveryWizard, #directorCustomizeModal { align-items: flex-end !important; padding: 0 !important; }
+            #v19DecisionModal > div, #recoveryWizard > div, #directorCustomizeModal > div {
+                width: 100% !important;
+                max-width: none !important;
+                max-height: min(92dvh, 52rem) !important;
+                border-radius: 1.35rem 1.35rem 0 0 !important;
+                padding-bottom: max(1rem, env(safe-area-inset-bottom,0px)) !important;
+            }
+            .director-mode-header { grid-template-columns: minmax(0,1fr) !important; gap: .55rem !important; padding: max(.55rem, env(safe-area-inset-top,0px)) .7rem .65rem !important; }
+            .director-mode-title { font-size: .95rem !important; white-space: nowrap !important; }
+            .director-mode-actions { display: grid !important; grid-template-columns: repeat(4, minmax(0,1fr)); width: 100%; gap: .48rem !important; }
+            .director-icon-action, .director-icon-action.is-expanded { width: 100% !important; max-width: none !important; min-width: 0 !important; }
+            #directorExitButton { order: 0 !important; margin-right: 0 !important; }
+            .director-toolbar-hint { top: max(calc(env(safe-area-inset-top,0px) + 7.4rem), 7.4rem); }
+            #directorModeView > .p-3, #directorModeView > .p-5 { padding-left: .7rem !important; padding-right: .7rem !important; }
+            #directorWidgetsGrid { column-gap: .7rem !important; row-gap: .7rem !important; }
+            #directorWidgetsGrid [data-widget] > div:first-child p.widget-help-text { max-height: 0; opacity: 0; overflow: hidden; margin-top: 0 !important; }
+            #directorWidgetsGrid [data-widget].show-widget-help > div:first-child p.widget-help-text { max-height: 5rem; opacity: 1; margin-top: .25rem !important; }
+            .minimal-last4-panel { padding: .65rem; }
+            .minimal-last4-card { min-width: 0; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .001ms !important; }
+        }
+
+
+        @media (max-width: 430px) and (max-height: 900px) {
+            .minimal-bib-shell { gap: .42rem; }
+            .minimal-last4-panel { padding: .48rem; }
+            .minimal-last4-card { min-height: 3.3rem; padding: .4rem .25rem; }
+            .minimal-last4-card strong { font-size: clamp(1rem, 5.6vw, 1.35rem); }
+            .minimal-entry-mode-row { min-height: 1.75rem; padding-top: 0; }
+            #minimalActiveTargetPill { min-height: 1.55rem; min-width: 3.8rem; }
+            .minimal-entry-zone .minimal-bib-display-wrap { min-height: 5.9rem; max-height: 6.25rem; }
+            #minimalBibDisplay.minimal-bib-short { font-size: clamp(3.2rem, 17vw, 5.5rem); }
+            .minimal-remark-shell { padding: .4rem .52rem .46rem; }
+            #minimalRemarkInput { min-height: 2.15rem; padding: .42rem .62rem; }
+            .minimal-keyboard-tab { min-height: 2.7rem; }
+            #minimalBibKeyboard.numbers-layout { gap: .38rem; }
+            #minimalBibKeyboard.numbers-layout .minimal-key { min-height: 3.78rem; }
+            .minimal-bib-actions { position: relative; padding-top: .38rem; padding-bottom: max(.2rem, env(safe-area-inset-bottom,0px)); background: #050506; }
+            .minimal-bib-actions button { min-height: 3.85rem; }
+            #minimalBibStatus { font-size: .58rem; min-height: 1rem; }
+        }
+
     </style>
 </head>
 <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
@@ -3304,10 +3630,7 @@
             <button id="queueBadge" onclick="toggleQueueInspector()" class="hidden text-[10px] bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-800 hover:bg-yellow-200 dark:hover:bg-yellow-800 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow">
                 <span id="queueCount">0</span><span id="queueSummaryText">Pending</span> 🔄
             </button>
-            <button id="reconciliationCountBadge" onclick="openReconciliationScreen_()" class="hidden text-[10px] px-2 py-0.5 rounded-full font-bold transition shadow border theme-border v19-reconciliation-badge" title="Compare this device with server-confirmed records">Reconcile</button>
-            <button id="syncErrorBadge" onclick="showSyncErrorDetails()" class="hidden text-[10px] bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-800 hover:bg-red-200 dark:hover:bg-red-800 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow animate-pulse">
-                ⚠️ Sync Issue
-            </button>
+            <button id="syncErrorBadge" onclick="showSyncErrorDetails()" aria-label="Synchronization issue" title="Synchronization issue — tap for details" class="hidden header-icon-status bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800 hover:bg-red-200 dark:hover:bg-red-800 rounded-full font-bold transition shadow animate-pulse">⚠️</button>
             <button id="staleQueueBadge" onclick="handleStaleQueueBannerClick_()" class="hidden text-[10px] bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-400 border border-orange-300 dark:border-orange-800 hover:bg-orange-200 dark:hover:bg-orange-800 px-2 py-0.5 rounded-full font-bold transition flex items-center gap-1 shadow" title="Entries have been waiting to sync for over 24h. Tap to back up a copy now.">
                 ⏳ Back Up Old Queue
             </button>
@@ -3338,6 +3661,23 @@
                     <button type="button" onclick="testCloudConnection()" id="connectionTesterBtn" class="bg-blue-600 dark:bg-blue-900 hover:bg-blue-500 dark:hover:bg-blue-800 text-white font-bold text-xs px-3 rounded-lg transition shrink-0">Test ⚡</button>
                 </div>
                 <div id="testConnectionStatusFeedback" class="text-[10px] font-bold hidden leading-tight"></div>
+            </div>
+
+            <!-- Google Maps: interactive Director GPS map -->
+            <div class="theme-card flex flex-col gap-2">
+                <div class="flex items-center justify-between gap-2">
+                    <h4 class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">🗺️ Director Google Map</h4>
+                    <span id="googleMapsSettingsState" class="text-[9px] font-black theme-text-muted">Optional</span>
+                </div>
+                <label class="block text-[10px] theme-text-muted font-bold" for="googleMapsApiKeyInput">Maps JavaScript API browser key</label>
+                <input type="password" id="googleMapsApiKeyInput" autocomplete="off" placeholder="Restricted browser API key" class="w-full theme-input border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                <label class="block text-[10px] theme-text-muted font-bold" for="googleMapsMapIdInput">Map ID <span class="font-normal">(optional)</span></label>
+                <div class="flex gap-2">
+                    <input type="text" id="googleMapsMapIdInput" autocomplete="off" placeholder="Optional Google Cloud map ID" class="flex-grow theme-input border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                    <button type="button" onclick="testGoogleMapsConnection_()" id="googleMapsTesterBtn" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs px-3 rounded-lg transition shrink-0">Test map</button>
+                </div>
+                <div id="googleMapsTestFeedback" class="hidden text-[10px] font-bold leading-tight"></div>
+                <p class="text-[9px] theme-text-muted leading-snug">Used only when Director Mode opens the GPS map. Restrict the browser key to this web-app origin and to Maps JavaScript API. A server-provided key is used when this local field is blank.</p>
             </div>
 
             <!-- Event Profile: live, server-driven category/KM configuration -->
@@ -3654,6 +3994,10 @@
             </section>
 
             <div class="minimal-entry-zone">
+                <div class="minimal-entry-mode-row" aria-live="polite">
+                    <div class="minimal-entry-mode-copy"><span>Entering</span><strong id="minimalActiveTargetPill">BIB</strong></div>
+                    <span id="minimalWakeStatus">Screen awake</span>
+                </div>
                 <div id="minimalBibDisplayWrap" class="minimal-bib-display-wrap is-active" onclick="activateMinimalEntryTarget_('bib')">
                     <div id="minimalBibDisplay" class="is-placeholder" role="textbox" aria-label="BIB being entered" aria-live="polite">Tap the keypad</div>
                     <span id="minimalBibRepeatHint" class="minimal-bib-repeat-hint" aria-live="polite">Previously recorded</span>
@@ -3707,6 +4051,7 @@
                 </button>
             </div>
         </div>
+        <div id="directorToolbarHint" class="director-toolbar-hint" role="status" aria-live="polite"></div>
 
         <!-- Widget picker: lets the person watching this screen choose which panels are
              worth their space, with a one-line explanation of what each one shows. -->
@@ -3733,6 +4078,7 @@
         </div>
 
         <div class="p-3 sm:p-5 max-w-[1900px] mx-auto flex flex-col gap-3 sm:gap-4">
+            <nav id="directorSectionNav" class="director-section-nav" aria-label="Jump to command-view section"></nav>
 
             <!-- At-a-glance stat tiles -->
             <div id="directorStatTiles" class="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3"></div>
@@ -3740,7 +4086,7 @@
             <div class="grid grid-cols-1 xl:grid-cols-[1.1fr_1.7fr] gap-3 sm:gap-4 items-start">
 
                 <!-- Category overview -->
-                <section class="theme-panel rounded-2xl border shadow overflow-hidden">
+                <section id="directorCategoryOverview" class="theme-panel rounded-2xl border shadow overflow-hidden">
                     <div class="px-4 py-3 border-b theme-border bg-neutral-200/50 dark:bg-neutral-900/10">
                         <h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">📊 Category Overview</h2>
                     </div>
@@ -3764,7 +4110,7 @@
                 </section>
 
                 <!-- Live leaderboard -->
-                <section class="theme-panel rounded-2xl border shadow overflow-hidden">
+                <section id="directorLeaderboardSection" class="theme-panel rounded-2xl border shadow overflow-hidden">
                     <div class="px-4 py-3 border-b theme-border bg-neutral-200/50 dark:bg-neutral-900/10 flex items-center justify-between gap-2">
                         <h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🏆 Live Standings by Category</h2>
                         <span class="text-[9px] sm:text-[10px] theme-text-muted font-semibold">Ranked by furthest checkpoint, then total time</span>
@@ -3888,7 +4234,7 @@
                         <span class="widget-drag-handle icon-tap-target text-neutral-400 dark:text-neutral-500 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'map')" title="Drag to rearrange">⠿</span>
                         <div class="min-w-0 flex-1">
                             <h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🗺️ GPS Recording Map</h2>
-                            <p class="text-[10px] theme-text-muted mt-0.5">Latest PWA recording position by device, plus configured checkpoint GPS markers. Runs offline without sending coordinates to a third-party map service.</p>
+                            <p class="text-[10px] theme-text-muted mt-0.5">Interactive Google street map with pan, pinch, scroll-wheel zoom, device trails, configured checkpoints, and the latest PWA GPS position.</p>
                         </div>
                         <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="map"></div>
                     </div>
@@ -3948,26 +4294,6 @@
                     <div class="widget-resize-handle" onpointerdown="startWidgetResize_(event, 'health')"></div>
                 </section>
 
-                <section id="widget-incidents" data-widget="incidents" class="theme-panel rounded-2xl border shadow overflow-hidden flex flex-col">
-                    <div class="px-4 py-3 border-b theme-border bg-neutral-200/50 dark:bg-neutral-900/10 flex items-start gap-2">
-                        <span class="widget-drag-handle icon-tap-target text-neutral-400 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'incidents')">⠿</span>
-                        <div class="min-w-0 flex-1"><h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🚨 Incident Board</h2><p class="text-[10px] theme-text-muted mt-0.5">Open medical, transport, search, and withdrawal workflows.</p></div>
-                        <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="incidents"></div>
-                    </div>
-                    <div id="directorIncidentsBody" class="p-3"><div class="text-center theme-text-muted text-xs p-4">No open incidents.</div></div>
-                    <div class="widget-resize-handle" onpointerdown="startWidgetResize_(event, 'incidents')"></div>
-                </section>
-
-                <section id="widget-timeline" data-widget="timeline" class="theme-panel rounded-2xl border shadow overflow-hidden flex flex-col">
-                    <div class="px-4 py-3 border-b theme-border bg-neutral-200/50 dark:bg-neutral-900/10 flex items-start gap-2">
-                        <span class="widget-drag-handle icon-tap-target text-neutral-400 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'timeline')">⠿</span>
-                        <div class="min-w-0 flex-1"><h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🧾 Command-Centre Incident Timeline</h2><p class="text-[10px] theme-text-muted mt-0.5">COT alerts, incidents, safety notes, acknowledgements, checkpoint passages, and edits.</p></div>
-                        <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="timeline"></div>
-                    </div>
-                    <div id="directorTimelineBody" class="p-3"><div class="text-center theme-text-muted text-xs p-4">Waiting for event activity.</div></div>
-                    <div class="widget-resize-handle" onpointerdown="startWidgetResize_(event, 'timeline')"></div>
-                </section>
-
                 <section id="widget-checkpoint-health" data-widget="checkpoint-health" class="theme-panel rounded-2xl border shadow overflow-hidden flex flex-col">
                     <div class="px-4 py-3 border-b theme-border bg-neutral-200/50 dark:bg-neutral-900/10 flex items-start gap-2">
                         <span class="widget-drag-handle icon-tap-target text-neutral-400 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'checkpoint-health')">⠿</span>
@@ -4002,6 +4328,8 @@
          director/safety officer can account for every runner, not just
          review scan history.
          ══════════════════════════════════════════════════════════════════ -->
+    <button id="directorBackToTop" type="button" class="director-back-to-top" aria-label="Back to top of Race Command View" title="Back to top">↑</button>
+
     <div id="safetyLogView" class="hidden fixed inset-0 z-[60] theme-bg overflow-y-auto" style="padding-top: env(safe-area-inset-top, 0px);">
         <div class="max-w-[1400px] mx-auto p-4 flex flex-col gap-4">
             <div class="flex items-center justify-between gap-2 flex-wrap">
@@ -4560,10 +4888,13 @@
         </div>
     </main>
 
-    <!-- Transparent Success Toast -->
-    <div id="successToast" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] cursor-pointer bg-white/80 dark:bg-neutral-950/40 backdrop-blur-md rounded-2xl p-6 flex flex-col items-center justify-center select-none border border-neutral-300 dark:border-neutral-800 shadow-2xl" onclick="hideSuccessToast()">
-        <span class="text-7xl filter drop-shadow-md opacity-90 transform transition-transform active:scale-90">✅</span>
-        <span class="text-[10px] text-emerald-700 dark:text-emerald-400 font-black tracking-widest uppercase mt-1 opacity-95">Logged</span>
+    <!-- Compact, non-blocking success confirmation -->
+    <div id="successToast" class="hidden fixed z-[100] cursor-pointer backdrop-blur-md border shadow-2xl" onclick="hideSuccessToast()" role="alert" aria-live="assertive">
+        <span class="success-toast-check" aria-hidden="true">✓</span>
+        <span class="success-toast-copy">
+            <strong id="successToastBib">BIB logged</strong>
+            <span id="successToastDetail">Saved on this device</span>
+        </span>
     </div>
 
 
@@ -4636,5 +4967,6 @@
     <script src="app/main.js"></script>
     <script src="app/operations-v19.js"></script>
     <script src="app/director-ops-v192.js"></script>
+    <script src="app/ux-v193.js"></script>
 </body>
 </html>
