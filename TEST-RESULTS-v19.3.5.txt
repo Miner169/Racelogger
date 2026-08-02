@@ -1,0 +1,42 @@
+RACE BIB LOGGER v19.3.5 — VALIDATION RESULTS
+=============================================
+
+PASSED
+------
+- JavaScript syntax: app/main.js
+- JavaScript syntax: app/slippy-map-v1935.js
+- JavaScript syntax: app/ux-v1935.js
+- JavaScript syntax: app/operations-v19.js
+- JavaScript syntax: app/director-ops-v192.js
+- JavaScript syntax: sw.js
+- manifest.json parsing
+- package.json parsing
+- Deployment asset validation, including versioned URL query stripping
+- Manifest icon validation
+- Service-worker app-shell asset validation
+- Integrity unit tests
+- SHA-256 checksum parity test
+- FNV-1a 64-bit fallback parity test
+- Static integration checks for:
+  * one-tap ABC focus path
+  * iOS inline LOG touch/mouse/click path
+  * native BIB value commit before submission
+  * keyboard reopen path after submission/cancel
+  * non-virtual Safety Log rendering through 600 runners
+  * conditional virtual spacer rows
+  * API-key-free OpenStreetMap URL and renderer
+  * inferred checkpoint markers from recorded GPS
+  * absence of the legacy Google Maps key/configuration message
+  * full mobile Race Command View title CSS
+  * v19.3.5 service-worker cache rotation and cache-busted assets
+
+NOT EXECUTED IN THIS ENVIRONMENT
+--------------------------------
+- Native iOS installed-PWA keyboard animation and keyboard reopening
+- Android installed-PWA software keyboard behavior
+- Live Apps Script synchronization against the production spreadsheet
+- Real GPS movement and checkpoint inference using event devices
+- External OpenStreetMap tile availability on the event network
+- Long-duration multi-device soak testing
+
+These physical/live checks remain required before race-day deployment.

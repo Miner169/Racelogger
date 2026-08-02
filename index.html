@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Race Bib Logger</title>
     <link rel="icon" href="icons/icon-192.png" type="image/png">
-    <link class="theme-manifest" rel="manifest" href="manifest.json">
+    <link class="theme-manifest" rel="manifest" href="manifest.json?v=19.3.5">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
     <meta name="theme-color" id="themeColorMeta" content="#0a0a0c">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,7 +25,7 @@
          larger screens. Declaring .hidden later in the page caused both the desktop
          action and its mobile icon to be hidden at PC widths. -->
     <style id="criticalVisibilityFallback">.hidden { display: none; }</style>
-    <link rel="stylesheet" href="tailwind.css">
+    <link rel="stylesheet" href="tailwind.css?v=19.3.5">
     <style>
         /* Theme Variables
            ---------------------------------------------------------------------------
@@ -3289,7 +3290,7 @@
 
 
         /* =====================================================================
-           v19.3.4 — Compact entry, duplicate, setup, and Director refinements
+           v19.3.5 — Compact entry, duplicate, setup, and Director refinements
            Keeps operational behaviour unchanged while making primary actions
            easier to hit, reducing layout shift, and improving small-screen use.
            ===================================================================== */
@@ -3598,7 +3599,7 @@
     
 
 </style>
-<link rel="stylesheet" href="app/ux-v1934.css">
+<link rel="stylesheet" href="app/ux-v1935.css?v=19.3.5">
 </head>
 <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
 
@@ -3957,7 +3958,7 @@
                     <div id="minimalBibDisplay" class="is-placeholder" role="textbox" aria-label="BIB being entered" aria-live="polite">Tap the keypad</div>
                     <input id="minimalNativeBibInput" class="minimal-native-bib-input" type="text" inputmode="text" enterkeyhint="done" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" aria-label="Native keyboard BIB input" onkeydown="handleMinimalNativeBibKeydown_(event)" oninput="handleMinimalNativeBibInput_(this)" onblur="handleMinimalNativeKeyboardBlur_()">
                     <span id="minimalBibRepeatHint" class="minimal-bib-repeat-hint" aria-live="polite">Previously recorded</span>
-                    <button type="button" id="minimalKeyboardLogButton" class="minimal-inline-log-btn" onpointerdown="submitMinimalBibFromKeyboard_(event)" onkeydown="if(event.key==='Enter'||event.key===' '){submitMinimalBibFromKeyboard_(event)}" aria-label="Log this BIB while the phone keyboard is open" title="Log BIB">LOG</button>
+                    <button type="button" id="minimalKeyboardLogButton" class="minimal-inline-log-btn" ontouchstart="submitMinimalBibFromKeyboard_(event)" onmousedown="submitMinimalBibFromKeyboard_(event)" onclick="submitMinimalBibFromKeyboard_(event)" onkeydown="if(event.key==='Enter'||event.key===' '){submitMinimalBibFromKeyboard_(event)}" aria-label="Log this BIB while the phone keyboard is open" title="Log BIB">LOG</button>
                     <button type="button" class="minimal-backspace-btn" onpointerdown="event.preventDefault(); event.stopPropagation(); minimalBibBackspace_('bib')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); minimalBibBackspace_('bib')}" aria-label="Delete last BIB character" title="Backspace BIB">⌫</button>
                 </div>
                 <div id="minimalRemarkShell" class="minimal-remark-shell">
@@ -4190,7 +4191,7 @@
                         <span class="widget-drag-handle icon-tap-target text-neutral-400 dark:text-neutral-500 text-sm mt-0.5" onpointerdown="startWidgetDrag_(event, 'map')" title="Drag to rearrange">⠿</span>
                         <div class="min-w-0 flex-1">
                             <h2 class="text-xs sm:text-sm font-black theme-text-muted uppercase tracking-wider">🗺️ GPS Recording Map</h2>
-                            <p class="text-[10px] theme-text-muted mt-0.5">Interactive Google street map with pan, pinch, scroll-wheel zoom, device trails, configured checkpoints, and the latest PWA GPS position.</p>
+                            <p class="text-[10px] theme-text-muted mt-0.5">Interactive OpenStreetMap view with pan, pinch, zoom, device trails, configured checkpoints, and the latest PWA GPS position. No API key is required.</p>
                         </div>
                         <div class="widget-width-controls flex gap-1 shrink-0" data-widget-controls="map"></div>
                     </div>
@@ -4908,16 +4909,16 @@
 
     <div id="srAnnouncer" class="sr-only-live" role="status" aria-live="polite" aria-atomic="true"></div>
 
-    <script src="app/constants.js"></script>
-    <script src="app/contracts.js"></script>
-    <script src="app/state-store.js"></script>
-    <script src="app/errors.js"></script>
-    <script src="app/components.js"></script>
-    <script src="app/integrity.js"></script>
-    <script src="app/slippy-map-v1934.js"></script>
-    <script src="app/main.js"></script>
-    <script src="app/operations-v19.js"></script>
-    <script src="app/director-ops-v192.js"></script>
-    <script src="app/ux-v1934.js"></script>
+    <script src="app/constants.js?v=19.3.5"></script>
+    <script src="app/contracts.js?v=19.3.5"></script>
+    <script src="app/state-store.js?v=19.3.5"></script>
+    <script src="app/errors.js?v=19.3.5"></script>
+    <script src="app/components.js?v=19.3.5"></script>
+    <script src="app/integrity.js?v=19.3.5"></script>
+    <script src="app/slippy-map-v1935.js?v=19.3.5"></script>
+    <script src="app/main.js?v=19.3.5"></script>
+    <script src="app/operations-v19.js?v=19.3.5"></script>
+    <script src="app/director-ops-v192.js?v=19.3.5"></script>
+    <script src="app/ux-v1935.js?v=19.3.5"></script>
 </body>
 </html>

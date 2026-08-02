@@ -1,11 +1,12 @@
-/* Race Bib Logger v19.3.4 director analytics suite.
- * Keeps high-value forecasting, safety analysis and reporting while removing
- * the operational boards requested for a cleaner command view.
+/* Race Bib Logger v19.2 command-centre operations suite.
+ * Adds forecast, heatmap, safety, logistics and reporting workflows without
+ * changing the Racelog A:AC data schema. Operational boards sync through the
+ * generic CommandOps backend and remain editable offline through localStorage.
  */
 (function (global) {
   'use strict';
 
-  const VERSION = '19.3.4';
+  const VERSION = '19.2.0';
   const STORE_KEY = 'raceCommandOps_v19_2';
   const HEATMAP_WINDOW_KEY = 'directorHeatmapWindow_v19_2';
   const OPS_EPOCH_KEY = 'raceCommandOpsEventEpoch_v19_2';
@@ -16,18 +17,22 @@
   let pullInFlight_ = null;
   let activeOpId_ = '';
   let heatmapWindowMinutes_ = Number(localStorage.getItem(HEATMAP_WINDOW_KEY) || 60) || 60;
+  let handoverSnapshot_ = null;
 
   const WIDGETS = [
     ['heatmap', '🔥 Checkpoint Load Heatmap', 'Scans per minute by checkpoint and rolling time block.'],
     ['cot-funnel', '⏳ COT Risk Funnel', 'Safe, approaching, critical, overdue, acknowledged, and resolved runners.'],
+    ['missing-runners', '🔎 Missing Runner Workflow', 'Assign an owner and record calls, searches, sightings, and resolution.'],
     ['route-anomalies', '🧭 Route Anomaly Diagram', 'Skipped checkpoints, reverse movement, impossible travel, and approved exceptions.'],
     ['finish-projection', '🏁 Finish Projection', 'Estimated finish windows and runner counts by KM and category.'],
-    ['outcomes', '📋 DNS / DNF / Withdrawal / Medical', 'Operational totals and unresolved runner outcomes.']
+    ['outcomes', '📋 DNS / DNF / Withdrawal / Medical', 'Operational totals and unresolved runner outcomes.'],
+    ['medical-capacity', '🚑 Medical Capacity Board', 'Medical teams, vehicles, active cases, destinations, and availability.'],
+    ['transport-sweep', '🚌 Sweep & Transport Tracking', 'Sweep teams, buses, pickups, passengers, and last known location.'],
+    ['weather-risk', '⛈️ Weather Risk', 'Optional official or manual weather and lightning risk against event thresholds.'],
+    ['supplies', '📦 Checkpoint Supply Status', 'Water, food, ice, lighting, radios, medical stock, and resupply requests.'],
+    ['handover', '🤝 Shift Handover', 'Active incidents, missing runners, quiet devices, queues, supplies, and upcoming cutoffs.'],
+    ['post-race-report', '🧾 Post-Race Command Report', 'Export timeline, safety outcomes, device health, checkpoint performance, and reconciliation.']
   ];
-  const REMOVED_WIDGET_IDS = Object.freeze([
-    'incidents', 'timeline', 'missing-runners', 'medical-capacity',
-    'transport-sweep', 'weather-risk', 'supplies', 'handover', 'post-race-report'
-  ]);
 
   const TYPE_CONFIG = {
     missing_runner: {
@@ -75,6 +80,7 @@
     if (stored && stored !== epoch) {
       commandOps_ = {};
       saveJson_(STORE_KEY, commandOps_);
+      handoverSnapshot_ = null;
     }
     localStorage.setItem(OPS_EPOCH_KEY, epoch);
     return stored !== epoch;
@@ -177,17 +183,14 @@
   }
 
   function injectWidgets_() {
-    REMOVED_WIDGET_IDS.forEach(id => {
-      document.getElementById('widget-' + id)?.remove();
-    });
     const grid = document.getElementById('directorWidgetsGrid');
     if (!grid) return;
-    WIDGETS.forEach(([id, title, explain]) => {
-      if (document.getElementById('widget-' + id)) return;
-      grid.insertAdjacentHTML('beforeend', sectionHtml_(id, title, explain));
+    const defs = global.DIRECTOR_WIDGET_DEFS;
+    WIDGETS.forEach(([id, label, explain]) => {
+      if (Array.isArray(defs) && !defs.some(item => item.id === id)) defs.push({ id, label, explain });
+      if (!document.getElementById('widget-' + id)) grid.insertAdjacentHTML('beforeend', sectionHtml_(id, label, explain));
     });
-    if (typeof global.populateDirectorWidthControls_ === 'function') global.populateDirectorWidthControls_();
-    if (typeof global.restoreDirectorWidgetLayout_ === 'function') global.restoreDirectorWidgetLayout_();
+    if (typeof global.applyDirectorWidgetVisibility_ === 'function') global.applyDirectorWidgetVisibility_();
   }
 
   function injectModal_() {
@@ -568,25 +571,12 @@
   }
 
   function redrawMapWithHealth_(logs) {
-    if (typeof global.renderDirectorGpsMap_ !== 'function') return;
-    const synthetic = (global.serverOperationsSummary_?.devices || [])
-      .filter(d => Number.isFinite(Number(d.latitude)) && Number.isFinite(Number(d.longitude)))
-      .map(d => ({
-        uid: 'health-' + d.deviceId,
-        device: d.device || d.deviceId,
-        creatorId: d.deviceId,
-        checkpoint: d.checkpoint || 'Unspecified',
-        volunteer: d.volunteer || '',
-        latitude: d.latitude,
-        longitude: d.longitude,
-        gpsAccuracyM: d.gpsAccuracyM,
-        time: d.gpsCapturedAt || d.lastSeen || new Date().toISOString(),
-        status: 'Active',
-        synced: true
-      }));
-    Promise.resolve(global.renderDirectorGpsMap_((logs || []).concat(synthetic)))
-      .catch(() => { /* the map renderer displays its own actionable error */ })
-      .finally(() => appendEnhancedDeviceLayer_(logs));
+    if(typeof global.renderDirectorGpsMap_!=='function')return;
+    const synthetic=(global.serverOperationsSummary_?.devices||[]).filter(d=>Number.isFinite(Number(d.latitude))&&Number.isFinite(Number(d.longitude))).map(d=>({
+      uid:'health-'+d.deviceId,device:d.device||d.deviceId,creatorId:d.deviceId,checkpoint:d.checkpoint||'Unspecified',volunteer:d.volunteer||'',latitude:d.latitude,longitude:d.longitude,gpsAccuracyM:d.gpsAccuracyM,time:d.gpsCapturedAt||d.lastSeen||new Date().toISOString(),status:'Active',synced:true
+    }));
+    try{global.renderDirectorGpsMap_((logs||[]).concat(synthetic));}catch(_){/* map remains */}
+    appendEnhancedDeviceLayer_(logs);
   }
 
   function renderEnhancedIncidents_() {
@@ -608,14 +598,71 @@
   global.v192AcknowledgeIncident_=function(encodedId){const id=decodeURIComponent(encodedId),i=global.localIncidents_?.[id];if(!i)return;i.acknowledgedAt=i.acknowledgedAt||nowIso_();i.status=i.status==='open'?'responding':i.status;i.updatedAt=nowIso_();i.updatedBy=currentVolunteer_();i.synced=false;persistIncident_(i);};
   global.v192ResolveIncident_=function(encodedId){const id=decodeURIComponent(encodedId),i=global.localIncidents_?.[id];if(!i)return;const resolution=prompt('Resolution / handover note:',i.resolution||'');if(resolution===null||!resolution.trim())return;i.resolution=resolution.trim();i.resolvedAt=nowIso_();i.status='resolved';i.updatedAt=i.resolvedAt;i.updatedBy=currentVolunteer_();i.synced=false;persistIncident_(i);};
 
+  function handoverData_() {
+    const incidents=Object.values(global.localIncidents_||{}).filter(i=>openStatus_(i.status));
+    const missing=opArray_('missing_runner').filter(i=>openStatus_(i.status));
+    const devices=(global.serverOperationsSummary_?.devices||[]);
+    const quiet=devices.filter(d=>!d.lastSeen||Date.now()-parseMs_(d.lastSeen)>5*60000);
+    const queue=devices.reduce((sum,d)=>sum+(Number(d.queueCount)||0),0);
+    const alerts=Object.values(global.localCotAlerts_||{}).filter(a=>!a.resolved&&!a.acknowledged).sort((a,b)=>parseMs_(a.cotTime)-parseMs_(b.cotTime));
+    const supplies=opArray_('checkpoint_supply').filter(i=>['low','critical','resupply_requested','resupply_enroute'].includes(String(i.status||'').toLowerCase()));
+    return {generatedAt:nowIso_(),generatedBy:currentVolunteer_(),activeIncidents:incidents,missingRunners:missing,quietDevices:quiet,pendingQueue:queue,upcomingCot:alerts.slice(0,15),supplyAttention:supplies};
+  }
+  function handoverText_(h) {
+    return `SHIFT HANDOVER — ${new Date(h.generatedAt).toLocaleString()}\nPrepared by: ${h.generatedBy||'Unspecified'}\n\nACTIVE INCIDENTS (${h.activeIncidents.length})\n${h.activeIncidents.map(i=>`- ${i.bib||'No BIB'} ${i.type||'incident'} at ${i.checkpoint||'unknown'} — ${i.status||'open'} — owner ${i.owner||'unassigned'} — open ${durationLabel_(i.createdAt)}`).join('\n')||'- None'}\n\nMISSING RUNNERS (${h.missingRunners.length})\n${h.missingRunners.map(i=>`- BIB ${i.bib||'unknown'} — ${i.status} — owner ${i.owner||'unassigned'} — ${Number(i.details?.calls)||0} calls / ${Number(i.details?.searches)||0} searches${i.details?.lastSighting?' — '+i.details.lastSighting:''}`).join('\n')||'- None'}\n\nQUIET / STALE DEVICES (${h.quietDevices.length})\n${h.quietDevices.map(d=>`- ${d.checkpoint||d.deviceId}: last seen ${ageLabel_(d.lastSeen)}, queue ${Number(d.queueCount)||0}, battery ${d.batteryPercent==null?'—':Math.round(Number(d.batteryPercent)*100)+'%'}`).join('\n')||'- None'}\nPending operational queue across reporting devices: ${h.pendingQueue}\n\nUPCOMING / ACTIVE COT (${h.upcomingCot.length})\n${h.upcomingCot.map(a=>`- BIB ${a.bib} ${a.level} — COT ${formatTime_(a.cotTime)} — ${a.acknowledged?'acknowledged':'needs acknowledgement'}`).join('\n')||'- None'}\n\nSUPPLY ATTENTION (${h.supplyAttention.length})\n${h.supplyAttention.map(s=>`- ${s.checkpoint||s.name}: ${s.status}${s.details?.resupply?' — '+s.details.resupply:''}`).join('\n')||'- None'}`;
+  }
+  function renderHandover_() {
+    const el=document.getElementById('director-handover-body');if(!el)return;
+    const h=handoverSnapshot_||handoverData_(),text=handoverText_(h);
+    el.innerHTML=`<div class="v192-toolbar"><span class="text-[10px] theme-text-muted">Snapshot generated ${ageLabel_(h.generatedAt)}</span><div class="flex gap-1"><button class="v192-btn" onclick="generateV192Handover_()">↻ Generate</button><button class="v192-btn" onclick="copyV192Handover_()">Copy</button><button class="v192-btn v192-btn-primary" onclick="downloadV192Handover_()">Download</button></div></div><div class="v192-pre">${esc_(text)}</div>`;
+    setEmpty_('handover',false);
+  }
+  global.generateV192Handover_=function(){handoverSnapshot_=handoverData_();renderHandover_();};
+  global.copyV192Handover_=async function(){const text=handoverText_(handoverSnapshot_||handoverData_());try{await navigator.clipboard.writeText(text);alert('Handover copied.');}catch(_){prompt('Copy handover:',text);}};
+  function downloadText_(name,text,type){const blob=new Blob([text],{type:type||'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  global.downloadV192Handover_=function(){const h=handoverSnapshot_||handoverData_();downloadText_(`race-handover-${new Date().toISOString().replace(/[:.]/g,'-')}.txt`,handoverText_(h));};
+
+  function buildCommandTimeline_(logs, incidents, alerts, notes, ops) {
+    const events = [];
+    (logs || []).forEach(log => {
+      const base = { at: log.time || log.timestamp || '', bib: log.bib || '', checkpoint: log.checkpoint || '', source: 'Passage' };
+      events.push(Object.assign({}, base, { type: 'checkpoint_passage', summary: `BIB ${log.bib || 'unknown'} recorded at ${log.checkpoint || 'Unspecified'}` }));
+      if (log.editedAt) events.push({ at: log.editedAt, bib: log.bib || '', checkpoint: log.checkpoint || '', source: 'Audit', type: 'record_edited', summary: `Passage edited by ${log.editedBy || log.editor || 'unknown'}` });
+    });
+    (incidents || []).forEach(i => {
+      events.push({ at: i.createdAt, bib: i.bib || '', checkpoint: i.checkpoint || '', source: 'Incident', type: 'incident_opened', summary: `${i.type || 'Incident'} opened${i.owner ? ' · owner ' + i.owner : ''}` });
+      if (i.acknowledgedAt) events.push({ at: i.acknowledgedAt, bib: i.bib || '', checkpoint: i.checkpoint || '', source: 'Incident', type: 'incident_acknowledged', summary: `Incident acknowledged${i.owner ? ' by ' + i.owner : ''}` });
+      if (i.resolvedAt) events.push({ at: i.resolvedAt, bib: i.bib || '', checkpoint: i.checkpoint || '', source: 'Incident', type: 'incident_resolved', summary: `Incident resolved${i.resolution ? ' · ' + i.resolution : ''}` });
+    });
+    (alerts || []).forEach(a => {
+      events.push({ at: a.firstSeenAt || a.createdAt || a.updatedAt || a.cotTime, bib: a.bib || '', checkpoint: '', source: 'COT', type: 'cot_alert', summary: `${a.level || 'COT'} alert · cutoff ${formatTime_(a.cotTime)}` });
+      if (a.acknowledgedAt) events.push({ at: a.acknowledgedAt, bib: a.bib || '', checkpoint: '', source: 'COT', type: 'cot_acknowledged', summary: `COT acknowledged by ${a.acknowledgedBy || 'unknown'}` });
+      if (a.resolvedAt) events.push({ at: a.resolvedAt, bib: a.bib || '', checkpoint: '', source: 'COT', type: 'cot_resolved', summary: `COT resolved by ${a.resolvedBy || 'unknown'}${a.resolution ? ' · ' + a.resolution : ''}` });
+    });
+    (notes || []).forEach(n => events.push({ at: n.updatedAt || n.time, bib: n.bib || '', checkpoint: n.checkpoint || '', source: 'Safety', type: 'safety_note', summary: `${n.status || 'Safety note'}${n.remark ? ' · ' + n.remark : ''}` }));
+    (ops || []).forEach(o => events.push({ at: o.updatedAt || o.createdAt, bib: o.bib || '', checkpoint: o.checkpoint || '', source: 'Command', type: o.type || 'command_op', summary: `${o.name || o.type || 'Command operation'} · ${o.status || 'open'}${o.owner ? ' · owner ' + o.owner : ''}` }));
+    return events.filter(e => Number.isFinite(parseMs_(e.at))).sort((a,b) => parseMs_(a.at) - parseMs_(b.at));
+  }
+
+  function buildReport_() {
+    const logs=(lastLogs_||[]).filter(countable_),summary=global.serverOperationsSummary_||{},incidents=Object.values(global.localIncidents_||{}),alerts=Object.values(global.localCotAlerts_||{}),notes=Object.values(global.localSafetyNotes_||{}),ops=opArray_();
+    const cp={};logs.forEach(l=>{const k=l.checkpoint||'Unspecified';cp[k]=cp[k]||{logs:0,unique:new Set(),lastSeen:0};cp[k].logs++;cp[k].unique.add(bibKey_(l));cp[k].lastSeen=Math.max(cp[k].lastSeen,parseMs_(l.time)||0);});
+    const reconciliation=loadJson_(global.RaceConfig?.serverReconciliationKey||'serverReconciliationSnapshot_v19',{});
+    const timeline = buildCommandTimeline_(logs, incidents, alerts, notes, ops);
+    return {version:VERSION,generatedAt:nowIso_(),generatedBy:currentVolunteer_(),totals:{logs:logs.length,uniqueRunners:new Set(logs.map(bibKey_).filter(Boolean)).size,incidents:incidents.length,cotAlerts:alerts.length,commandOps:ops.length,timelineEvents:timeline.length},checkpointPerformance:Object.entries(cp).map(([checkpoint,v])=>({checkpoint,logs:v.logs,uniqueRunners:v.unique.size,lastSeen:v.lastSeen?new Date(v.lastSeen).toISOString():''})),timeline,incidents,cotAlerts:alerts,safetyNotes:notes,commandOps:ops,devices:summary.devices||[],weatherRisk:summary.weatherRisk||null,integrity:summary.integrity||{},reconciliation};
+  }
+  function reportHtml_(r){const table=(headers,rows)=>`<table><thead><tr>${headers.map(h=>`<th>${esc_(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;return `<!doctype html><html><head><meta charset="utf-8"><title>Post-Race Command Report</title><style>body{font-family:Arial,sans-serif;margin:32px;color:#111}h1,h2{margin:.6em 0}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.card{border:1px solid #ccc;padding:12px;border-radius:8px}.card b{font-size:24px;display:block}table{border-collapse:collapse;width:100%;margin:12px 0 24px;font-size:12px}th,td{border:1px solid #ccc;padding:6px;text-align:left}th{background:#eee}pre{white-space:pre-wrap;background:#f5f5f5;padding:12px}</style></head><body><h1>Race Command Post-Race Report</h1><p>Generated ${esc_(new Date(r.generatedAt).toLocaleString())} by ${esc_(r.generatedBy||'Unspecified')} · App v${VERSION}</p><div class="cards">${Object.entries(r.totals).map(([k,v])=>`<div class="card"><b>${v}</b>${esc_(k)}</div>`).join('')}</div><h2>Checkpoint performance</h2>${table(['Checkpoint','Logs','Unique runners','Last seen'],r.checkpointPerformance.map(x=>`<tr><td>${esc_(x.checkpoint)}</td><td>${x.logs}</td><td>${x.uniqueRunners}</td><td>${esc_(formatTime_(x.lastSeen))}</td></tr>`))}<h2>Complete command timeline</h2>${table(['Time','Source','Type','BIB','Checkpoint','Event'],r.timeline.map(e=>`<tr><td>${esc_(formatTime_(e.at))}</td><td>${esc_(e.source)}</td><td>${esc_(e.type)}</td><td>${esc_(e.bib)}</td><td>${esc_(e.checkpoint)}</td><td>${esc_(e.summary)}</td></tr>`))}<h2>Incidents</h2>${table(['BIB','Type','Status','Owner','Created','Acknowledged','Resolved','Resolution'],r.incidents.map(i=>`<tr><td>${esc_(i.bib)}</td><td>${esc_(i.type)}</td><td>${esc_(i.status)}</td><td>${esc_(i.owner)}</td><td>${esc_(formatTime_(i.createdAt))}</td><td>${esc_(formatTime_(i.acknowledgedAt))}</td><td>${esc_(formatTime_(i.resolvedAt))}</td><td>${esc_(i.resolution)}</td></tr>`))}<h2>COT outcomes</h2>${table(['BIB','Category','Level','Acknowledged','Resolved','COT'],r.cotAlerts.map(a=>`<tr><td>${esc_(a.bib)}</td><td>${esc_(a.category)}</td><td>${esc_(a.level)}</td><td>${a.acknowledged?'Yes':'No'}</td><td>${a.resolved?'Yes':'No'}</td><td>${esc_(formatTime_(a.cotTime))}</td></tr>`))}<h2>Device health</h2>${table(['Device','Checkpoint','Battery','Queue','Connection','Last seen','GPS'],r.devices.map(d=>`<tr><td>${esc_(d.device||d.deviceId)}</td><td>${esc_(d.checkpoint)}</td><td>${d.batteryPercent==null?'—':Math.round(Number(d.batteryPercent)*100)+'%'}</td><td>${Number(d.queueCount)||0}</td><td>${esc_(d.connectivity||'')}</td><td>${esc_(formatTime_(d.lastSeen))}</td><td>${d.latitude==null?'—':esc_(Number(d.latitude).toFixed(5)+', '+Number(d.longitude).toFixed(5))}</td></tr>`))}<h2>Integrity and reconciliation</h2><pre>${esc_(JSON.stringify({integrity:r.integrity,reconciliation:r.reconciliation,weatherRisk:r.weatherRisk},null,2))}</pre><h2>Command operations</h2><pre>${esc_(JSON.stringify(r.commandOps,null,2))}</pre></body></html>`;}
+  function renderPostRaceReport_(){const el=document.getElementById('director-post-race-report-body');if(!el)return;const r=buildReport_();el.innerHTML=`<div class="v192-grid"><div class="v192-stat"><strong>${r.totals.logs}</strong><span>Logs</span></div><div class="v192-stat"><strong>${r.totals.uniqueRunners}</strong><span>Unique runners</span></div><div class="v192-stat"><strong>${r.totals.incidents}</strong><span>Incidents</span></div><div class="v192-stat"><strong>${r.devices.length}</strong><span>Devices</span></div></div><div class="v192-toolbar"><p class="text-[10px] theme-text-muted flex-1">The HTML report contains the complete command timeline, checkpoint performance, incidents, COT outcomes, device health, weather, integrity, reconciliation, and command operations. JSON preserves machine-readable detail.</p><button class="v192-btn" onclick="downloadV192Report_('json')">Download JSON</button><button class="v192-btn v192-btn-primary" onclick="downloadV192Report_('html')">Download HTML report</button></div>`;setEmpty_('post-race-report',false);}
+  global.downloadV192Report_=function(format){const r=buildReport_(),stamp=new Date().toISOString().replace(/[:.]/g,'-');if(format==='json')downloadText_(`post-race-command-report-${stamp}.json`,JSON.stringify(r,null,2),'application/json');else downloadText_(`post-race-command-report-${stamp}.html`,reportHtml_(r),'text/html;charset=utf-8');};
+
   function renderAll_(logs) {
     if (Array.isArray(logs)) lastLogs_ = logs;
-    renderHeatmap_(lastLogs_);
-    renderCotFunnel_(lastLogs_);
-    renderRouteAnomalies_(lastLogs_);
-    renderFinishProjection_(lastLogs_);
-    renderOutcomes_();
-    redrawMapWithHealth_(lastLogs_);
+    renderHeatmap_(lastLogs_); renderCotFunnel_(lastLogs_); renderMissingRunners_(); renderRouteAnomalies_(lastLogs_);
+    renderFinishProjection_(lastLogs_); renderOutcomes_();
+    renderResourceBoard_('medical_resource','director-medical-capacity-body','medical-capacity');
+    renderResourceBoard_('transport_resource','director-transport-sweep-body','transport-sweep');
+    renderWeather_(); renderResourceBoard_('checkpoint_supply','director-supplies-body','supplies');
+    renderHandover_(); renderPostRaceReport_(); renderEnhancedIncidents_(); redrawMapWithHealth_(lastLogs_);
   }
 
   function mergeServerSummaryOps_() {
@@ -625,38 +672,25 @@
   }
 
   function installOverrides_() {
-    const oldRender = global.renderDirectorModeContent_;
-    global.renderDirectorModeContent_ = function (logs) {
-      if (typeof oldRender === 'function') oldRender(logs);
-      renderAll_(logs || []);
-    };
-    const oldOperations = global.renderDirectorOperations_;
-    global.renderDirectorOperations_ = function (logs) {
-      if (typeof oldOperations === 'function') oldOperations(logs);
-      renderAll_(logs || lastLogs_);
-    };
-    const oldOpen = global.openDirectorMode;
-    global.openDirectorMode = function () {
-      if (typeof oldOpen === 'function') oldOpen();
-      setTimeout(() => renderAll_(lastLogs_), 50);
-    };
-    const oldFetch = global.fetchOperationsSummary_;
-    if (typeof oldFetch === 'function') {
-      global.fetchOperationsSummary_ = async function () {
-        const result = await oldFetch();
-        renderAll_(lastLogs_);
-        return result;
-      };
-    }
+    const oldRender=global.renderDirectorModeContent_;
+    global.renderDirectorModeContent_=function(logs){if(typeof oldRender==='function')oldRender(logs);mergeServerSummaryOps_();renderAll_(logs||[]);};
+    const oldOperations=global.renderDirectorOperations_;
+    global.renderDirectorOperations_=function(logs){if(typeof oldOperations==='function')oldOperations(logs);mergeServerSummaryOps_();renderAll_(logs||lastLogs_);};
+    const oldOpen=global.openDirectorMode;
+    global.openDirectorMode=function(){if(typeof oldOpen==='function')oldOpen();pullCommandOps_();setTimeout(()=>renderAll_(lastLogs_),50);};
+    const oldFetch=global.fetchOperationsSummary_;
+    if(typeof oldFetch==='function')global.fetchOperationsSummary_=async function(){const result=await oldFetch();mergeServerSummaryOps_();renderAll_(lastLogs_);return result;};
   }
 
   function initialise_() {
-    injectStyles_();
-    injectWidgets_();
-    installOverrides_();
-    renderAll_([]);
+    adoptOpsEpoch_(localEventEpoch_());
+    injectStyles_(); injectWidgets_(); injectModal_(); installOverrides_(); mergeServerSummaryOps_(); renderAll_([]);
+    window.addEventListener('online',()=>{syncPendingOps_();pullCommandOps_();});
+    clearInterval(syncTimer_); syncTimer_=setInterval(()=>{if(!document.hidden){syncPendingOps_();pullCommandOps_();}},30000);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncPendingOps_();pullCommandOps_();}});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!document.getElementById('v192CommandOpModal')?.classList.contains('hidden'))global.closeV192CommandOp_();});
   }
 
-  global.RaceDirectorOpsV192 = Object.freeze({ render: renderAll_ });
+  global.RaceDirectorOpsV192 = Object.freeze({ render:renderAll_, pull:pullCommandOps_, sync:syncPendingOps_, buildReport:buildReport_, getCommandOps:()=>Object.values(commandOps_) });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialise_,{once:true});else initialise_();
 })(window);

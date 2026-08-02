@@ -56,13 +56,8 @@
     }
     UI.setText('v19DecisionConfirm', options.confirmLabel || 'Continue');
     UI.setText('v19DecisionCancel', options.cancelLabel || 'Cancel');
-    modal.dataset.kind = options.kind || '';
-    if (options.kind === 'duplicate' && global.minimalBibModeActive_ && typeof global.closeMinimalNativeKeyboard_ === 'function') {
-      global.closeMinimalNativeKeyboard_(false);
-    }
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
-    window.setTimeout(function () { document.getElementById('v19DecisionConfirm')?.focus({ preventScroll: true }); }, 30);
     return new Promise(function (resolve) { decisionResolver_ = { resolve: resolve, requireReason: !!(options.reasons && options.reasons.length) }; });
   }
 
@@ -78,7 +73,6 @@
     if (modal) {
       modal.classList.add('hidden');
       modal.setAttribute('aria-hidden', 'true');
-      modal.dataset.kind = '';
     }
     const pending = decisionResolver_;
     decisionResolver_ = null;
@@ -140,14 +134,15 @@
     const previousTime = typeof global.parseCustomOrIsoDate === 'function' ? global.parseCustomOrIsoDate(previous.time).getTime() : Date.parse(previous.time);
     const elapsed = Number.isFinite(previousTime) ? formatElapsed_(Date.now() - previousTime) : 'time unavailable';
     const device = typeof global.getDeviceLabel === 'function' ? global.getDeviceLabel(previous.device) : (previous.device || 'Unknown device');
-    const previousCheckpoint = previous.checkpoint || 'Unknown checkpoint';
-    const current = currentCheckpoint || 'Unknown checkpoint';
-    const passage = previousCheckpoint === current ? previousCheckpoint : previousCheckpoint + ' → ' + current;
-    return '<div class="v19-duplicate-compact">' +
-      '<strong>BIB ' + UI.escapeHtml(bib) + ' is already recorded</strong>' +
-      '<span>' + UI.escapeHtml(passage) + ' · ' + UI.escapeHtml(device) + ' · ' + UI.escapeHtml(previous.volunteer || 'Unknown volunteer') + '</span>' +
-      '<small>' + UI.escapeHtml(elapsed) + ' · ' + UI.escapeHtml(typeof global.formatLogTime === 'function' ? global.formatLogTime(previous.time) : previous.time) + '</small>' +
-      '</div>';
+    return '<div class="v19-warning-hero"><strong>BIB ' + UI.escapeHtml(bib) + ' was already recorded</strong><span>Review the previous passage before submitting another.</span></div>' +
+      '<dl class="v19-detail-grid">' +
+      '<div><dt>Previous checkpoint</dt><dd>' + UI.escapeHtml(previous.checkpoint || 'Unknown') + '</dd></div>' +
+      '<div><dt>Current checkpoint</dt><dd>' + UI.escapeHtml(currentCheckpoint || 'Unknown') + '</dd></div>' +
+      '<div><dt>Device</dt><dd>' + UI.escapeHtml(device) + '</dd></div>' +
+      '<div><dt>Volunteer</dt><dd>' + UI.escapeHtml(previous.volunteer || 'Unknown') + '</dd></div>' +
+      '<div><dt>Elapsed</dt><dd>' + UI.escapeHtml(elapsed) + '</dd></div>' +
+      '<div><dt>Recorded time</dt><dd>' + UI.escapeHtml(typeof global.formatLogTime === 'function' ? global.formatLogTime(previous.time) : previous.time) + '</dd></div>' +
+      '</dl>';
   }
 
   async function checkDuplicateAndLogV19_() {
@@ -206,9 +201,9 @@
       .sort(function (a, b) { return global.parseCustomOrIsoDate(b.time) - global.parseCustomOrIsoDate(a.time); })[0];
     if (recentDuplicate) {
       const decision = await openDecision_({
-        kind: 'duplicate',
-        title: 'Duplicate BIB',
+        title: 'Duplicate passage warning',
         bodyHtml: duplicateBodyHtml_(bib, recentDuplicate, checkpoint),
+        reasons: RC.reasonCodes.duplicate,
         confirmLabel: 'Log anyway',
         cancelLabel: 'Cancel'
       });
@@ -217,7 +212,7 @@
         global.announceToScreenReader_('Duplicate entry cancelled.');
         return;
       }
-      reasonCodes.push('DUPLICATE_CONFIRMED');
+      reasonCodes.push(decision.reasonCode);
       flags.push('duplicate-override');
     }
 
@@ -225,9 +220,19 @@
     const configuredRunner = global.findCategoryConfigForBib_(bib, global.categoryConfig || []);
     const unknownBib = !configuredRunner;
     if (unknownBib) {
-      // Preserve the passage without interrupting race-day entry. Reconciliation
-      // can resolve Setup/configuration gaps later.
-      reasonCodes.push('UNKNOWN_NOT_IN_SETUP');
+      const decision = await openDecision_({
+        title: 'Runner not found',
+        bodyHtml: '<div class="v19-warning-hero"><strong>BIB ' + UI.escapeHtml(bib) + ' is not in the current Setup configuration</strong><span>You can still preserve the passage as an unknown runner for later reconciliation.</span></div><p class="v19-modal-note">The record will be flagged <strong>Unknown BIB</strong> and excluded from silent “normal” handling.</p>',
+        reasons: RC.reasonCodes.unknown,
+        confirmLabel: 'Log unknown runner',
+        cancelLabel: 'Cancel'
+      });
+      if (!decision.approved) {
+        global.finishBibSubmission_();
+        global.announceToScreenReader_('Unknown runner entry cancelled.');
+        return;
+      }
+      reasonCodes.push(decision.reasonCode);
       flags.push('unknown-bib');
     }
 
@@ -315,17 +320,13 @@
     const text = document.getElementById('queueSummaryText');
     const detail = document.getElementById('queueExactSummary');
     const exactSentence = queueSummarySentence_(summary);
-    const bibQueueSentence = summary.logs
-      ? summary.logs + ' BIB log' + (summary.logs === 1 ? '' : 's') + ' pending'
-      : 'BIB logs synchronized';
-    if (count) count.textContent = summary.logs ? String(summary.logs) : '';
-    if (text) text.textContent = summary.logs ? bibQueueSentence : 'Synced';
-    // Keep the full operational breakdown inside the queue inspector only.
+    if (count) count.textContent = '';
+    if (text) text.textContent = summary.total ? exactSentence.replace(/ waiting$/, '') : 'Synced';
     if (detail) detail.textContent = exactSentence;
     if (badge) {
-      badge.classList.toggle('hidden', summary.logs === 0);
-      badge.setAttribute('aria-label', bibQueueSentence);
-      badge.title = bibQueueSentence;
+      badge.classList.toggle('hidden', summary.total === 0);
+      badge.setAttribute('aria-label', exactSentence);
+      badge.title = exactSentence;
     }
     return summary;
   }
@@ -651,17 +652,7 @@
       }, 25005);
       const data = JSON.parse(await response.text());
       if (data.status !== 'success') throw new Error(data.message || 'Sync rejected.');
-      const hasChecksumAcknowledgement =
-        Object.prototype.hasOwnProperty.call(data, 'checksumVerified') ||
-        Object.prototype.hasOwnProperty.call(data, 'recordChecksumsVerified') ||
-        Object.prototype.hasOwnProperty.call(data, 'ackChecksum');
-      // New servers return explicit checksum acknowledgement. Older deployed
-      // Apps Script versions can still be accepted when the write succeeded and
-      // confirmed record IDs are returned, avoiding a false permanent Sync Issue.
-      if (hasChecksumAcknowledgement &&
-          (data.checksumVerified !== true ||
-           data.recordChecksumsVerified !== true ||
-           data.ackChecksum !== prepared.checksum)) {
+      if (data.checksumVerified !== true || data.recordChecksumsVerified !== true || data.ackChecksum !== prepared.checksum) {
         const mismatch = new Error('Batch or record checksum acknowledgement did not match.');
         mismatch.code = RC.errorCodes.SYNC_CHECKSUM_MISMATCH;
         throw mismatch;

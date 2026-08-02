@@ -1,42 +1,46 @@
-// Race Bib Logger v19.3.4 UI, sync, and interactive-map revision.
+// Race Bib Logger v19.3.5 iPhone entry, Safety Log and OpenStreetMap revision.
 // Keeps the existing IndexedDB/background-sync logic below unchanged while making
 // app-shell caching safe for subdirectory deployments and shared web origins.
 const CACHE_PREFIX = 'race-logger-';
-const STATIC_CACHE = 'race-logger-static-v19-3-4-r1';
-const RUNTIME_CACHE = 'race-logger-runtime-v19-3-4-r1';
+const STATIC_CACHE = 'race-logger-static-v19-3-5-r1';
+const RUNTIME_CACHE = 'race-logger-runtime-v19-3-5-r1';
 const NETWORK_TIMEOUT_MS = 4500;
 const MAX_RUNTIME_ENTRIES = 80;
 
 // Resolve every app-shell asset from the service worker's actual scope. This works
 // whether the PWA is deployed at the origin root or under a path such as /race-log/.
 const SCOPE_URL = new URL(self.registration.scope);
-const APP_SHELL_URL = new URL('./index.html', SCOPE_URL).href;
+const APP_SHELL_URL = new URL('./index.html?v=19.3.5', SCOPE_URL).href;
 const ASSETS_TO_CACHE = [
   './',
-  './index.html',
-  './tailwind.css',
-  './manifest.json',
-  './app/constants.js',
-  './app/contracts.js',
-  './app/state-store.js',
-  './app/errors.js',
-  './app/components.js',
-  './app/integrity.js',
-  './app/slippy-map-v1934.js',
-  './app/main.js',
-  './app/operations-v19.js',
-  './app/director-ops-v192.js',
-  './app/ux-v1934.js',
-  './app/ux-v1934.css',
+  './index.html?v=19.3.5',
+  './tailwind.css?v=19.3.5',
+  './manifest.json?v=19.3.5',
+  './app/constants.js?v=19.3.5',
+  './app/contracts.js?v=19.3.5',
+  './app/state-store.js?v=19.3.5',
+  './app/errors.js?v=19.3.5',
+  './app/components.js?v=19.3.5',
+  './app/integrity.js?v=19.3.5',
+  './app/slippy-map-v1935.js?v=19.3.5',
+  './app/main.js?v=19.3.5',
+  './app/operations-v19.js?v=19.3.5',
+  './app/director-ops-v192.js?v=19.3.5',
+  './app/ux-v1935.js?v=19.3.5',
+  './app/ux-v1935.css?v=19.3.5',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/icon-512-maskable.png'
+  './icons/icon-512-maskable.png',
+  './icons/apple-touch-icon-180.png'
 ].map((path) => new URL(path, SCOPE_URL).href);
 const SHELL_URLS = new Set(ASSETS_TO_CACHE);
 
 function isShellRequest_(request) {
   if (request.mode === 'navigate') return true;
-  return SHELL_URLS.has(new URL(request.url).href);
+  const url = new URL(request.url);
+  if (SHELL_URLS.has(url.href)) return true;
+  if (url.origin !== SCOPE_URL.origin || !url.pathname.startsWith(SCOPE_URL.pathname)) return false;
+  return /\.(?:js|css|json|html)$/i.test(url.pathname) || /\/(?:manifest\.json|index\.html)$/i.test(url.pathname);
 }
 
 function fetchWithTimeout_(request, timeoutMs = NETWORK_TIMEOUT_MS) {
@@ -62,9 +66,6 @@ function canRuntimeCache_(request, response) {
   // Never cache Apps Script/API traffic or non-HTTP(S) requests.
   if (!/^https?:$/.test(url.protocol)) return false;
   if (url.hostname === 'script.google.com' || url.hostname.endsWith('.googleusercontent.com')) return false;
-  // Let the browser honour OpenStreetMap's HTTP cache headers directly. The app
-  // never prefetches tiles and the service worker must not turn them into a custom
-  // offline tile store.
   if (url.hostname === 'tile.openstreetmap.org') return false;
   return true;
 }

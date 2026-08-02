@@ -1,4 +1,4 @@
-        const APP_VERSION = "19.3.4";
+        const APP_VERSION = "19.3.5";
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let db;
         let dbReady_ = false;
@@ -12,6 +12,8 @@
         let minimalBibKeyboardPage_ = 'numbers';
         let minimalEntryTarget_ = 'bib';
         let minimalNativeKeyboardActive_ = false;
+        let minimalReopenKeyboardAfterSubmit_ = false;
+        let minimalKeyboardSubmitAt_ = 0;
         let bibSpaceFeedbackTimer_ = null;
         let minimalSpaceFeedbackTimer_ = null;
         let minimalDuplicateLookupTimer_ = null;
@@ -63,6 +65,7 @@
         let safetyVirtualRenderToken_ = 0;
         const SAFETY_VIRTUAL_ROW_HEIGHT_ = 58;
         const SAFETY_VIRTUAL_OVERSCAN_ = 10;
+        const SAFETY_VIRTUAL_THRESHOLD_ = 600;
         let localIncidents_ = {};
         let localCotAlerts_ = {};
         let serverOperationsSummary_ = null;
@@ -179,7 +182,7 @@
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
 
-        // v19.3.4 uses a built-in, dependency-free OpenStreetMap slippy map.
+        // v19.3.5 uses a built-in, dependency-free OpenStreetMap slippy map.
         // It requires no deployment key or race-day device configuration.
         let directorSlippyMapInstance_ = null;
 
@@ -660,7 +663,12 @@
                 remark.readOnly = false;
                 remark.setAttribute('inputmode', 'text');
                 setMinimalBibStatus_('Phone keyboard active for the remark. Spaces are allowed here.');
-                setTimeout(() => remark.focus({ preventScroll: true }), 30);
+                // iOS only opens the software keyboard when focus happens inside the
+                // original tap/click gesture. Do not defer this focus with setTimeout.
+                try { remark.focus({ preventScroll: true }); } catch (_) { remark.focus(); }
+                if (document.activeElement !== remark) {
+                    requestAnimationFrame(() => { try { remark.focus({ preventScroll: true }); } catch (_) {} });
+                }
                 return;
             }
             const source = document.getElementById('bibInput');
@@ -669,10 +677,15 @@
             nativeBib.value = source.value;
             nativeBib.classList.add('is-active');
             setMinimalBibStatus_('Phone keyboard active for BIB letters. Spaces remain blocked.');
-            setTimeout(() => {
-                nativeBib.focus({ preventScroll: true });
-                try { nativeBib.setSelectionRange(nativeBib.value.length, nativeBib.value.length); } catch (_) {}
-            }, 30);
+            // Focus synchronously so one ABC tap opens the keyboard on iPhone/iPad PWAs.
+            try { nativeBib.focus({ preventScroll: true }); } catch (_) { nativeBib.focus(); }
+            try { nativeBib.setSelectionRange(nativeBib.value.length, nativeBib.value.length); } catch (_) {}
+            if (document.activeElement !== nativeBib) {
+                requestAnimationFrame(() => {
+                    try { nativeBib.focus({ preventScroll: true }); } catch (_) {}
+                    try { nativeBib.setSelectionRange(nativeBib.value.length, nativeBib.value.length); } catch (_) {}
+                });
+            }
         }
 
         function setMinimalBibKeyboardPage_(page) {
@@ -869,10 +882,34 @@
         }
 
         function submitMinimalBibFromKeyboard_(event) {
-            // Submit on pointer-down so the native keyboard does not collapse before
-            // duplicate review or logging begins. This is the small LOG beside ⌫.
             event?.preventDefault?.();
             event?.stopPropagation?.();
+            const now = Date.now();
+            // touchstart/mousedown/click can all be emitted for one physical tap.
+            if (now - minimalKeyboardSubmitAt_ < 650) return;
+            minimalKeyboardSubmitAt_ = now;
+
+            const nativeBib = document.getElementById('minimalNativeBibInput');
+            const source = document.getElementById('bibInput');
+            if (nativeBib && source) {
+                source.value = String(nativeBib.value || source.value || '');
+                sanitizeBibTyping_(source);
+                nativeBib.value = source.value;
+                autoScaleBibFontSize_();
+                syncMinimalBibInput_();
+            }
+            if (!normalizeBibOriginal_(source?.value || '')) {
+                setMinimalBibStatus_('Enter a BIB label first.', true);
+                return;
+            }
+
+            // iOS may suppress modal/async actions while the keyboard owns the visual
+            // viewport. The volunteer still performs one tap: we close it ourselves,
+            // submit immediately, then reopen it after the result/cancel path completes.
+            minimalReopenKeyboardAfterSubmit_ = true;
+            try { nativeBib?.blur(); } catch (_) {}
+            try { document.getElementById('minimalRemarkInput')?.blur(); } catch (_) {}
+            setMinimalBibStatus_('Logging BIB…');
             submitMinimalBib_();
         }
 
@@ -2347,7 +2384,7 @@
          * polling (resetSyncTimer) remains the fallback there, unchanged. */
         function registerServiceWorkerAndBackgroundSync() {
             if (!navigator.serviceWorker || typeof navigator.serviceWorker.register !== 'function') return;
-            navigator.serviceWorker.register('sw.js').catch(() => { /* non-fatal */ });
+            navigator.serviceWorker.register('sw.js?v=19.3.5', { updateViaCache: 'none' }).then(registration => registration.update()).catch(() => { /* non-fatal */ });
             if (typeof navigator.serviceWorker.addEventListener !== 'function') return;
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data && event.data.type === 'race-log-sync-complete') {
@@ -3155,6 +3192,15 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             setBibSubmitBusy_(false);
             if (minimalBibModeActive_) {
                 syncMinimalBibInput_();
+                const nativeBib = document.getElementById('minimalNativeBibInput');
+                const source = document.getElementById('bibInput');
+                if (nativeBib && source) nativeBib.value = source.value;
+                if (minimalReopenKeyboardAfterSubmit_) {
+                    minimalReopenKeyboardAfterSubmit_ = false;
+                    window.setTimeout(() => {
+                        if (minimalBibModeActive_ && minimalEntryTarget_ === 'bib') openMinimalNativeKeyboard_();
+                    }, 180);
+                }
                 return;
             }
             if (focusInput !== false) {
@@ -4944,7 +4990,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             { id: 'progress', label: '📈 Category Progress', explain: 'Unique bibs seen so far vs. each category\'s registered runner count.' },
             { id: 'flagged', label: '🚩 Flagged Entries', explain: 'Entries with a remark, or marked REMAKE REQUIRED — likely need a decision.' },
             { id: 'devices', label: '📱 Checkpoint Device Activity', explain: 'When each submitting device was last heard from.' },
-            { id: 'map', label: '🗺️ GPS Recording Map', explain: 'Interactive Google map with checkpoints, PWA positions, trails, pan, and zoom.' },
+            { id: 'map', label: '🗺️ GPS Recording Map', explain: 'Interactive OpenStreetMap with checkpoints, PWA positions, trails, pan, pinch, and zoom. No API key required.' },
             { id: 'operations', label: '🧭 Operations Monitor', explain: 'Arrival windows, quiet checkpoints, duplicate rate, safety alerts, and data freshness.' },
             { id: 'cot', label: '⏱️ Cutoff Countdown', explain: 'Time remaining until each category\'s cutoff (COT).' },
             { id: 'forecast', label: '🌊 Arrival Forecast', explain: 'Forecast runner volume expected at each checkpoint over the next 10, 20, and 30 minutes.' },
@@ -6778,9 +6824,11 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             }).join('');
         }
 
-        // Compatibility no-op for older Apps Script responses that still include
-        // a mapConfig object. v19.3.4 does not require or accept browser map keys.
+        // Compatibility no-ops for older Apps Script/UI builds that still include
+        // a mapConfig object or call the retired browser-key settings renderer.
+        // v19.3.5 uses OpenStreetMap tiles and never asks race-day users for a key.
         function applyGoogleMapsConfigFromPayload_() {}
+        function updateGoogleMapsSettingsState_() {}
 
         function clearDirectorSlippyMap_() {
             if (!directorSlippyMapInstance_) return;
@@ -6855,7 +6903,8 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 .filter(profile => profile && Number.isFinite(Number(profile.latitude)) && Number.isFinite(Number(profile.longitude)))
                 .map(profile => ({
                     latitude: Number(profile.latitude), longitude: Number(profile.longitude),
-                    checkpoint: String(profile.checkpoint || profile.name || 'Checkpoint').trim() || 'Checkpoint'
+                    checkpoint: String(profile.checkpoint || profile.name || 'Checkpoint').trim() || 'Checkpoint',
+                    source: 'configured', sampleCount: 0
                 }));
             const seen = new Set();
             const checkpointPoints = configured.filter(point => {
@@ -6863,6 +6912,41 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 if (seen.has(key)) return false;
                 seen.add(key);
                 return true;
+            });
+
+            // When the optional CheckpointGPS sheet is not configured, infer station
+            // locations from the GPS-tagged records already captured at each CP. This
+            // ensures the map still locates both PWAs and checkpoint activity with zero
+            // API keys or extra race-day setup.
+            const configuredNames = new Set(checkpointPoints.map(point => point.checkpoint.toUpperCase()));
+            const inferredGroups = new Map();
+            logsWithGps.forEach(log => {
+                const checkpoint = String(log.checkpoint || '').trim();
+                if (!checkpoint || /^(?:UNSPECIFIED|UNKNOWN|-)$/i.test(checkpoint)) return;
+                const key = checkpoint.toUpperCase();
+                if (configuredNames.has(key)) return;
+                if (!inferredGroups.has(key)) inferredGroups.set(key, { checkpoint, latitudes: [], longitudes: [] });
+                const group = inferredGroups.get(key);
+                group.latitudes.push(Number(log.latitude));
+                group.longitudes.push(Number(log.longitude));
+            });
+            const median = values => {
+                const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+                if (!sorted.length) return null;
+                const middle = Math.floor(sorted.length / 2);
+                return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+            };
+            inferredGroups.forEach(group => {
+                const latitude = median(group.latitudes);
+                const longitude = median(group.longitudes);
+                if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+                checkpointPoints.push({
+                    checkpoint: group.checkpoint,
+                    latitude,
+                    longitude,
+                    source: 'inferred',
+                    sampleCount: Math.min(group.latitudes.length, group.longitudes.length)
+                });
             });
             const deviceGroups = Array.from(byDevice.values())
                 .filter(group => group.latest)
@@ -6901,7 +6985,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             container.innerHTML = `<div class="director-gps-map-shell"><div class="director-gps-map-summary"><span>${deviceGroups.length} PWA device${deviceGroups.length === 1 ? '' : 's'} located</span><span>${logsWithGps.length} geotagged log${logsWithGps.length === 1 ? '' : 's'}</span><span>${checkpointPoints.length} checkpoint marker${checkpointPoints.length === 1 ? '' : 's'}</span><span>Newest ${newest ? escapeHtml_(labelForAge(Math.max(0, now - newest))) : 'unknown'}</span></div><div class="director-gps-map-stage"><div id="directorOpenMapCanvas" class="director-google-map-canvas director-open-map-canvas"><div class="director-map-message">Loading interactive map…</div></div></div>${legend ? `<div class="director-gps-map-legend">${legend}</div>` : ''}<p class="text-[9px] theme-text-muted leading-snug">Drag to move, pinch or use +/− to zoom, and press ◎ to show all checkpoints and PWAs. The base map uses OpenStreetMap and requires no API key. Device trails show up to the last 30 reported coordinates.</p></div>`;
 
             try {
-                if (typeof window.RaceSlippyMap !== 'function') throw new Error('The built-in map module did not load. Refresh the PWA after deploying all v19.3.4 files.');
+                if (typeof window.RaceSlippyMap !== 'function') throw new Error('The built-in map module did not load. Refresh the PWA after deploying all v19.3.5 files.');
                 const canvas = document.getElementById('directorOpenMapCanvas');
                 if (!canvas || !document.body.contains(canvas)) return;
                 const centerSource = deviceGroups[0]?.latest || checkpointPoints[0] || allCoordinates[0];
@@ -6920,9 +7004,9 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                         kind: 'checkpoint',
                         lat: point.latitude,
                         lng: point.longitude,
-                        title: point.checkpoint,
-                        ariaLabel: `Checkpoint ${point.checkpoint}`,
-                        popupHtml: `<strong>${escapeHtml_(point.checkpoint)}</strong><br><span>Checkpoint / station</span><br><span>${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}</span>`
+                        title: point.source === 'inferred' ? `${point.checkpoint} (inferred)` : point.checkpoint,
+                        ariaLabel: `Checkpoint ${point.checkpoint}${point.source === 'inferred' ? ', inferred from recorded GPS' : ''}`,
+                        popupHtml: `<strong>${escapeHtml_(point.checkpoint)}</strong><br><span>${point.source === 'inferred' ? `Inferred CP position · ${point.sampleCount || 1} GPS record${point.sampleCount === 1 ? '' : 's'}` : 'Configured checkpoint / station'}</span><br><span>${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}</span>`
                     });
                 });
 
@@ -10600,16 +10684,33 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             if (!body || !viewport) return;
             const total = safetyVirtualRoster_.length;
             if (!total) { body.innerHTML = ''; return; }
+            const table = document.getElementById('safetyLogTable');
+            if (table) table.setAttribute('aria-rowcount', String(total + 1));
+
+            // A few hundred runner rows are inexpensive on current phones and rendering
+            // them normally avoids Safari table-spacer bugs that created a large blank
+            // band above the first BIB. Virtualization remains for unusually large races.
+            if (total <= SAFETY_VIRTUAL_THRESHOLD_) {
+                const renderToken = String(safetyVirtualRenderToken_);
+                if (body.dataset.safetyRenderToken !== renderToken) {
+                    body.innerHTML = safetyVirtualRoster_.map((row, index) => renderSafetyRowHtml_(row, index)).join('');
+                    body.dataset.safetyRenderToken = renderToken;
+                }
+                body.classList.add('safety-nonvirtual-body');
+                return;
+            }
+            delete body.dataset.safetyRenderToken;
+            body.classList.remove('safety-nonvirtual-body');
             const rowHeight = getSafetyVirtualRowHeight_();
             const visibleCount = Math.ceil((viewport.clientHeight || 600) / rowHeight);
             const start = Math.max(0, Math.floor(viewport.scrollTop / rowHeight) - SAFETY_VIRTUAL_OVERSCAN_);
             const end = Math.min(total, start + visibleCount + SAFETY_VIRTUAL_OVERSCAN_ * 2);
             const topHeight = start * rowHeight;
             const bottomHeight = Math.max(0, (total - end) * rowHeight);
-            const table = document.getElementById('safetyLogTable');
-            if (table) table.setAttribute('aria-rowcount', String(total + 1));
             const rows = safetyVirtualRoster_.slice(start, end).map((row, i) => renderSafetyRowHtml_(row, start + i)).join('');
-            body.innerHTML = `<tr aria-hidden="true"><td colspan="9" class="virtual-spacer-cell" style="height:${topHeight}px"></td></tr>${rows}<tr aria-hidden="true"><td colspan="9" class="virtual-spacer-cell" style="height:${bottomHeight}px"></td></tr>`;
+            const topSpacer = topHeight > 0 ? `<tr class="virtual-spacer-row" aria-hidden="true"><td colspan="9" class="virtual-spacer-cell" style="height:${topHeight}px"></td></tr>` : '';
+            const bottomSpacer = bottomHeight > 0 ? `<tr class="virtual-spacer-row" aria-hidden="true"><td colspan="9" class="virtual-spacer-cell" style="height:${bottomHeight}px"></td></tr>` : '';
+            body.innerHTML = `${topSpacer}${rows}${bottomSpacer}`;
         }
 
         function buildRouteModelsClientFromLogs_(logs) {

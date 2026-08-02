@@ -8,13 +8,20 @@ const errors = [];
 const required = [
   'index.html', 'tailwind.css', 'manifest.json', 'sw.js', 'Code.gs',
   'app/constants.js', 'app/contracts.js', 'app/state-store.js', 'app/errors.js',
-  'app/components.js', 'app/integrity.js', 'app/slippy-map-v1934.js', 'app/main.js', 'app/operations-v19.js',
-  'app/director-ops-v192.js', 'app/ux-v1934.js', 'app/ux-v1934.css'
+  'app/components.js', 'app/integrity.js', 'app/main.js', 'app/operations-v19.js',
+  'app/director-ops-v192.js', 'app/slippy-map-v1935.js', 'app/ux-v1935.js',
+  'app/ux-v1935.css', 'icons/apple-touch-icon-180.png'
 ];
 
+function localPath(relative) {
+  const clean = String(relative || '').split('#')[0].split('?')[0].replace(/^\.\//, '');
+  return clean || 'index.html';
+}
+
 function exists(relative) {
-  const full = path.join(root, relative.replace(/^\.\//, ''));
-  if (!fs.existsSync(full)) errors.push(`Missing required asset: ${relative}`);
+  const clean = localPath(relative);
+  const full = path.join(root, clean);
+  if (!fs.existsSync(full)) errors.push(`Missing required asset: ${clean}`);
   return fs.existsSync(full);
 }
 
@@ -52,7 +59,7 @@ try {
   else {
     for (const match of cacheArray[1].matchAll(/["'](\.\/[^"']+)["']/g)) exists(match[1]);
   }
-  if (!/race-logger-static-v19-3-4/.test(sw)) errors.push('Service-worker static cache is not versioned for v19.3.4.');
+  if (!/race-logger-static-v19-3-5/.test(sw)) errors.push('Service-worker static cache is not versioned for v19.3.5.');
 } catch (error) {
   errors.push(`Could not inspect sw.js: ${error.message}`);
 }
