@@ -9,8 +9,8 @@ const required = [
   'index.html', 'tailwind.css', 'manifest.json', 'sw.js', 'Code.gs',
   'app/constants.js', 'app/contracts.js', 'app/state-store.js', 'app/errors.js',
   'app/components.js', 'app/integrity.js', 'app/main.js', 'app/operations-v19.js',
-  'app/director-ops-v192.js', 'app/slippy-map-v1935.js', 'app/ux-v1935.js',
-  'app/ux-v1935.css', 'icons/apple-touch-icon-180.png'
+  'app/director-ops-v192.js', 'app/slippy-map-v1936.js', 'app/ux-v1936.js',
+  'app/ux-v1936.css', 'icons/apple-touch-icon-180.png'
 ];
 
 function localPath(relative) {
@@ -59,7 +59,7 @@ try {
   else {
     for (const match of cacheArray[1].matchAll(/["'](\.\/[^"']+)["']/g)) exists(match[1]);
   }
-  if (!/race-logger-static-v19-3-5/.test(sw)) errors.push('Service-worker static cache is not versioned for v19.3.5.');
+  if (!/race-logger-static-v19-3-6/.test(sw)) errors.push('Service-worker static cache is not versioned for v19.3.6.');
 } catch (error) {
   errors.push(`Could not inspect sw.js: ${error.message}`);
 }

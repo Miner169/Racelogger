@@ -1,4 +1,4 @@
-        const APP_VERSION = "19.3.5";
+        const APP_VERSION = "19.3.6";
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let db;
         let dbReady_ = false;
@@ -182,7 +182,7 @@
             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
         }
 
-        // v19.3.5 uses a built-in, dependency-free OpenStreetMap slippy map.
+        // v19.3.6 uses a built-in, dependency-free OpenStreetMap slippy map.
         // It requires no deployment key or race-day device configuration.
         let directorSlippyMapInstance_ = null;
 
@@ -554,6 +554,15 @@
                     ? '123 keypad active for numbers. Press ABC to type the remark with the phone keyboard.'
                     : 'Large 123 keypad active. Press ABC only when letters are needed.');
             }
+        }
+
+        function activateMinimalRemarkKeyboard_() {
+            if (!minimalBibModeActive_) return;
+            // Keep the focus call in the original tap gesture so iOS opens the
+            // software keyboard immediately, even while the 123 keypad is active.
+            minimalNativeKeyboardActive_ = false;
+            activateMinimalEntryTarget_('remark');
+            openMinimalNativeKeyboard_();
         }
 
         function renderMinimalLastFour_(logs, frequencyMap) {
@@ -2384,7 +2393,7 @@
          * polling (resetSyncTimer) remains the fallback there, unchanged. */
         function registerServiceWorkerAndBackgroundSync() {
             if (!navigator.serviceWorker || typeof navigator.serviceWorker.register !== 'function') return;
-            navigator.serviceWorker.register('sw.js?v=19.3.5', { updateViaCache: 'none' }).then(registration => registration.update()).catch(() => { /* non-fatal */ });
+            navigator.serviceWorker.register('sw.js?v=19.3.6', { updateViaCache: 'none' }).then(registration => registration.update()).catch(() => { /* non-fatal */ });
             if (typeof navigator.serviceWorker.addEventListener !== 'function') return;
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data && event.data.type === 'race-log-sync-complete') {
@@ -6826,7 +6835,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
 
         // Compatibility no-ops for older Apps Script/UI builds that still include
         // a mapConfig object or call the retired browser-key settings renderer.
-        // v19.3.5 uses OpenStreetMap tiles and never asks race-day users for a key.
+        // v19.3.6 uses OpenStreetMap tiles and never asks race-day users for a key.
         function applyGoogleMapsConfigFromPayload_() {}
         function updateGoogleMapsSettingsState_() {}
 
@@ -6985,7 +6994,7 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
             container.innerHTML = `<div class="director-gps-map-shell"><div class="director-gps-map-summary"><span>${deviceGroups.length} PWA device${deviceGroups.length === 1 ? '' : 's'} located</span><span>${logsWithGps.length} geotagged log${logsWithGps.length === 1 ? '' : 's'}</span><span>${checkpointPoints.length} checkpoint marker${checkpointPoints.length === 1 ? '' : 's'}</span><span>Newest ${newest ? escapeHtml_(labelForAge(Math.max(0, now - newest))) : 'unknown'}</span></div><div class="director-gps-map-stage"><div id="directorOpenMapCanvas" class="director-google-map-canvas director-open-map-canvas"><div class="director-map-message">Loading interactive map…</div></div></div>${legend ? `<div class="director-gps-map-legend">${legend}</div>` : ''}<p class="text-[9px] theme-text-muted leading-snug">Drag to move, pinch or use +/− to zoom, and press ◎ to show all checkpoints and PWAs. The base map uses OpenStreetMap and requires no API key. Device trails show up to the last 30 reported coordinates.</p></div>`;
 
             try {
-                if (typeof window.RaceSlippyMap !== 'function') throw new Error('The built-in map module did not load. Refresh the PWA after deploying all v19.3.5 files.');
+                if (typeof window.RaceSlippyMap !== 'function') throw new Error('The built-in map module did not load. Refresh the PWA after deploying all v19.3.6 files.');
                 const canvas = document.getElementById('directorOpenMapCanvas');
                 if (!canvas || !document.body.contains(canvas)) return;
                 const centerSource = deviceGroups[0]?.latest || checkpointPoints[0] || allCoordinates[0];

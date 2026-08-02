@@ -1,12 +1,11 @@
-/* Race Bib Logger v19.2 command-centre operations suite.
- * Adds forecast, heatmap, safety, logistics and reporting workflows without
- * changing the Racelog A:AC data schema. Operational boards sync through the
- * generic CommandOps backend and remain editable offline through localStorage.
+/* Race Bib Logger v19.3.6 streamlined Director analytics suite.
+ * Retains live race analytics while removing the retired command-operation
+ * workflows and their background polling from Director Mode.
  */
 (function (global) {
   'use strict';
 
-  const VERSION = '19.2.0';
+  const VERSION = '19.3.6';
   const STORE_KEY = 'raceCommandOps_v19_2';
   const HEATMAP_WINDOW_KEY = 'directorHeatmapWindow_v19_2';
   const OPS_EPOCH_KEY = 'raceCommandOpsEventEpoch_v19_2';
@@ -19,19 +18,17 @@
   let heatmapWindowMinutes_ = Number(localStorage.getItem(HEATMAP_WINDOW_KEY) || 60) || 60;
   let handoverSnapshot_ = null;
 
+  const REMOVED_WIDGET_IDS = Object.freeze([
+    'missing-runners', 'medical-capacity', 'transport-sweep', 'weather-risk',
+    'supplies', 'handover', 'post-race-report'
+  ]);
+
   const WIDGETS = [
     ['heatmap', '🔥 Checkpoint Load Heatmap', 'Scans per minute by checkpoint and rolling time block.'],
     ['cot-funnel', '⏳ COT Risk Funnel', 'Safe, approaching, critical, overdue, acknowledged, and resolved runners.'],
-    ['missing-runners', '🔎 Missing Runner Workflow', 'Assign an owner and record calls, searches, sightings, and resolution.'],
     ['route-anomalies', '🧭 Route Anomaly Diagram', 'Skipped checkpoints, reverse movement, impossible travel, and approved exceptions.'],
     ['finish-projection', '🏁 Finish Projection', 'Estimated finish windows and runner counts by KM and category.'],
-    ['outcomes', '📋 DNS / DNF / Withdrawal / Medical', 'Operational totals and unresolved runner outcomes.'],
-    ['medical-capacity', '🚑 Medical Capacity Board', 'Medical teams, vehicles, active cases, destinations, and availability.'],
-    ['transport-sweep', '🚌 Sweep & Transport Tracking', 'Sweep teams, buses, pickups, passengers, and last known location.'],
-    ['weather-risk', '⛈️ Weather Risk', 'Optional official or manual weather and lightning risk against event thresholds.'],
-    ['supplies', '📦 Checkpoint Supply Status', 'Water, food, ice, lighting, radios, medical stock, and resupply requests.'],
-    ['handover', '🤝 Shift Handover', 'Active incidents, missing runners, quiet devices, queues, supplies, and upcoming cutoffs.'],
-    ['post-race-report', '🧾 Post-Race Command Report', 'Export timeline, safety outcomes, device health, checkpoint performance, and reconciliation.']
+    ['outcomes', '📋 DNS / DNF / Withdrawal / Medical', 'Operational totals and unresolved runner outcomes.']
   ];
 
   const TYPE_CONFIG = {
@@ -185,7 +182,13 @@
   function injectWidgets_() {
     const grid = document.getElementById('directorWidgetsGrid');
     if (!grid) return;
+    REMOVED_WIDGET_IDS.forEach(id => document.getElementById('widget-' + id)?.remove());
     const defs = global.DIRECTOR_WIDGET_DEFS;
+    if (Array.isArray(defs)) {
+      for (let i = defs.length - 1; i >= 0; i -= 1) {
+        if (REMOVED_WIDGET_IDS.includes(defs[i]?.id)) defs.splice(i, 1);
+      }
+    }
     WIDGETS.forEach(([id, label, explain]) => {
       if (Array.isArray(defs) && !defs.some(item => item.id === id)) defs.push({ id, label, explain });
       if (!document.getElementById('widget-' + id)) grid.insertAdjacentHTML('beforeend', sectionHtml_(id, label, explain));
@@ -657,40 +660,46 @@
 
   function renderAll_(logs) {
     if (Array.isArray(logs)) lastLogs_ = logs;
-    renderHeatmap_(lastLogs_); renderCotFunnel_(lastLogs_); renderMissingRunners_(); renderRouteAnomalies_(lastLogs_);
-    renderFinishProjection_(lastLogs_); renderOutcomes_();
-    renderResourceBoard_('medical_resource','director-medical-capacity-body','medical-capacity');
-    renderResourceBoard_('transport_resource','director-transport-sweep-body','transport-sweep');
-    renderWeather_(); renderResourceBoard_('checkpoint_supply','director-supplies-body','supplies');
-    renderHandover_(); renderPostRaceReport_(); renderEnhancedIncidents_(); redrawMapWithHealth_(lastLogs_);
-  }
-
-  function mergeServerSummaryOps_() {
-    const items=global.serverOperationsSummary_?.commandOps||[];
-    items.forEach(item=>{const local=commandOps_[item.id];if(!local||local.synced!==false)commandOps_[item.id]=Object.assign({},item,{synced:true});});
-    if(items.length)saveOps_();
+    renderHeatmap_(lastLogs_);
+    renderCotFunnel_(lastLogs_);
+    renderRouteAnomalies_(lastLogs_);
+    renderFinishProjection_(lastLogs_);
+    renderOutcomes_();
+    renderEnhancedIncidents_();
+    redrawMapWithHealth_(lastLogs_);
   }
 
   function installOverrides_() {
-    const oldRender=global.renderDirectorModeContent_;
-    global.renderDirectorModeContent_=function(logs){if(typeof oldRender==='function')oldRender(logs);mergeServerSummaryOps_();renderAll_(logs||[]);};
-    const oldOperations=global.renderDirectorOperations_;
-    global.renderDirectorOperations_=function(logs){if(typeof oldOperations==='function')oldOperations(logs);mergeServerSummaryOps_();renderAll_(logs||lastLogs_);};
-    const oldOpen=global.openDirectorMode;
-    global.openDirectorMode=function(){if(typeof oldOpen==='function')oldOpen();pullCommandOps_();setTimeout(()=>renderAll_(lastLogs_),50);};
-    const oldFetch=global.fetchOperationsSummary_;
-    if(typeof oldFetch==='function')global.fetchOperationsSummary_=async function(){const result=await oldFetch();mergeServerSummaryOps_();renderAll_(lastLogs_);return result;};
+    const oldRender = global.renderDirectorModeContent_;
+    global.renderDirectorModeContent_ = function (logs) {
+      if (typeof oldRender === 'function') oldRender(logs);
+      renderAll_(logs || []);
+    };
+    const oldOperations = global.renderDirectorOperations_;
+    global.renderDirectorOperations_ = function (logs) {
+      if (typeof oldOperations === 'function') oldOperations(logs);
+      renderAll_(logs || lastLogs_);
+    };
+    const oldOpen = global.openDirectorMode;
+    global.openDirectorMode = function () {
+      if (typeof oldOpen === 'function') oldOpen();
+      setTimeout(() => renderAll_(lastLogs_), 50);
+    };
+    const oldFetch = global.fetchOperationsSummary_;
+    if (typeof oldFetch === 'function') global.fetchOperationsSummary_ = async function () {
+      const result = await oldFetch();
+      renderAll_(lastLogs_);
+      return result;
+    };
   }
 
   function initialise_() {
-    adoptOpsEpoch_(localEventEpoch_());
-    injectStyles_(); injectWidgets_(); injectModal_(); installOverrides_(); mergeServerSummaryOps_(); renderAll_([]);
-    window.addEventListener('online',()=>{syncPendingOps_();pullCommandOps_();});
-    clearInterval(syncTimer_); syncTimer_=setInterval(()=>{if(!document.hidden){syncPendingOps_();pullCommandOps_();}},30000);
-    document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncPendingOps_();pullCommandOps_();}});
-    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!document.getElementById('v192CommandOpModal')?.classList.contains('hidden'))global.closeV192CommandOp_();});
+    injectStyles_();
+    injectWidgets_();
+    installOverrides_();
+    renderAll_([]);
   }
 
-  global.RaceDirectorOpsV192 = Object.freeze({ render:renderAll_, pull:pullCommandOps_, sync:syncPendingOps_, buildReport:buildReport_, getCommandOps:()=>Object.values(commandOps_) });
+  global.RaceDirectorOpsV192 = Object.freeze({ render: renderAll_ });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialise_,{once:true});else initialise_();
 })(window);

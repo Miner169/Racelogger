@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Race Bib Logger</title>
     <link rel="icon" href="icons/icon-192.png" type="image/png">
-    <link class="theme-manifest" rel="manifest" href="manifest.json?v=19.3.5">
+    <link class="theme-manifest" rel="manifest" href="manifest.json?v=19.3.6">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
     <meta name="theme-color" id="themeColorMeta" content="#0a0a0c">
     <meta name="mobile-web-app-capable" content="yes">
@@ -25,7 +25,7 @@
          larger screens. Declaring .hidden later in the page caused both the desktop
          action and its mobile icon to be hidden at PC widths. -->
     <style id="criticalVisibilityFallback">.hidden { display: none; }</style>
-    <link rel="stylesheet" href="tailwind.css?v=19.3.5">
+    <link rel="stylesheet" href="tailwind.css?v=19.3.6">
     <style>
         /* Theme Variables
            ---------------------------------------------------------------------------
@@ -3290,7 +3290,7 @@
 
 
         /* =====================================================================
-           v19.3.5 — Compact entry, duplicate, setup, and Director refinements
+           v19.3.6 — Compact entry, duplicate, setup, and Director refinements
            Keeps operational behaviour unchanged while making primary actions
            easier to hit, reducing layout shift, and improving small-screen use.
            ===================================================================== */
@@ -3599,7 +3599,7 @@
     
 
 </style>
-<link rel="stylesheet" href="app/ux-v1935.css?v=19.3.5">
+<link rel="stylesheet" href="app/ux-v1936.css?v=19.3.6">
 </head>
 <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
 
@@ -3962,8 +3962,8 @@
                     <button type="button" class="minimal-backspace-btn" onpointerdown="event.preventDefault(); event.stopPropagation(); minimalBibBackspace_('bib')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); minimalBibBackspace_('bib')}" aria-label="Delete last BIB character" title="Backspace BIB">⌫</button>
                 </div>
                 <div id="minimalRemarkShell" class="minimal-remark-shell">
-                    <label for="minimalRemarkInput">Remark for this BIB <span>Optional · press ABC for phone keyboard</span></label>
-                    <input type="text" id="minimalRemarkInput" inputmode="none" maxlength="500" readonly onclick="activateMinimalEntryTarget_('remark')" onkeydown="handleMinimalRemarkNativeKeydown_(event)" oninput="syncMinimalRemarkInput_('minimal')" onblur="handleMinimalNativeKeyboardBlur_()" aria-label="Optional remark for this BIB. Tap ABC to use the phone keyboard." placeholder="e.g. Missed helper, penalty, etc.">
+                    <label for="minimalRemarkInput">Remark for this BIB <span>Optional · tap to type</span></label>
+                    <input type="text" id="minimalRemarkInput" inputmode="none" maxlength="500" readonly onclick="activateMinimalRemarkKeyboard_()" onkeydown="handleMinimalRemarkNativeKeydown_(event)" oninput="syncMinimalRemarkInput_('minimal')" onblur="handleMinimalNativeKeyboardBlur_()" aria-label="Optional remark for this BIB. Tap to open the phone keyboard." placeholder="e.g. Missed helper, penalty, etc.">
                 </div>
                 <div id="minimalSpaceFeedback" class="minimal-space-feedback hidden" role="status" aria-live="assertive">Spaces are not allowed in BIB numbers.</div>
             </div>
@@ -4909,16 +4909,16 @@
 
     <div id="srAnnouncer" class="sr-only-live" role="status" aria-live="polite" aria-atomic="true"></div>
 
-    <script src="app/constants.js?v=19.3.5"></script>
-    <script src="app/contracts.js?v=19.3.5"></script>
-    <script src="app/state-store.js?v=19.3.5"></script>
-    <script src="app/errors.js?v=19.3.5"></script>
-    <script src="app/components.js?v=19.3.5"></script>
-    <script src="app/integrity.js?v=19.3.5"></script>
-    <script src="app/slippy-map-v1935.js?v=19.3.5"></script>
-    <script src="app/main.js?v=19.3.5"></script>
-    <script src="app/operations-v19.js?v=19.3.5"></script>
-    <script src="app/director-ops-v192.js?v=19.3.5"></script>
-    <script src="app/ux-v1935.js?v=19.3.5"></script>
+    <script src="app/constants.js?v=19.3.6"></script>
+    <script src="app/contracts.js?v=19.3.6"></script>
+    <script src="app/state-store.js?v=19.3.6"></script>
+    <script src="app/errors.js?v=19.3.6"></script>
+    <script src="app/components.js?v=19.3.6"></script>
+    <script src="app/integrity.js?v=19.3.6"></script>
+    <script src="app/slippy-map-v1936.js?v=19.3.6"></script>
+    <script src="app/main.js?v=19.3.6"></script>
+    <script src="app/operations-v19.js?v=19.3.6"></script>
+    <script src="app/director-ops-v192.js?v=19.3.6"></script>
+    <script src="app/ux-v1936.js?v=19.3.6"></script>
 </body>
 </html>

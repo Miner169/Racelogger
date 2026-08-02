@@ -1,33 +1,33 @@
-// Race Bib Logger v19.3.5 iPhone entry, Safety Log and OpenStreetMap revision.
+// Race Bib Logger v19.3.6 iPhone entry, Safety Log and OpenStreetMap revision.
 // Keeps the existing IndexedDB/background-sync logic below unchanged while making
 // app-shell caching safe for subdirectory deployments and shared web origins.
 const CACHE_PREFIX = 'race-logger-';
-const STATIC_CACHE = 'race-logger-static-v19-3-5-r1';
-const RUNTIME_CACHE = 'race-logger-runtime-v19-3-5-r1';
+const STATIC_CACHE = 'race-logger-static-v19-3-6-r1';
+const RUNTIME_CACHE = 'race-logger-runtime-v19-3-6-r1';
 const NETWORK_TIMEOUT_MS = 4500;
 const MAX_RUNTIME_ENTRIES = 80;
 
 // Resolve every app-shell asset from the service worker's actual scope. This works
 // whether the PWA is deployed at the origin root or under a path such as /race-log/.
 const SCOPE_URL = new URL(self.registration.scope);
-const APP_SHELL_URL = new URL('./index.html?v=19.3.5', SCOPE_URL).href;
+const APP_SHELL_URL = new URL('./index.html?v=19.3.6', SCOPE_URL).href;
 const ASSETS_TO_CACHE = [
   './',
-  './index.html?v=19.3.5',
-  './tailwind.css?v=19.3.5',
-  './manifest.json?v=19.3.5',
-  './app/constants.js?v=19.3.5',
-  './app/contracts.js?v=19.3.5',
-  './app/state-store.js?v=19.3.5',
-  './app/errors.js?v=19.3.5',
-  './app/components.js?v=19.3.5',
-  './app/integrity.js?v=19.3.5',
-  './app/slippy-map-v1935.js?v=19.3.5',
-  './app/main.js?v=19.3.5',
-  './app/operations-v19.js?v=19.3.5',
-  './app/director-ops-v192.js?v=19.3.5',
-  './app/ux-v1935.js?v=19.3.5',
-  './app/ux-v1935.css?v=19.3.5',
+  './index.html?v=19.3.6',
+  './tailwind.css?v=19.3.6',
+  './manifest.json?v=19.3.6',
+  './app/constants.js?v=19.3.6',
+  './app/contracts.js?v=19.3.6',
+  './app/state-store.js?v=19.3.6',
+  './app/errors.js?v=19.3.6',
+  './app/components.js?v=19.3.6',
+  './app/integrity.js?v=19.3.6',
+  './app/slippy-map-v1936.js?v=19.3.6',
+  './app/main.js?v=19.3.6',
+  './app/operations-v19.js?v=19.3.6',
+  './app/director-ops-v192.js?v=19.3.6',
+  './app/ux-v1936.js?v=19.3.6',
+  './app/ux-v1936.css?v=19.3.6',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png',

@@ -5,7 +5,7 @@
   "description": "Race-day city, trail and mountain checkpoint logging. Offline-first race logging with keypad-priority BIB entry, runner safety tracking, race-command dashboards, route monitoring and GPS checkpoint/device mapping.",
   "lang": "en",
   "dir": "ltr",
-  "start_url": "./index.html?v=19.3.5",
+  "start_url": "./index.html?v=19.3.6",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",

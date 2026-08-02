@@ -1,0 +1,737 @@
+/* ── v19.3.6 compact mobile monitoring and stable scrolling ───────── */
+/* Director section chips and their scroll observer were removed from markup and JavaScript. */
+
+.director-action-icon svg {
+    width: 1.12rem;
+    height: 1.12rem;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+#directorSyncIcon.director-status-glyph {
+    font-size: .68rem !important;
+    line-height: 1;
+}
+#directorSyncBadge[data-state="syncing"] #directorSyncIcon { font-size: 1rem !important; }
+#directorSyncBadge[data-state="error"] #directorSyncIcon { font-size: .82rem !important; font-weight: 950; }
+.director-icon-action { box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+
+.director-back-to-top {
+    right: max(.7rem, env(safe-area-inset-right, 0px));
+    bottom: max(.8rem, env(safe-area-inset-bottom, 0px));
+    width: 2.65rem;
+    min-width: 2.65rem;
+    height: 2.65rem;
+    font-size: 1.18rem;
+    font-weight: 950;
+}
+
+/* Safety Log: compact, one-row command bar with icon controls. The available
+   width is used without making buttons or text abnormally large. */
+#safetyLogView > .max-w-\[1400px\] {
+    padding: .72rem !important;
+    gap: .65rem !important;
+}
+.safety-log-topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .65rem;
+    min-height: 2.65rem;
+}
+.safety-log-title {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .48rem;
+    margin: 0;
+    font-size: clamp(1rem, 4.2vw, 1.32rem);
+    line-height: 1.05;
+    font-weight: 950;
+    letter-spacing: -.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.safety-log-title > span:first-child { font-size: 1.15em; flex: 0 0 auto; }
+.safety-log-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 2.45rem);
+    gap: .34rem;
+    align-items: center;
+}
+.safety-icon-action {
+    width: 2.45rem;
+    min-width: 2.45rem;
+    height: 2.45rem;
+    min-height: 2.45rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+    border: 1px solid var(--border-color);
+    border-radius: .72rem;
+    background: var(--input-bg);
+    color: var(--text-main);
+    font-size: 1rem !important;
+    font-weight: 950;
+    line-height: 1;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 4px 12px rgba(0,0,0,.16);
+    transition: transform .08s ease, filter .12s ease, border-color .12s ease;
+}
+.safety-icon-action:active { transform: scale(.94); filter: brightness(1.12); }
+.safety-icon-action:disabled { opacity: .58; cursor: wait; }
+.safety-icon-primary { color: #bfdbfe; border-color: rgba(59,130,246,.5); background: rgba(37,99,235,.34); }
+.safety-icon-danger { color: #fecaca; border-color: rgba(239,68,68,.48); background: rgba(127,29,29,.34); }
+.safety-icon-neutral { color: var(--text-muted); }
+.safety-icon-status { border-radius: 999px; font-size: .66rem !important; }
+.safety-icon-status[data-state="ready"] { color: #34d399; border-color: rgba(16,185,129,.46); background: rgba(6,95,70,.26); }
+.safety-icon-status[data-state="syncing"] { color: #60a5fa; border-color: rgba(59,130,246,.48); background: rgba(30,64,175,.25); font-size: .95rem !important; }
+.safety-icon-status[data-state="error"] { color: #fbbf24; border-color: rgba(245,158,11,.5); background: rgba(120,53,15,.28); font-size: .82rem !important; }
+.safety-toolbar-hint {
+    min-height: 0;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    margin: 0;
+    padding: 0 .65rem;
+    border: 0 solid var(--border-color);
+    border-radius: .65rem;
+    background: var(--card-tint);
+    color: var(--text-muted);
+    font-size: .67rem;
+    font-weight: 850;
+    line-height: 1.3;
+    transition: opacity .15s ease, max-height .18s ease, padding .18s ease, border-width .18s ease;
+}
+.safety-toolbar-hint.is-visible {
+    max-height: 3rem;
+    opacity: 1;
+    padding: .42rem .65rem;
+    border-width: 1px;
+}
+#safetyRosterLoadState {
+    margin: 0;
+    min-height: 0;
+    padding: .42rem .62rem;
+    border-radius: .58rem;
+    font-size: .66rem;
+    line-height: 1.32;
+}
+
+/* Keep Setup's action aligned with the readiness and checkpoint summary badges.
+   ID selectors intentionally survive applyLockState() replacing className. */
+#setupHeaderRow { gap: .48rem; align-items: center; }
+#setupHeaderRow > h2 {
+    min-width: 0;
+    flex: 1 1 auto;
+    flex-wrap: nowrap !important;
+    overflow: hidden;
+}
+#setupHeaderRow #setupSummary {
+    min-width: 0;
+    max-width: 100%;
+    height: 2.05rem;
+    display: inline-flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: .35rem .58rem !important;
+    border-radius: .58rem !important;
+}
+#setupHeaderRow #setupSummary.hidden { display: none !important; }
+#lockBtn {
+    flex: 0 0 auto;
+    height: 2.05rem;
+    min-height: 2.05rem !important;
+    max-height: 2.05rem;
+    padding: .35rem .62rem !important;
+    border-radius: .58rem !important;
+    font-size: .66rem !important;
+    line-height: 1 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 430px) {
+    .director-mode-actions { gap: .38rem !important; }
+    .director-icon-action,
+    .director-icon-action.is-expanded { height: 2.55rem !important; min-height: 2.55rem !important; border-radius: .7rem !important; }
+    .director-action-icon svg { width: 1.02rem; height: 1.02rem; }
+    .safety-log-actions { grid-template-columns: repeat(4, 2.25rem); gap: .28rem; }
+    .safety-icon-action { width: 2.25rem; min-width: 2.25rem; height: 2.25rem; min-height: 2.25rem; border-radius: .65rem; }
+    .safety-log-title { font-size: .98rem; }
+    #setupHeaderRow > h2 { gap: .32rem; }
+    #setupReadinessBadge { flex: 0 0 auto; }
+    #setupHeaderRow #setupSummary { font-size: .58rem !important; }
+    #lockBtn { max-width: 5.6rem; }
+}
+
+/* ── v19.3.6 entry and command-view refinements ───────────────────── */
+/* Quick Entry keeps only the large numeric pad visible. ABC hands control to
+   the native keyboard without replacing the race-day number pad with tiny keys. */
+.minimal-keyboard-tabs-two { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.minimal-native-bib-input {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    width: 100%;
+    height: 100%;
+    padding: 0 4.7rem 0 1rem;
+    border: 0;
+    border-radius: inherit;
+    outline: 0;
+    background: transparent;
+    color: transparent;
+    caret-color: transparent;
+    opacity: .01;
+    text-transform: uppercase;
+}
+.minimal-native-keyboard-hint {
+    min-height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: .55rem .75rem;
+    border: 1px solid #282a32;
+    border-radius: .75rem;
+    background: #0d0e12;
+    color: #9ca3af;
+    font-size: .68rem;
+    font-weight: 850;
+    text-align: center;
+}
+.minimal-native-keyboard-hint.hidden { display: none !important; }
+.minimal-bib-display-wrap:has(.minimal-native-bib-input:focus) {
+    box-shadow: 0 0 0 2px #3b82f6, 0 12px 28px rgba(37,99,235,.2);
+}
+
+/* Main and Quick Last-4 use exactly the same frequency colour token. */
+.minimal-last4-card[class*="last4-repeat-"] strong {
+    color: inherit !important;
+    text-shadow: var(--last4-shadow);
+}
+
+/* Spaces are invalid BIB characters. Feedback is brief, local, and highly visible. */
+.minimal-space-feedback,
+.bib-space-feedback {
+    margin-top: .35rem;
+    padding: .5rem .7rem;
+    border: 1px solid rgba(248,113,113,.78);
+    border-radius: .65rem;
+    background: rgba(127,29,29,.88);
+    color: #fee2e2;
+    font-size: .69rem;
+    line-height: 1.25;
+    font-weight: 900;
+    text-align: center;
+    box-shadow: 0 6px 18px rgba(127,29,29,.28);
+}
+.minimal-space-feedback.hidden,
+.bib-space-feedback.hidden { display: none !important; }
+.minimal-space-feedback:not(.hidden),
+.bib-space-feedback:not(.hidden) { animation: bibSpacePulseV1933 .22s ease-out 1; }
+@keyframes bibSpacePulseV1933 {
+    0% { transform: scale(.97); filter: brightness(1.5); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* OCR and keyboard controls are absent unless focus is inside the BIB field/tool shell. */
+.bib-input-shell:not(:focus-within) .bib-input-tools,
+.bib-input-shell:not(.tools-visible) .bib-input-tools {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+.bib-input-shell:focus-within.tools-visible .bib-input-tools {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+body.minimal-bib-open .bib-input-tools { display: none !important; }
+
+/* Duplicate confirmation remains above Quick Entry and fits without scrolling. */
+#v19DecisionModal { z-index: 220 !important; }
+#v19DecisionModal[data-kind="duplicate"] { padding: .65rem !important; align-items: center !important; }
+#v19DecisionModal[data-kind="duplicate"] #v19DecisionCard {
+    width: min(94vw, 24rem) !important;
+    max-height: none !important;
+    padding: .85rem !important;
+    gap: .65rem !important;
+    border-radius: .9rem !important;
+}
+#v19DecisionModal[data-kind="duplicate"] #v19DecisionTitle {
+    margin: 0;
+    font-size: .94rem !important;
+    line-height: 1.15;
+}
+#v19DecisionModal[data-kind="duplicate"] #v19DecisionReasonWrap { display: none !important; }
+#v19DecisionModal[data-kind="duplicate"] #v19DecisionBody { font-size: .72rem; }
+#v19DecisionModal[data-kind="duplicate"] #v19DecisionCard > .grid { gap: .45rem !important; }
+#v19DecisionModal[data-kind="duplicate"] #v19DecisionCancel,
+#v19DecisionModal[data-kind="duplicate"] #v19DecisionConfirm {
+    min-height: 2.65rem;
+    padding: .55rem .6rem !important;
+    border-radius: .7rem !important;
+    font-size: .76rem;
+}
+.v19-duplicate-compact {
+    display: grid;
+    gap: .24rem;
+    padding: .62rem .7rem;
+    border: 1px solid rgba(245,158,11,.42);
+    border-radius: .72rem;
+    background: rgba(120,53,15,.16);
+}
+.v19-duplicate-compact strong { color: #fbbf24; font-size: .82rem; line-height: 1.18; }
+.v19-duplicate-compact span { color: var(--text-main); font-size: .69rem; line-height: 1.25; }
+.v19-duplicate-compact small { color: var(--text-muted); font-size: .62rem; line-height: 1.2; }
+
+/* History scope and limit indicators no longer consume card-sized space. */
+.scan-history-limit-strip {
+    min-height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: .35rem;
+    width: auto;
+    max-width: 100%;
+    padding: .25rem .55rem;
+    border-radius: 999px !important;
+    font-size: .62rem;
+    line-height: 1;
+    font-weight: 800;
+    white-space: nowrap;
+}
+#scanHistoryHeader { padding: .45rem .62rem !important; gap: .45rem !important; }
+.scan-history-scope-toggle { padding: .12rem !important; border-radius: .5rem !important; }
+.scan-history-scope-toggle button { min-height: 1.55rem; padding: .18rem .48rem !important; line-height: 1; }
+#expandCollapseAllBtn { min-height: 1.7rem; padding: .15rem .45rem !important; }
+#searchBar { min-height: 1.85rem; padding-block: .3rem !important; }
+
+/* Setup header: remove the now-unused event-distance strip and align Edit Setup. */
+#eventConfigStrip { display: none !important; }
+#setupHeaderRow { min-height: 2.1rem; }
+#setupHeaderRow > div:last-child { height: 2.05rem; display: flex; align-items: stretch; }
+#lockBtn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    vertical-align: middle;
+    transform: none !important;
+}
+
+/* Centrally managed map credentials are informational, not an end-user form. */
+.director-map-managed-card { min-height: 2.55rem; padding: .5rem .65rem !important; }
+
+/* Slim command header: one compact title band and a low-profile icon rail. */
+.director-mode-header {
+    padding: max(.4rem, env(safe-area-inset-top, 0px)) .65rem .45rem !important;
+    gap: .42rem !important;
+}
+.director-mode-title { font-size: clamp(.86rem, 3.8vw, 1.15rem) !important; line-height: 1.05 !important; }
+.director-mode-heading { min-height: 1.45rem; }
+.director-mode-actions { gap: .32rem !important; }
+.director-icon-action,
+.director-icon-action.is-expanded,
+#directorEventProfileBadge {
+    width: 2.18rem !important;
+    min-width: 2.18rem !important;
+    max-width: 2.18rem !important;
+    height: 2.18rem !important;
+    min-height: 2.18rem !important;
+    padding: 0 !important;
+    border-radius: .62rem !important;
+    overflow: hidden;
+    flex: 0 0 2.18rem !important;
+}
+#directorEventProfileBadge {
+    color: transparent !important;
+    font-size: 0 !important;
+    position: relative;
+}
+#directorEventProfileBadge::before {
+    content: "⚑";
+    color: currentColor;
+    color: #fbbf24;
+    font-size: .92rem;
+    line-height: 1;
+}
+.director-action-icon svg { width: .94rem !important; height: .94rem !important; }
+#directorSyncIcon.director-status-glyph { font-size: .55rem !important; }
+
+@media (max-width: 900px) {
+    .director-mode-header {
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        align-items: center !important;
+    }
+    .director-mode-title { white-space: nowrap !important; }
+    .director-mode-actions { width: auto !important; justify-content: flex-end !important; }
+    #directorExitButton { margin-right: 0 !important; order: 0 !important; }
+}
+@media (max-width: 430px) {
+    .director-mode-header { padding-inline: .45rem !important; }
+    .director-mode-heading { gap: .3rem !important; }
+    .director-mode-title { max-width: 9.7rem; }
+    .director-icon-action,
+    .director-icon-action.is-expanded,
+    #directorEventProfileBadge {
+        width: 2rem !important;
+        min-width: 2rem !important;
+        max-width: 2rem !important;
+        height: 2rem !important;
+        min-height: 2rem !important;
+        flex-basis: 2rem !important;
+    }
+    #scanHistoryHeader { flex-wrap: wrap !important; }
+    #scanHistoryHeader > div:first-child { flex-wrap: nowrap !important; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+    #scanHistoryHeader > div:first-child::-webkit-scrollbar { display: none; }
+    #scanHistoryHeader > div:last-child { flex: 1 1 100%; max-width: 100% !important; }
+}
+
+/* ── v19.3.6 keyboard LOG and key-free interactive map ───────────── */
+.minimal-backspace-btn { z-index: 6; }
+.minimal-inline-log-btn {
+    display: none;
+    position: absolute;
+    z-index: 6;
+    right: 3.55rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3.65rem;
+    height: 2.65rem;
+    border: 1px solid rgba(96,165,250,.88);
+    border-radius: .72rem;
+    background: linear-gradient(135deg, #1d4ed8, #4338ca);
+    color: #fff;
+    font-size: .73rem;
+    font-weight: 950;
+    letter-spacing: .04em;
+    box-shadow: 0 4px 16px rgba(37,99,235,.28);
+    touch-action: manipulation;
+}
+.minimal-inline-log-btn:active { transform: translateY(-50%) scale(.96); }
+.minimal-inline-log-btn:disabled { opacity: .42; box-shadow: none; }
+.minimal-bib-display-wrap.native-keyboard-active,
+.minimal-bib-display-wrap:has(.minimal-native-bib-input.is-active) {
+    padding-right: 8.1rem;
+}
+.minimal-bib-display-wrap.native-keyboard-active .minimal-inline-log-btn,
+.minimal-bib-display-wrap:has(.minimal-native-bib-input.is-active) .minimal-inline-log-btn {
+    display: block;
+}
+.minimal-bib-display-wrap.native-keyboard-active .minimal-native-bib-input,
+.minimal-bib-display-wrap:has(.minimal-native-bib-input.is-active) .minimal-native-bib-input {
+    padding-right: 8.35rem;
+}
+
+.director-gps-map-stage { touch-action: none !important; }
+.director-open-map-canvas,
+.race-slippy-map {
+    width: 100%;
+    height: 100%;
+    min-height: 24rem;
+}
+.race-slippy-map {
+    position: relative;
+    overflow: hidden;
+    background:
+        linear-gradient(rgba(44,62,80,.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(44,62,80,.08) 1px, transparent 1px),
+        #dbe8ee;
+    background-size: 32px 32px;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    outline: none;
+}
+.race-slippy-map:active { cursor: grabbing; }
+.race-slippy-map:focus-visible { box-shadow: inset 0 0 0 3px #3b82f6; }
+.race-slippy-tiles,
+.race-slippy-lines,
+.race-slippy-markers {
+    position: absolute;
+    inset: 0;
+}
+.race-slippy-tiles img {
+    position: absolute;
+    width: 256px;
+    height: 256px;
+    max-width: none;
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+.race-slippy-lines { overflow: visible; pointer-events: none; }
+.race-slippy-markers { pointer-events: none; }
+.race-slippy-marker {
+    --marker-color: #22c55e;
+    position: absolute;
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    color: #fff;
+    font: 900 11px/1 ui-sans-serif, system-ui, sans-serif;
+    text-shadow: 0 1px 1px rgba(0,0,0,.55);
+    box-shadow: 0 3px 12px rgba(0,0,0,.36);
+    touch-action: manipulation;
+}
+.race-slippy-marker.is-device {
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid #07120b;
+    border-radius: 999px;
+    background: var(--marker-color);
+}
+.race-slippy-marker.is-device::after {
+    content: '';
+    position: absolute;
+    inset: -.32rem;
+    border: 2px solid rgba(34,197,94,.42);
+    border-radius: inherit;
+    pointer-events: none;
+}
+.race-slippy-marker.is-device.is-stale::after,
+.race-slippy-marker.is-device.is-quiet::after { display: none; }
+.race-slippy-marker.is-checkpoint {
+    width: 1.9rem;
+    height: 1.9rem;
+    border: 2px solid #111827;
+    border-radius: .42rem .42rem .42rem .1rem;
+    background: #f59e0b;
+    transform: translate(-50%, -90%) rotate(45deg);
+}
+.race-slippy-checkpoint-flag {
+    transform: rotate(-45deg);
+    font-size: 1rem;
+    color: #111827;
+    text-shadow: none;
+}
+.race-slippy-controls {
+    position: absolute;
+    z-index: 20;
+    top: .65rem;
+    left: .65rem;
+    display: grid;
+    gap: .35rem;
+}
+.race-slippy-controls button {
+    width: 2.45rem;
+    height: 2.45rem;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(15,23,42,.38);
+    border-radius: .62rem;
+    background: rgba(255,255,255,.94);
+    color: #0f172a;
+    font-size: 1.25rem;
+    font-weight: 950;
+    line-height: 1;
+    box-shadow: 0 3px 12px rgba(15,23,42,.22);
+    touch-action: manipulation;
+}
+.race-slippy-controls button:active { transform: scale(.95); background: #dbeafe; }
+.race-slippy-popup {
+    position: absolute;
+    z-index: 30;
+    width: min(18rem, calc(100% - 1.5rem));
+    transform: translate(-50%, -100%);
+    padding: .68rem 2rem .68rem .75rem;
+    border: 1px solid rgba(15,23,42,.28);
+    border-radius: .72rem;
+    background: rgba(255,255,255,.97);
+    color: #0f172a;
+    font-size: .68rem;
+    line-height: 1.42;
+    box-shadow: 0 8px 28px rgba(15,23,42,.32);
+    pointer-events: auto;
+}
+.race-slippy-popup::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -.42rem;
+    width: .8rem;
+    height: .8rem;
+    transform: translateX(-50%) rotate(45deg);
+    background: inherit;
+    border-right: 1px solid rgba(15,23,42,.22);
+    border-bottom: 1px solid rgba(15,23,42,.22);
+}
+.race-slippy-popup.hidden { display: none !important; }
+.race-slippy-popup strong { font-size: .76rem; }
+.race-slippy-popup-close {
+    position: absolute;
+    top: .32rem;
+    right: .38rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #0f172a;
+    font-weight: 950;
+}
+.race-slippy-attribution {
+    position: absolute;
+    z-index: 20;
+    right: .32rem;
+    bottom: .25rem;
+    padding: .18rem .34rem;
+    border-radius: .28rem;
+    background: rgba(255,255,255,.9);
+    color: #334155;
+    font-size: .52rem;
+    line-height: 1;
+    text-decoration: none;
+}
+.race-slippy-tile-status {
+    position: absolute;
+    z-index: 19;
+    left: 50%;
+    top: .7rem;
+    transform: translateX(-50%);
+    max-width: calc(100% - 8rem);
+    padding: .38rem .58rem;
+    border: 1px solid rgba(245,158,11,.7);
+    border-radius: .55rem;
+    background: rgba(120,53,15,.92);
+    color: #fffbeb;
+    font-size: .58rem;
+    font-weight: 800;
+    text-align: center;
+}
+.race-slippy-tile-status.hidden { display: none !important; }
+@media (max-width: 520px) {
+    .director-gps-map-stage,
+    .director-open-map-canvas,
+    .race-slippy-map { min-height: 20rem; height: 20rem; }
+    .race-slippy-controls button { width: 2.25rem; height: 2.25rem; }
+    .race-slippy-popup { font-size: .64rem; }
+}
+
+
+/* ── v19.3.6 iPhone keyboard, Safety Log and command-header fixes ───── */
+.virtual-spacer-row,
+body.text-scale-large #safetyLogBody tr.virtual-spacer-row,
+body.text-scale-xlarge #safetyLogBody tr.virtual-spacer-row {
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    line-height: 0 !important;
+}
+.virtual-spacer-row .virtual-spacer-cell {
+    min-height: 0 !important;
+    line-height: 0 !important;
+}
+#safetyLogBody.safety-nonvirtual-body::before,
+#safetyLogBody.safety-nonvirtual-body::after { display: none !important; content: none !important; }
+
+/* Keep the complete title visible while retaining one compact toolbar row. */
+@media (max-width: 520px) {
+    .director-mode-header {
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        padding: max(.38rem, env(safe-area-inset-top, 0px)) .42rem .38rem !important;
+        gap: .32rem !important;
+    }
+    .director-mode-heading { min-width: 0 !important; gap: .2rem !important; }
+    .director-mode-title {
+        max-width: none !important;
+        min-width: 0 !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        font-size: clamp(.66rem, 3.15vw, .78rem) !important;
+        letter-spacing: .035em !important;
+        white-space: nowrap !important;
+    }
+    .director-mode-actions { gap: .24rem !important; }
+    .director-icon-action,
+    .director-icon-action.is-expanded,
+    #directorEventProfileBadge {
+        width: 1.86rem !important;
+        min-width: 1.86rem !important;
+        max-width: 1.86rem !important;
+        height: 1.86rem !important;
+        min-height: 1.86rem !important;
+        flex-basis: 1.86rem !important;
+        border-radius: .55rem !important;
+    }
+    .director-action-icon svg { width: .84rem !important; height: .84rem !important; }
+}
+
+/* The inline LOG must win hit-testing over the transparent native input. */
+.minimal-inline-log-btn {
+    z-index: 12 !important;
+    pointer-events: auto !important;
+    -webkit-tap-highlight-color: transparent;
+}
+.minimal-backspace-btn { z-index: 12 !important; }
+.minimal-native-bib-input { z-index: 4 !important; }
+
+/* ── v19.3.6 streamlined unknown-runner confirmation ──────────────── */
+#v19DecisionModal.v19-decision-compact {
+    align-items: center;
+    justify-content: center;
+    padding: max(1rem, env(safe-area-inset-top, 0px)) 1rem max(1rem, env(safe-area-inset-bottom, 0px));
+}
+#v19DecisionCard.v19-decision-card-compact {
+    width: min(21.5rem, calc(100vw - 2rem));
+    max-height: none;
+    padding: 1rem;
+    gap: .8rem;
+    border-radius: 1.25rem;
+    overflow: visible;
+    text-align: center;
+}
+#v19DecisionCard.v19-decision-card-compact #v19DecisionTitle {
+    margin: 0;
+    font-size: .88rem;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+}
+#v19DecisionCard.v19-decision-card-compact #v19DecisionReasonWrap { display: none !important; }
+#v19DecisionCard.v19-decision-card-compact .v19-modal-body { margin: 0; }
+.v19-unknown-runner-compact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .22rem;
+    padding: .45rem .25rem .25rem;
+}
+.v19-unknown-runner-compact strong {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: clamp(2.2rem, 14vw, 4.2rem);
+    line-height: .95;
+    font-weight: 1000;
+    letter-spacing: -.05em;
+    color: #fbbf24;
+}
+.v19-unknown-runner-compact span {
+    font-size: .76rem;
+    font-weight: 850;
+    color: var(--text-muted);
+}
+#v19DecisionCard.v19-decision-card-compact > .grid {
+    gap: .6rem;
+}
+#v19DecisionCard.v19-decision-card-compact #v19DecisionCancel,
+#v19DecisionCard.v19-decision-card-compact #v19DecisionConfirm {
+    min-height: 3.35rem;
+    padding: .75rem .45rem;
+    border-radius: .9rem;
+    font-size: .85rem;
+    line-height: 1;
+    touch-action: manipulation;
+}
+#v19DecisionCard.v19-decision-card-compact #v19DecisionConfirm {
+    box-shadow: 0 8px 22px rgba(37,99,235,.32);
+}

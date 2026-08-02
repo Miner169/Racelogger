@@ -1,0 +1,26 @@
+Race Bib Logger v19.3.6 — validation results
+Generated: 2026-08-02
+
+PASS  JavaScript syntax: all app/*.js, tests/*.mjs and scripts/*.mjs
+PASS  Apps Script syntax: Code.gs parsed as JavaScript
+PASS  Deployment assets: 18 core files, manifest icons, HTML references and service-worker shell
+PASS  Integrity unit tests
+PASS  SHA-256 checksum parity fixture
+PASS  FNV-1a 64-bit fallback parity
+PASS  Static integration checks
+PASS  Unknown-runner prompt uses compact centered mode
+PASS  Unknown-runner prompt has Cancel and Log BIB without a reason selector
+PASS  Unknown-runner approval automatically stores UNKNOWN_NOT_IN_SETUP
+PASS  Quick Entry remark tap invokes the native-keyboard path directly
+PASS  Retired Director widgets are excluded from the injected widget set
+PASS  Retired Director widgets are excluded from renderAll()
+PASS  OpenStreetMap remains API-key-free
+PASS  Service-worker app-shell cache rotated to v19.3.6
+
+Not physically executed in this environment:
+- Installed iPhone PWA software-keyboard opening behavior
+- Installed Android PWA software-keyboard opening behavior
+- Thumb reach and safe-area behavior on physical devices
+- Live Google Apps Script synchronization
+- Live multi-device GPS movement and map-tile availability
+- Long-duration poor-network / offline soak testing

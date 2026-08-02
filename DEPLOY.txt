@@ -1,22 +1,16 @@
-RACE BIB LOGGER v19.3.5 — DEPLOYMENT
-===================================
+RACE BIB LOGGER v19.3.6 — DEPLOYMENT
 
-1. Upload the complete package to the same web root. Preserve app/, icons/, scripts/, tests/ and docs/.
-2. Replace Code.gs in the bound Google Apps Script project, save, and deploy a new Web App version.
-3. No Google Maps key, Map ID or map credential is required. Director Mode uses OpenStreetMap.
-4. Make sure sw.js, manifest.json, tailwind.css and every app/ file are deployed; v19.3.5 deliberately changes filenames and URL versions.
-5. Open the website online once after deployment and refresh it.
-6. For an installed PWA, fully close and reopen it once. The new service worker removes the old caches that contained the Google-key placeholder and earlier Quick Entry code.
+1. Deploy every file in this package together. Do not mix v19.3.6 index.html, sw.js, or app/ files with an older release.
+2. Replace Code.gs in the bound Apps Script project and deploy a new web-app version if the backend is hosted separately.
+3. Publish index.html, manifest.json, sw.js, tailwind.css, icons/, and the complete app/ directory.
+4. Confirm GitHub Pages or the chosen web host serves files from the same relative paths used in index.html.
+5. Open the website once in a normal browser tab and refresh.
+6. Fully close installed iPhone/Android PWAs and reopen them. The v19.3.6 service worker rotates the old cache automatically.
+7. Verify:
+   - Quick Entry remark opens the phone keyboard directly from 123 mode.
+   - Unknown BIB prompt is compact and has no reason selector.
+   - Removed Director widgets do not appear in the screen or Customize list.
+   - OpenStreetMap loads, pans, and zooms.
+   - A sample BIB logs locally and synchronizes.
 
-RACE-DAY DEVICE CHECK
----------------------
-- Open Quick BIB Entry and press ABC once. The native keyboard should open immediately.
-- Type a BIB and press the small LOG beside backspace. It must start logging without manually lowering the keyboard.
-- Test a duplicate BIB and confirm the duplicate decision is reachable.
-- Open Runner Safety Log and confirm the first BIB starts directly under the header without an empty band.
-- Open Director Mode and confirm the full RACE COMMAND VIEW title is visible.
-- Confirm the map shows PWA markers and either configured or inferred checkpoint markers.
-- Drag, pinch, use +/−, tap markers, and press ◎ to fit all locations.
-- Confirm © OpenStreetMap contributors remains visible.
-
-No Racelog sheet migration is required for v19.3.5.
+No Racelog sheet migration is required for v19.3.6.

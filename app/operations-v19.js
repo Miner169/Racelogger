@@ -44,7 +44,11 @@
 
   function openDecision_(options) {
     const modal = document.getElementById('v19DecisionModal');
+    const card = document.getElementById('v19DecisionCard');
     if (!modal) return Promise.resolve({ approved: false });
+    const compact = options.variant === 'compact';
+    modal.classList.toggle('v19-decision-compact', compact);
+    card?.classList.toggle('v19-decision-card-compact', compact);
     UI.setText('v19DecisionTitle', options.title || 'Confirm action');
     UI.setHtml('v19DecisionBody', options.bodyHtml || '');
     const reasonWrap = document.getElementById('v19DecisionReasonWrap');
@@ -222,9 +226,9 @@
     if (unknownBib) {
       const decision = await openDecision_({
         title: 'Runner not found',
-        bodyHtml: '<div class="v19-warning-hero"><strong>BIB ' + UI.escapeHtml(bib) + ' is not in the current Setup configuration</strong><span>You can still preserve the passage as an unknown runner for later reconciliation.</span></div><p class="v19-modal-note">The record will be flagged <strong>Unknown BIB</strong> and excluded from silent “normal” handling.</p>',
-        reasons: RC.reasonCodes.unknown,
-        confirmLabel: 'Log unknown runner',
+        variant: 'compact',
+        bodyHtml: '<div class="v19-unknown-runner-compact"><strong>' + UI.escapeHtml(bib) + '</strong><span>Not listed in Setup</span></div>',
+        confirmLabel: 'Log BIB',
         cancelLabel: 'Cancel'
       });
       if (!decision.approved) {
@@ -232,7 +236,7 @@
         global.announceToScreenReader_('Unknown runner entry cancelled.');
         return;
       }
-      reasonCodes.push(decision.reasonCode);
+      reasonCodes.push('UNKNOWN_NOT_IN_SETUP');
       flags.push('unknown-bib');
     }
 

@@ -1,0 +1,462 @@
+--- /mnt/data/race-bib-logger-v19.3.5/app/operations-v19.js	2026-08-02 15:20:14.824470865 +0000
++++ app/operations-v19.js	2026-08-02 15:51:23.604430343 +0000
+@@ -44,7 +44,11 @@
+ 
+   function openDecision_(options) {
+     const modal = document.getElementById('v19DecisionModal');
++    const card = document.getElementById('v19DecisionCard');
+     if (!modal) return Promise.resolve({ approved: false });
++    const compact = options.variant === 'compact';
++    modal.classList.toggle('v19-decision-compact', compact);
++    card?.classList.toggle('v19-decision-card-compact', compact);
+     UI.setText('v19DecisionTitle', options.title || 'Confirm action');
+     UI.setHtml('v19DecisionBody', options.bodyHtml || '');
+     const reasonWrap = document.getElementById('v19DecisionReasonWrap');
+@@ -222,9 +226,9 @@
+     if (unknownBib) {
+       const decision = await openDecision_({
+         title: 'Runner not found',
+-        bodyHtml: '<div class="v19-warning-hero"><strong>BIB ' + UI.escapeHtml(bib) + ' is not in the current Setup configuration</strong><span>You can still preserve the passage as an unknown runner for later reconciliation.</span></div><p class="v19-modal-note">The record will be flagged <strong>Unknown BIB</strong> and excluded from silent “normal” handling.</p>',
+-        reasons: RC.reasonCodes.unknown,
+-        confirmLabel: 'Log unknown runner',
++        variant: 'compact',
++        bodyHtml: '<div class="v19-unknown-runner-compact"><strong>' + UI.escapeHtml(bib) + '</strong><span>Not listed in Setup</span></div>',
++        confirmLabel: 'Log BIB',
+         cancelLabel: 'Cancel'
+       });
+       if (!decision.approved) {
+@@ -232,7 +236,7 @@
+         global.announceToScreenReader_('Unknown runner entry cancelled.');
+         return;
+       }
+-      reasonCodes.push(decision.reasonCode);
++      reasonCodes.push('UNKNOWN_NOT_IN_SETUP');
+       flags.push('unknown-bib');
+     }
+ 
+--- /mnt/data/race-bib-logger-v19.3.5/app/main.js	2026-08-02 15:48:43.520433814 +0000
++++ app/main.js	2026-08-02 15:51:37.716430037 +0000
+@@ -1,4 +1,4 @@
+-        const APP_VERSION = "19.3.5";
++        const APP_VERSION = "19.3.6";
+         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
+         let db;
+         let dbReady_ = false;
+@@ -182,7 +182,7 @@
+             localStorage.setItem("syncUrl", DEFAULT_SYNC_URL);
+         }
+ 
+-        // v19.3.5 uses a built-in, dependency-free OpenStreetMap slippy map.
++        // v19.3.6 uses a built-in, dependency-free OpenStreetMap slippy map.
+         // It requires no deployment key or race-day device configuration.
+         let directorSlippyMapInstance_ = null;
+ 
+@@ -556,6 +556,15 @@
+             }
+         }
+ 
++        function activateMinimalRemarkKeyboard_() {
++            if (!minimalBibModeActive_) return;
++            // Keep the focus call in the original tap gesture so iOS opens the
++            // software keyboard immediately, even while the 123 keypad is active.
++            minimalNativeKeyboardActive_ = false;
++            activateMinimalEntryTarget_('remark');
++            openMinimalNativeKeyboard_();
++        }
++
+         function renderMinimalLastFour_(logs, frequencyMap) {
+             const root = document.getElementById('minimalLastFour');
+             if (!root) return;
+@@ -2384,7 +2393,7 @@
+          * polling (resetSyncTimer) remains the fallback there, unchanged. */
+         function registerServiceWorkerAndBackgroundSync() {
+             if (!navigator.serviceWorker || typeof navigator.serviceWorker.register !== 'function') return;
+-            navigator.serviceWorker.register('sw.js?v=19.3.5', { updateViaCache: 'none' }).then(registration => registration.update()).catch(() => { /* non-fatal */ });
++            navigator.serviceWorker.register('sw.js?v=19.3.6', { updateViaCache: 'none' }).then(registration => registration.update()).catch(() => { /* non-fatal */ });
+             if (typeof navigator.serviceWorker.addEventListener !== 'function') return;
+             navigator.serviceWorker.addEventListener('message', (event) => {
+                 if (event.data && event.data.type === 'race-log-sync-complete') {
+@@ -6826,7 +6835,7 @@
+ 
+         // Compatibility no-ops for older Apps Script/UI builds that still include
+         // a mapConfig object or call the retired browser-key settings renderer.
+-        // v19.3.5 uses OpenStreetMap tiles and never asks race-day users for a key.
++        // v19.3.6 uses OpenStreetMap tiles and never asks race-day users for a key.
+         function applyGoogleMapsConfigFromPayload_() {}
+         function updateGoogleMapsSettingsState_() {}
+ 
+@@ -6985,7 +6994,7 @@
+             container.innerHTML = `<div class="director-gps-map-shell"><div class="director-gps-map-summary"><span>${deviceGroups.length} PWA device${deviceGroups.length === 1 ? '' : 's'} located</span><span>${logsWithGps.length} geotagged log${logsWithGps.length === 1 ? '' : 's'}</span><span>${checkpointPoints.length} checkpoint marker${checkpointPoints.length === 1 ? '' : 's'}</span><span>Newest ${newest ? escapeHtml_(labelForAge(Math.max(0, now - newest))) : 'unknown'}</span></div><div class="director-gps-map-stage"><div id="directorOpenMapCanvas" class="director-google-map-canvas director-open-map-canvas"><div class="director-map-message">Loading interactive map…</div></div></div>${legend ? `<div class="director-gps-map-legend">${legend}</div>` : ''}<p class="text-[9px] theme-text-muted leading-snug">Drag to move, pinch or use +/− to zoom, and press ◎ to show all checkpoints and PWAs. The base map uses OpenStreetMap and requires no API key. Device trails show up to the last 30 reported coordinates.</p></div>`;
+ 
+             try {
+-                if (typeof window.RaceSlippyMap !== 'function') throw new Error('The built-in map module did not load. Refresh the PWA after deploying all v19.3.5 files.');
++                if (typeof window.RaceSlippyMap !== 'function') throw new Error('The built-in map module did not load. Refresh the PWA after deploying all v19.3.6 files.');
+                 const canvas = document.getElementById('directorOpenMapCanvas');
+                 if (!canvas || !document.body.contains(canvas)) return;
+                 const centerSource = deviceGroups[0]?.latest || checkpointPoints[0] || allCoordinates[0];
+--- /mnt/data/race-bib-logger-v19.3.5/index.html	2026-08-02 15:48:43.372433817 +0000
++++ index.html	2026-08-02 15:51:37.716430037 +0000
+@@ -5,7 +5,7 @@
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+     <title>Race Bib Logger</title>
+     <link rel="icon" href="icons/icon-192.png" type="image/png">
+-    <link class="theme-manifest" rel="manifest" href="manifest.json?v=19.3.5">
++    <link class="theme-manifest" rel="manifest" href="manifest.json?v=19.3.6">
+     <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+     <meta name="theme-color" id="themeColorMeta" content="#0a0a0c">
+     <meta name="mobile-web-app-capable" content="yes">
+@@ -25,7 +25,7 @@
+          larger screens. Declaring .hidden later in the page caused both the desktop
+          action and its mobile icon to be hidden at PC widths. -->
+     <style id="criticalVisibilityFallback">.hidden { display: none; }</style>
+-    <link rel="stylesheet" href="tailwind.css?v=19.3.5">
++    <link rel="stylesheet" href="tailwind.css?v=19.3.6">
+     <style>
+         /* Theme Variables
+            ---------------------------------------------------------------------------
+@@ -3290,7 +3290,7 @@
+ 
+ 
+         /* =====================================================================
+-           v19.3.5 — Compact entry, duplicate, setup, and Director refinements
++           v19.3.6 — Compact entry, duplicate, setup, and Director refinements
+            Keeps operational behaviour unchanged while making primary actions
+            easier to hit, reducing layout shift, and improving small-screen use.
+            ===================================================================== */
+@@ -3599,7 +3599,7 @@
+     
+ 
+ </style>
+-<link rel="stylesheet" href="app/ux-v1935.css?v=19.3.5">
++<link rel="stylesheet" href="app/ux-v1936.css?v=19.3.6">
+ </head>
+ <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
+ 
+@@ -3962,8 +3962,8 @@
+                     <button type="button" class="minimal-backspace-btn" onpointerdown="event.preventDefault(); event.stopPropagation(); minimalBibBackspace_('bib')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); minimalBibBackspace_('bib')}" aria-label="Delete last BIB character" title="Backspace BIB">⌫</button>
+                 </div>
+                 <div id="minimalRemarkShell" class="minimal-remark-shell">
+-                    <label for="minimalRemarkInput">Remark for this BIB <span>Optional · press ABC for phone keyboard</span></label>
+-                    <input type="text" id="minimalRemarkInput" inputmode="none" maxlength="500" readonly onclick="activateMinimalEntryTarget_('remark')" onkeydown="handleMinimalRemarkNativeKeydown_(event)" oninput="syncMinimalRemarkInput_('minimal')" onblur="handleMinimalNativeKeyboardBlur_()" aria-label="Optional remark for this BIB. Tap ABC to use the phone keyboard." placeholder="e.g. Missed helper, penalty, etc.">
++                    <label for="minimalRemarkInput">Remark for this BIB <span>Optional · tap to type</span></label>
++                    <input type="text" id="minimalRemarkInput" inputmode="none" maxlength="500" readonly onclick="activateMinimalRemarkKeyboard_()" onkeydown="handleMinimalRemarkNativeKeydown_(event)" oninput="syncMinimalRemarkInput_('minimal')" onblur="handleMinimalNativeKeyboardBlur_()" aria-label="Optional remark for this BIB. Tap to open the phone keyboard." placeholder="e.g. Missed helper, penalty, etc.">
+                 </div>
+                 <div id="minimalSpaceFeedback" class="minimal-space-feedback hidden" role="status" aria-live="assertive">Spaces are not allowed in BIB numbers.</div>
+             </div>
+@@ -4909,16 +4909,16 @@
+ 
+     <div id="srAnnouncer" class="sr-only-live" role="status" aria-live="polite" aria-atomic="true"></div>
+ 
+-    <script src="app/constants.js?v=19.3.5"></script>
+-    <script src="app/contracts.js?v=19.3.5"></script>
+-    <script src="app/state-store.js?v=19.3.5"></script>
+-    <script src="app/errors.js?v=19.3.5"></script>
+-    <script src="app/components.js?v=19.3.5"></script>
+-    <script src="app/integrity.js?v=19.3.5"></script>
+-    <script src="app/slippy-map-v1935.js?v=19.3.5"></script>
+-    <script src="app/main.js?v=19.3.5"></script>
+-    <script src="app/operations-v19.js?v=19.3.5"></script>
+-    <script src="app/director-ops-v192.js?v=19.3.5"></script>
+-    <script src="app/ux-v1935.js?v=19.3.5"></script>
++    <script src="app/constants.js?v=19.3.6"></script>
++    <script src="app/contracts.js?v=19.3.6"></script>
++    <script src="app/state-store.js?v=19.3.6"></script>
++    <script src="app/errors.js?v=19.3.6"></script>
++    <script src="app/components.js?v=19.3.6"></script>
++    <script src="app/integrity.js?v=19.3.6"></script>
++    <script src="app/slippy-map-v1936.js?v=19.3.6"></script>
++    <script src="app/main.js?v=19.3.6"></script>
++    <script src="app/operations-v19.js?v=19.3.6"></script>
++    <script src="app/director-ops-v192.js?v=19.3.6"></script>
++    <script src="app/ux-v1936.js?v=19.3.6"></script>
+ </body>
+ </html>
+--- /mnt/data/race-bib-logger-v19.3.5/app/director-ops-v192.js	2026-08-02 15:20:14.824470865 +0000
++++ app/director-ops-v192.js	2026-08-02 15:51:05.148430743 +0000
+@@ -1,12 +1,11 @@
+-/* Race Bib Logger v19.2 command-centre operations suite.
+- * Adds forecast, heatmap, safety, logistics and reporting workflows without
+- * changing the Racelog A:AC data schema. Operational boards sync through the
+- * generic CommandOps backend and remain editable offline through localStorage.
++/* Race Bib Logger v19.3.6 streamlined Director analytics suite.
++ * Retains live race analytics while removing the retired command-operation
++ * workflows and their background polling from Director Mode.
+  */
+ (function (global) {
+   'use strict';
+ 
+-  const VERSION = '19.2.0';
++  const VERSION = '19.3.6';
+   const STORE_KEY = 'raceCommandOps_v19_2';
+   const HEATMAP_WINDOW_KEY = 'directorHeatmapWindow_v19_2';
+   const OPS_EPOCH_KEY = 'raceCommandOpsEventEpoch_v19_2';
+@@ -19,19 +18,17 @@
+   let heatmapWindowMinutes_ = Number(localStorage.getItem(HEATMAP_WINDOW_KEY) || 60) || 60;
+   let handoverSnapshot_ = null;
+ 
++  const REMOVED_WIDGET_IDS = Object.freeze([
++    'missing-runners', 'medical-capacity', 'transport-sweep', 'weather-risk',
++    'supplies', 'handover', 'post-race-report'
++  ]);
++
+   const WIDGETS = [
+     ['heatmap', '🔥 Checkpoint Load Heatmap', 'Scans per minute by checkpoint and rolling time block.'],
+     ['cot-funnel', '⏳ COT Risk Funnel', 'Safe, approaching, critical, overdue, acknowledged, and resolved runners.'],
+-    ['missing-runners', '🔎 Missing Runner Workflow', 'Assign an owner and record calls, searches, sightings, and resolution.'],
+     ['route-anomalies', '🧭 Route Anomaly Diagram', 'Skipped checkpoints, reverse movement, impossible travel, and approved exceptions.'],
+     ['finish-projection', '🏁 Finish Projection', 'Estimated finish windows and runner counts by KM and category.'],
+-    ['outcomes', '📋 DNS / DNF / Withdrawal / Medical', 'Operational totals and unresolved runner outcomes.'],
+-    ['medical-capacity', '🚑 Medical Capacity Board', 'Medical teams, vehicles, active cases, destinations, and availability.'],
+-    ['transport-sweep', '🚌 Sweep & Transport Tracking', 'Sweep teams, buses, pickups, passengers, and last known location.'],
+-    ['weather-risk', '⛈️ Weather Risk', 'Optional official or manual weather and lightning risk against event thresholds.'],
+-    ['supplies', '📦 Checkpoint Supply Status', 'Water, food, ice, lighting, radios, medical stock, and resupply requests.'],
+-    ['handover', '🤝 Shift Handover', 'Active incidents, missing runners, quiet devices, queues, supplies, and upcoming cutoffs.'],
+-    ['post-race-report', '🧾 Post-Race Command Report', 'Export timeline, safety outcomes, device health, checkpoint performance, and reconciliation.']
++    ['outcomes', '📋 DNS / DNF / Withdrawal / Medical', 'Operational totals and unresolved runner outcomes.']
+   ];
+ 
+   const TYPE_CONFIG = {
+@@ -185,7 +182,13 @@
+   function injectWidgets_() {
+     const grid = document.getElementById('directorWidgetsGrid');
+     if (!grid) return;
++    REMOVED_WIDGET_IDS.forEach(id => document.getElementById('widget-' + id)?.remove());
+     const defs = global.DIRECTOR_WIDGET_DEFS;
++    if (Array.isArray(defs)) {
++      for (let i = defs.length - 1; i >= 0; i -= 1) {
++        if (REMOVED_WIDGET_IDS.includes(defs[i]?.id)) defs.splice(i, 1);
++      }
++    }
+     WIDGETS.forEach(([id, label, explain]) => {
+       if (Array.isArray(defs) && !defs.some(item => item.id === id)) defs.push({ id, label, explain });
+       if (!document.getElementById('widget-' + id)) grid.insertAdjacentHTML('beforeend', sectionHtml_(id, label, explain));
+@@ -657,40 +660,46 @@
+ 
+   function renderAll_(logs) {
+     if (Array.isArray(logs)) lastLogs_ = logs;
+-    renderHeatmap_(lastLogs_); renderCotFunnel_(lastLogs_); renderMissingRunners_(); renderRouteAnomalies_(lastLogs_);
+-    renderFinishProjection_(lastLogs_); renderOutcomes_();
+-    renderResourceBoard_('medical_resource','director-medical-capacity-body','medical-capacity');
+-    renderResourceBoard_('transport_resource','director-transport-sweep-body','transport-sweep');
+-    renderWeather_(); renderResourceBoard_('checkpoint_supply','director-supplies-body','supplies');
+-    renderHandover_(); renderPostRaceReport_(); renderEnhancedIncidents_(); redrawMapWithHealth_(lastLogs_);
+-  }
+-
+-  function mergeServerSummaryOps_() {
+-    const items=global.serverOperationsSummary_?.commandOps||[];
+-    items.forEach(item=>{const local=commandOps_[item.id];if(!local||local.synced!==false)commandOps_[item.id]=Object.assign({},item,{synced:true});});
+-    if(items.length)saveOps_();
++    renderHeatmap_(lastLogs_);
++    renderCotFunnel_(lastLogs_);
++    renderRouteAnomalies_(lastLogs_);
++    renderFinishProjection_(lastLogs_);
++    renderOutcomes_();
++    renderEnhancedIncidents_();
++    redrawMapWithHealth_(lastLogs_);
+   }
+ 
+   function installOverrides_() {
+-    const oldRender=global.renderDirectorModeContent_;
+-    global.renderDirectorModeContent_=function(logs){if(typeof oldRender==='function')oldRender(logs);mergeServerSummaryOps_();renderAll_(logs||[]);};
+-    const oldOperations=global.renderDirectorOperations_;
+-    global.renderDirectorOperations_=function(logs){if(typeof oldOperations==='function')oldOperations(logs);mergeServerSummaryOps_();renderAll_(logs||lastLogs_);};
+-    const oldOpen=global.openDirectorMode;
+-    global.openDirectorMode=function(){if(typeof oldOpen==='function')oldOpen();pullCommandOps_();setTimeout(()=>renderAll_(lastLogs_),50);};
+-    const oldFetch=global.fetchOperationsSummary_;
+-    if(typeof oldFetch==='function')global.fetchOperationsSummary_=async function(){const result=await oldFetch();mergeServerSummaryOps_();renderAll_(lastLogs_);return result;};
++    const oldRender = global.renderDirectorModeContent_;
++    global.renderDirectorModeContent_ = function (logs) {
++      if (typeof oldRender === 'function') oldRender(logs);
++      renderAll_(logs || []);
++    };
++    const oldOperations = global.renderDirectorOperations_;
++    global.renderDirectorOperations_ = function (logs) {
++      if (typeof oldOperations === 'function') oldOperations(logs);
++      renderAll_(logs || lastLogs_);
++    };
++    const oldOpen = global.openDirectorMode;
++    global.openDirectorMode = function () {
++      if (typeof oldOpen === 'function') oldOpen();
++      setTimeout(() => renderAll_(lastLogs_), 50);
++    };
++    const oldFetch = global.fetchOperationsSummary_;
++    if (typeof oldFetch === 'function') global.fetchOperationsSummary_ = async function () {
++      const result = await oldFetch();
++      renderAll_(lastLogs_);
++      return result;
++    };
+   }
+ 
+   function initialise_() {
+-    adoptOpsEpoch_(localEventEpoch_());
+-    injectStyles_(); injectWidgets_(); injectModal_(); installOverrides_(); mergeServerSummaryOps_(); renderAll_([]);
+-    window.addEventListener('online',()=>{syncPendingOps_();pullCommandOps_();});
+-    clearInterval(syncTimer_); syncTimer_=setInterval(()=>{if(!document.hidden){syncPendingOps_();pullCommandOps_();}},30000);
+-    document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncPendingOps_();pullCommandOps_();}});
+-    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!document.getElementById('v192CommandOpModal')?.classList.contains('hidden'))global.closeV192CommandOp_();});
++    injectStyles_();
++    injectWidgets_();
++    installOverrides_();
++    renderAll_([]);
+   }
+ 
+-  global.RaceDirectorOpsV192 = Object.freeze({ render:renderAll_, pull:pullCommandOps_, sync:syncPendingOps_, buildReport:buildReport_, getCommandOps:()=>Object.values(commandOps_) });
++  global.RaceDirectorOpsV192 = Object.freeze({ render: renderAll_ });
+   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialise_,{once:true});else initialise_();
+ })(window);
+--- /mnt/data/race-bib-logger-v19.3.5/app/ux-v1935.css	2026-08-02 15:48:43.440433815 +0000
++++ app/ux-v1936.css	2026-08-02 15:51:53.324429698 +0000
+@@ -1,4 +1,4 @@
+-/* ── v19.3.5 compact mobile monitoring and stable scrolling ───────── */
++/* ── v19.3.6 compact mobile monitoring and stable scrolling ───────── */
+ /* Director section chips and their scroll observer were removed from markup and JavaScript. */
+ 
+ .director-action-icon svg {
+@@ -172,7 +172,7 @@
+     #lockBtn { max-width: 5.6rem; }
+ }
+ 
+-/* ── v19.3.5 entry and command-view refinements ───────────────────── */
++/* ── v19.3.6 entry and command-view refinements ───────────────────── */
+ /* Quick Entry keeps only the large numeric pad visible. ABC hands control to
+    the native keyboard without replacing the race-day number pad with tiny keys. */
+ .minimal-keyboard-tabs-two { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+@@ -394,7 +394,7 @@
+     #scanHistoryHeader > div:last-child { flex: 1 1 100%; max-width: 100% !important; }
+ }
+ 
+-/* ── v19.3.5 keyboard LOG and key-free interactive map ───────────── */
++/* ── v19.3.6 keyboard LOG and key-free interactive map ───────────── */
+ .minimal-backspace-btn { z-index: 6; }
+ .minimal-inline-log-btn {
+     display: none;
+@@ -617,7 +617,7 @@
+ }
+ 
+ 
+-/* ── v19.3.5 iPhone keyboard, Safety Log and command-header fixes ───── */
++/* ── v19.3.6 iPhone keyboard, Safety Log and command-header fixes ───── */
+ .virtual-spacer-row,
+ body.text-scale-large #safetyLogBody tr.virtual-spacer-row,
+ body.text-scale-xlarge #safetyLogBody tr.virtual-spacer-row {
+@@ -673,3 +673,65 @@
+ }
+ .minimal-backspace-btn { z-index: 12 !important; }
+ .minimal-native-bib-input { z-index: 4 !important; }
++
++/* ── v19.3.6 streamlined unknown-runner confirmation ──────────────── */
++#v19DecisionModal.v19-decision-compact {
++    align-items: center;
++    justify-content: center;
++    padding: max(1rem, env(safe-area-inset-top, 0px)) 1rem max(1rem, env(safe-area-inset-bottom, 0px));
++}
++#v19DecisionCard.v19-decision-card-compact {
++    width: min(21.5rem, calc(100vw - 2rem));
++    max-height: none;
++    padding: 1rem;
++    gap: .8rem;
++    border-radius: 1.25rem;
++    overflow: visible;
++    text-align: center;
++}
++#v19DecisionCard.v19-decision-card-compact #v19DecisionTitle {
++    margin: 0;
++    font-size: .88rem;
++    line-height: 1.1;
++    text-transform: uppercase;
++    letter-spacing: .08em;
++    color: var(--text-muted);
++}
++#v19DecisionCard.v19-decision-card-compact #v19DecisionReasonWrap { display: none !important; }
++#v19DecisionCard.v19-decision-card-compact .v19-modal-body { margin: 0; }
++.v19-unknown-runner-compact {
++    display: flex;
++    flex-direction: column;
++    align-items: center;
++    gap: .22rem;
++    padding: .45rem .25rem .25rem;
++}
++.v19-unknown-runner-compact strong {
++    max-width: 100%;
++    overflow-wrap: anywhere;
++    font-size: clamp(2.2rem, 14vw, 4.2rem);
++    line-height: .95;
++    font-weight: 1000;
++    letter-spacing: -.05em;
++    color: #fbbf24;
++}
++.v19-unknown-runner-compact span {
++    font-size: .76rem;
++    font-weight: 850;
++    color: var(--text-muted);
++}
++#v19DecisionCard.v19-decision-card-compact > .grid {
++    gap: .6rem;
++}
++#v19DecisionCard.v19-decision-card-compact #v19DecisionCancel,
++#v19DecisionCard.v19-decision-card-compact #v19DecisionConfirm {
++    min-height: 3.35rem;
++    padding: .75rem .45rem;
++    border-radius: .9rem;
++    font-size: .85rem;
++    line-height: 1;
++    touch-action: manipulation;
++}
++#v19DecisionCard.v19-decision-card-compact #v19DecisionConfirm {
++    box-shadow: 0 8px 22px rgba(37,99,235,.32);
++}
+--- /mnt/data/race-bib-logger-v19.3.5/sw.js	2026-08-02 15:48:43.508433814 +0000
++++ sw.js	2026-08-02 15:50:36.364431367 +0000
+@@ -1,33 +1,33 @@
+-// Race Bib Logger v19.3.5 iPhone entry, Safety Log and OpenStreetMap revision.
++// Race Bib Logger v19.3.6 iPhone entry, Safety Log and OpenStreetMap revision.
+ // Keeps the existing IndexedDB/background-sync logic below unchanged while making
+ // app-shell caching safe for subdirectory deployments and shared web origins.
+ const CACHE_PREFIX = 'race-logger-';
+-const STATIC_CACHE = 'race-logger-static-v19-3-5-r1';
+-const RUNTIME_CACHE = 'race-logger-runtime-v19-3-5-r1';
++const STATIC_CACHE = 'race-logger-static-v19-3-6-r1';
++const RUNTIME_CACHE = 'race-logger-runtime-v19-3-6-r1';
+ const NETWORK_TIMEOUT_MS = 4500;
+ const MAX_RUNTIME_ENTRIES = 80;
+ 
+ // Resolve every app-shell asset from the service worker's actual scope. This works
+ // whether the PWA is deployed at the origin root or under a path such as /race-log/.
+ const SCOPE_URL = new URL(self.registration.scope);
+-const APP_SHELL_URL = new URL('./index.html?v=19.3.5', SCOPE_URL).href;
++const APP_SHELL_URL = new URL('./index.html?v=19.3.6', SCOPE_URL).href;
+ const ASSETS_TO_CACHE = [
+   './',
+-  './index.html?v=19.3.5',
+-  './tailwind.css?v=19.3.5',
+-  './manifest.json?v=19.3.5',
+-  './app/constants.js?v=19.3.5',
+-  './app/contracts.js?v=19.3.5',
+-  './app/state-store.js?v=19.3.5',
+-  './app/errors.js?v=19.3.5',
+-  './app/components.js?v=19.3.5',
+-  './app/integrity.js?v=19.3.5',
+-  './app/slippy-map-v1935.js?v=19.3.5',
+-  './app/main.js?v=19.3.5',
+-  './app/operations-v19.js?v=19.3.5',
+-  './app/director-ops-v192.js?v=19.3.5',
+-  './app/ux-v1935.js?v=19.3.5',
+-  './app/ux-v1935.css?v=19.3.5',
++  './index.html?v=19.3.6',
++  './tailwind.css?v=19.3.6',
++  './manifest.json?v=19.3.6',
++  './app/constants.js?v=19.3.6',
++  './app/contracts.js?v=19.3.6',
++  './app/state-store.js?v=19.3.6',
++  './app/errors.js?v=19.3.6',
++  './app/components.js?v=19.3.6',
++  './app/integrity.js?v=19.3.6',
++  './app/slippy-map-v1936.js?v=19.3.6',
++  './app/main.js?v=19.3.6',
++  './app/operations-v19.js?v=19.3.6',
++  './app/director-ops-v192.js?v=19.3.6',
++  './app/ux-v1936.js?v=19.3.6',
++  './app/ux-v1936.css?v=19.3.6',
+   './icons/icon-192.png',
+   './icons/icon-512.png',
+   './icons/icon-512-maskable.png',
