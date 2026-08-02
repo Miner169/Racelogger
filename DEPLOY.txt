@@ -1,80 +1,36 @@
-RACE BIB LOGGER v19.3.0 — UI AND UX REFINEMENT
-==============================================
+RACE BIB LOGGER v19.3.1 — COMPACT MOBILE MONITORING
 
-1. BACK UP
-----------
-- Copy the production Google Sheet and Apps Script project.
-- Export pending BIB queues from active devices.
-- Keep the current production Web App deployment available until acceptance passes.
-- Run: npm test
+PURPOSE
+This release fixes the mobile Runner Safety Log spacing, prevents Director Mode from jumping back upward, aligns the Setup action button, and normalizes Director toolbar icons. The Racelog A:AC schema and synchronization contracts are unchanged from v19.3.0.
 
-2. GOOGLE APPS SCRIPT
----------------------
-1) Replace Code.gs with the supplied v19.3.0 Code.gs.
-2) Keep Fornula cell.gs only when the existing project uses it.
-3) Save and deploy a NEW Web App version.
-4) Keep the existing Web App URL where possible.
-5) Confirm the PWA connection test reports server version 19.3.0.
+DEPLOYMENT
+1) Replace Code.gs with the supplied v19.3.1 Code.gs.
+2) Deploy a new Google Apps Script web-app version.
+3) Upload the complete PWA package, including app/ux-v1931.js and app/ux-v1931.css.
+4) Keep the same manifest and icon paths.
+5) Open the PWA online once after deployment so the new service worker can install.
+6) Confirm the connection test reports server version 19.3.1.
+7) Close and reopen installed PWAs before race use.
 
-Racelog remains A:AC. No spreadsheet migration is required.
+SERVICE-WORKER CACHE NAMES
+- race-logger-static-v19-3-1-r1
+- race-logger-runtime-v19-3-1-r1
 
-3. STATIC PWA HOST
-------------------
-Upload the complete package, including:
-- index.html, sw.js, tailwind.css, manifest.json
-- app/
-- icons/
+UI ACCEPTANCE CHECKS
+- Runner Safety Log header stays on one compact row at 390 px width.
+- Safety status, full sync, new incident, and exit use four fixed-size icon controls.
+- The event-roster loading message occupies only the text height it needs.
+- Director Mode can be scrolled down and remains at the chosen position during refresh/render updates.
+- The broken Categories/Standings/At a glance section-chip strip is absent.
+- One floating up-arrow appears on the right after scrolling and returns Director Mode to the top.
+- Exit, sync, customize, and refresh icons are visually consistent and not oversized.
+- Edit Setup matches the height of the readiness/summary controls and does not wrap.
 
-New cache names:
-- race-logger-static-v19-3-0-r1
-- race-logger-runtime-v19-3-0-r1
+GOOGLE MAPS
+The Director GPS map still requires a configured Google Maps JavaScript API browser key. No key is embedded. Follow docs/GOOGLE-MAPS-SETUP-v19.3.1.md.
 
-The new app-shell asset is:
-- app/ux-v193.js
+DATA AND SHEETS
+No spreadsheet migration is required. Racelog remains A:AC. Existing CommandOps, WeatherRisk, Incidents, DeviceHealth, COTAlerts, and SafetyNotes data are not modified by this UI release.
 
-Open each installed PWA online once so the new service worker can activate. On iPhone, fully close and reopen the installed PWA after the update if the old layout remains cached.
-
-4. GOOGLE MAPS
---------------
-The Director GPS map still requires the configured Google Maps JavaScript API browser key. No key is embedded in this package. Follow docs/GOOGLE-MAPS-SETUP-v19.3.0.md.
-
-5. UI ACCEPTANCE CHECKS
------------------------
-Quick Entry:
-- At 390 × 844, all 12 numeric keypad buttons, Clear, LOG, and the status line fit without overlap.
-- Entering BIB / Entering Remark changes correctly.
-- Phone keyboard remains closed in minimalist mode.
-- Screen Wake Lock status is informative but never blocks logging.
-- Repeated BIB colour and duplicate review remain intact.
-
-Main Entry:
-- OCR/keyboard controls do not shift the BIB text unexpectedly.
-- Success confirmation is compact, shows BIB/checkpoint, and does not cover the entry controls.
-- LOG remains usable with large text and on older iPhones.
-
-Director Mode:
-- Four command controls fit across a phone without horizontal clipping.
-- Pressing a command icon shows a floating label for about five seconds without resizing the bar.
-- Exit still requires two presses.
-- Section navigation jumps to visible sections and follows scrolling.
-- Back to Top appears only after scrolling.
-- Widget help toggles work on compact screens.
-- GPS map full-screen mode opens and closes without losing map interaction.
-
-Safety Log:
-- Frozen BIB width auto-fits short and long BIB labels.
-- Horizontal scrolling keeps the BIB visible.
-- The swipe hint disappears after use.
-
-6. OPERATIONAL REGRESSION CHECKS
---------------------------------
-- BIB logging, duplicate review, unknown-BIB silent logging, route exceptions, GPS validation, offline queueing, reconciliation, safety notes, and sync checksums behave as in v19.2.1.
-- Google Maps failure never blocks BIB logging.
-- Offline cold-open succeeds after one online load.
-- No false Sync Issue is shown for successful compatible server responses.
-
-7. PHYSICAL DEVICE MATRIX
--------------------------
-Use docs/DEVICE-TEST-MATRIX-v19.3.0.md. At minimum test recent and older iPhones, recent and low-memory Android devices, tablet, landscape, large text, reduced motion, offline/reconnection, weak network, real/stale/denied GPS, and multiple devices at one checkpoint.
-
-Do not deploy to a live race based only on local automated checks.
+PRE-RACE VALIDATION
+Use docs/DEVICE-TEST-MATRIX-v19.3.1.md. Test an installed recent iPhone, an older iPhone, Android Chrome/PWA, a low-memory Android device, tablet/landscape, large text, reduced motion, offline/reconnection, weak network, and real GPS.

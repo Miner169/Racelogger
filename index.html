@@ -3289,7 +3289,7 @@
 
 
         /* =====================================================================
-           v19.3.0 — Race-day UI/UX refinement layer
+           v19.3.1 — Compact mobile monitoring and stable Director scrolling
            Keeps operational behaviour unchanged while making primary actions
            easier to hit, reducing layout shift, and improving small-screen use.
            ===================================================================== */
@@ -3470,29 +3470,6 @@
             transition: opacity .15s ease, transform .18s ease;
         }
         .director-toolbar-hint.is-visible { opacity: 1; transform: translate(-50%, 0); }
-        .director-section-nav {
-            display: flex;
-            gap: .42rem;
-            overflow-x: auto;
-            padding: .62rem .15rem .1rem;
-            scrollbar-width: none;
-            scroll-snap-type: x proximity;
-        }
-        .director-section-nav::-webkit-scrollbar { display: none; }
-        .director-section-nav button {
-            min-height: 2.45rem;
-            flex: 0 0 auto;
-            scroll-snap-align: start;
-            padding: .42rem .72rem;
-            border: 1px solid var(--border-color);
-            border-radius: 999px;
-            background: var(--card-tint);
-            color: var(--text-muted);
-            font-size: .66rem;
-            font-weight: 850;
-            white-space: nowrap;
-        }
-        .director-section-nav button.is-active { color: #bfdbfe; border-color: rgba(59,130,246,.62); background: rgba(37,99,235,.2); }
         #directorModeView section.theme-panel { box-shadow: var(--ux-soft-shadow); }
         #directorModeView section.theme-panel > div:first-child { background: linear-gradient(90deg, color-mix(in srgb, var(--card-tint) 84%, #3b82f6 16%), var(--card-tint)) !important; }
         .widget-help-button {
@@ -3618,7 +3595,10 @@
             #minimalBibStatus { font-size: .58rem; min-height: 1rem; }
         }
 
-    </style>
+    
+
+</style>
+<link rel="stylesheet" href="app/ux-v1931.css">
 </head>
 <body class="theme-bg theme-text min-h-screen lg:h-screen flex flex-col font-sans select-none pb-4 lg:pb-0 lg:overflow-hidden">
 
@@ -4037,17 +4017,17 @@
             </div>
             <div class="director-mode-actions gap-2">
                 <button id="directorExitButton" type="button" onclick="directorExitAction_(event)" aria-label="Exit Director Mode. Tap once to reveal, tap again to exit." data-full-label="Exit" class="director-icon-action text-[10px] sm:text-xs bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 theme-text px-2.5 py-1.5 rounded-lg font-bold border theme-border">
-                    <span class="director-action-icon" aria-hidden="true">✕</span><span class="director-action-label">Exit</span>
+                    <span class="director-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span class="director-action-label">Exit</span>
                 </button>
                 <button id="directorSyncBadge" type="button" onclick="revealDirectorToolbarLabel_('directorSyncBadge')" aria-label="All logs synchronization status" data-full-label="All logs · Never" data-state="ready" class="director-icon-action text-[10px] sm:text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-2 py-1 rounded-full font-bold whitespace-nowrap">
-                    <span id="directorSyncIcon" class="director-action-icon" aria-hidden="true">●</span><span id="directorSyncText" class="director-action-label">All logs · Never</span>
+                    <span id="directorSyncIcon" class="director-action-icon director-status-glyph" aria-hidden="true">●</span><span id="directorSyncText" class="director-action-label">All logs · Never</span>
                 </button>
                 <button id="directorEventProfileBadge" onclick="openEventProfile_()" class="director-event-profile-badge event-config-health warning" title="View event categories, race distances, and Setup validation">Event setup</button>
                 <button id="directorCustomizeButton" type="button" onclick="directorCustomizeAction_(event)" aria-label="Customize Race Command View" data-full-label="Customize" class="director-icon-action text-[10px] sm:text-xs bg-purple-100 dark:bg-purple-900/60 hover:bg-purple-200 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 px-2.5 py-1.5 rounded-lg font-bold">
-                    <span class="director-action-icon" aria-hidden="true">🎛️</span><span class="director-action-label">Customize</span>
+                    <span class="director-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M8 14v6"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></span><span class="director-action-label">Customize</span>
                 </button>
                 <button id="directorRefreshButton" type="button" onclick="directorRefreshAction_(event)" aria-label="Refresh all race data" data-full-label="Refresh" class="director-icon-action text-[10px] sm:text-xs bg-blue-600 dark:bg-blue-900 hover:bg-blue-500 dark:hover:bg-blue-800 text-white px-2.5 py-1.5 rounded-lg font-bold">
-                    <span class="director-action-icon" aria-hidden="true">🔄</span><span class="director-action-label">Refresh</span>
+                    <span class="director-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M20 11a8 8 0 10-2.34 5.66L20 14M20 14v6h-6"/></svg></span><span class="director-action-label">Refresh</span>
                 </button>
             </div>
         </div>
@@ -4078,8 +4058,6 @@
         </div>
 
         <div class="p-3 sm:p-5 max-w-[1900px] mx-auto flex flex-col gap-3 sm:gap-4">
-            <nav id="directorSectionNav" class="director-section-nav" aria-label="Jump to command-view section"></nav>
-
             <!-- At-a-glance stat tiles -->
             <div id="directorStatTiles" class="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3"></div>
 
@@ -4332,15 +4310,16 @@
 
     <div id="safetyLogView" class="hidden fixed inset-0 z-[60] theme-bg overflow-y-auto" style="padding-top: env(safe-area-inset-top, 0px);">
         <div class="max-w-[1400px] mx-auto p-4 flex flex-col gap-4">
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-                <h2 class="text-lg sm:text-xl font-black theme-header-text flex items-center gap-2">🛟 Runner Safety Log</h2>
-                <div class="flex items-center gap-2 flex-wrap justify-end">
-                    <span id="safetySyncBadge" class="text-[10px] sm:text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-2 py-1 rounded-full font-bold whitespace-nowrap">● Local data ready</span>
-                    <button id="safetyFullSyncBtn" onclick="syncAllMonitorData_('safety', true)" class="text-[10px] sm:text-xs bg-blue-600 dark:bg-blue-800 hover:bg-blue-500 dark:hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg font-bold transition">↻ Sync all runners</button>
-                    <button onclick="openIncidentModal_()" class="text-[10px] sm:text-xs bg-red-600 dark:bg-red-800 hover:bg-red-500 text-white px-2.5 py-1.5 rounded-lg font-bold transition">＋ New incident</button>
-                    <button onclick="closeSafetyLog()" class="text-[10px] sm:text-xs bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 theme-text px-2.5 py-1.5 rounded-lg font-bold border theme-border transition">✕ Exit</button>
+            <div class="safety-log-topbar">
+                <h2 class="safety-log-title theme-header-text" aria-label="Runner Safety Log"><span aria-hidden="true">🛟</span><span>Safety Log</span></h2>
+                <div class="safety-log-actions" aria-label="Safety Log actions">
+                    <button id="safetySyncBadge" type="button" onclick="showSafetyToolbarHint_(this.dataset.fullLabel || this.getAttribute('aria-label'))" class="safety-icon-action safety-icon-status" aria-label="Local data ready" data-full-label="Local data ready" data-state="ready" title="Synchronization status"><span aria-hidden="true">●</span></button>
+                    <button id="safetyFullSyncBtn" type="button" onclick="showSafetyToolbarHint_('Syncing all runners…'); syncAllMonitorData_('safety', true)" class="safety-icon-action safety-icon-primary" aria-label="Sync all runners" title="Sync all runners"><span aria-hidden="true">↻</span></button>
+                    <button type="button" onclick="showSafetyToolbarHint_('New incident'); openIncidentModal_()" class="safety-icon-action safety-icon-danger" aria-label="Create a new incident" title="New incident"><span aria-hidden="true">＋</span></button>
+                    <button type="button" onclick="closeSafetyLog()" class="safety-icon-action safety-icon-neutral" aria-label="Exit Runner Safety Log" title="Exit"><span aria-hidden="true">×</span></button>
                 </div>
             </div>
+            <div id="safetyToolbarHint" class="safety-toolbar-hint" role="status" aria-live="polite"></div>
             <div id="safetyRosterLoadState" class="safety-roster-load-state syncing" role="status" aria-live="polite">
                 Loading the complete event runner list…
             </div>
@@ -4967,6 +4946,6 @@
     <script src="app/main.js"></script>
     <script src="app/operations-v19.js"></script>
     <script src="app/director-ops-v192.js"></script>
-    <script src="app/ux-v193.js"></script>
+    <script src="app/ux-v1931.js"></script>
 </body>
 </html>

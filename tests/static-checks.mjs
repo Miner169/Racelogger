@@ -9,11 +9,12 @@ const html = read('index.html');
 const main = read('app/main.js');
 const ops = read('app/operations-v19.js');
 const command = read('app/director-ops-v192.js');
-const ux = read('app/ux-v193.js');
+const ux = read('app/ux-v1931.js');
+const uxCss = read('app/ux-v1931.css');
 const backend = read('Code.gs');
 const sw = read('sw.js');
 
-assert.match(backend, /const APP_VERSION = "19\.3\.0"/);
+assert.match(backend, /const APP_VERSION = "19\.3\.1"/);
 assert.match(backend, /const DATA_COLUMN_COUNT = 29/);
 assert.match(backend, /"Reason Code".*"Reconciliation Flags".*"Record Checksum"/s);
 assert.match(backend, /const COMMAND_OPS_SHEET_NAME = "CommandOps"/);
@@ -37,7 +38,7 @@ assert.doesNotMatch(backend, /getRange\(2, ORIGINAL_DEVICE_TIME_COL,[^\n]+clearC
 for (const id of ['v19DecisionModal', 'clockDriftBlocker', 'reconciliationView', 'recoveryWizard', 'offlineSafetyActionCard', 'directorCheckpointHealthBody', 'directorMapBody', 'safetyBibHeader', 'safetyLastSeenHeader', 'minimalBibRepeatHint']) {
   assert.match(html, new RegExp(`id=["']${id}["']`), `Missing UI element #${id}`);
 }
-for (const file of ['constants', 'contracts', 'state-store', 'errors', 'components', 'integrity', 'main', 'operations-v19', 'director-ops-v192', 'ux-v193']) {
+for (const file of ['constants', 'contracts', 'state-store', 'errors', 'components', 'integrity', 'main', 'operations-v19', 'director-ops-v192', 'ux-v1931']) {
   assert.match(html, new RegExp(`app/${file}\\.js`), `Missing module script ${file}.js`);
 }
 assert.ok(html.split('\n').length < 5000, 'index.html should remain presentation-first after module extraction.');
@@ -82,13 +83,16 @@ assert.match(command, /connectivity/);
 assert.match(command, /gpsCapturedAt/);
 assert.match(sw, /app\/operations-v19\.js/);
 assert.match(sw, /app\/director-ops-v192\.js/);
-assert.match(sw, /app\/ux-v193\.js/);
-assert.match(sw, /race-logger-static-v19-3-0/);
+assert.match(sw, /app\/ux-v1931\.js/);
+assert.match(sw, /race-logger-static-v19-3-1/);
 assert.match(ux, /showDirectorToolbarHint/);
 assert.match(ux, /requestMinimalWakeLock/);
-assert.match(ux, /buildDirectorSectionNav/);
+assert.doesNotMatch(ux, /buildDirectorSectionNav|scrollIntoView/, 'Director UX must not auto-scroll the vertical command view.');
 assert.match(ux, /installMapFullscreen/);
-assert.match(html, /id="directorSectionNav"/);
+assert.doesNotMatch(html, /id="directorSectionNav"/, 'Broken Director section-chip navigation must remain removed.');
+assert.match(html, /class="safety-log-topbar"/);
+assert.match(html, /class="safety-icon-action/);
+assert.match(html, /id="directorBackToTop"/);
 assert.match(html, /id="minimalActiveTargetPill"/);
 assert.match(html, /id="successToastBib"/);
 assert.match(sw, /attachRecordChecksums_\(unsynced\)/);

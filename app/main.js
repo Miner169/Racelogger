@@ -1,4 +1,4 @@
-        const APP_VERSION = "19.3.0";
+        const APP_VERSION = "19.3.1";
         const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzQQE7TLzm1muiHhBDrtenUZye0I8Yb2U3tNwq_3PsmtmvoddbeL11Kzm4P2RXqbCF_Ig/exec";
         let db;
         let dbReady_ = false;
@@ -2905,7 +2905,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
             checkpointKm = normalizeCheckpointKmValue_(kmInput ? kmInput.value : checkpointKm);
             if (isSetupLocked) {
                 lockBtn.textContent = "✏️ Edit Setup";
-                lockBtn.className = "text-[9px] bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-1.5 py-0.5 rounded font-bold transition flex items-center gap-0.5";
+                lockBtn.className = "setup-lock-button is-edit bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 font-bold transition flex items-center gap-0.5";
                 localStorage.setItem("checkpointVal", cpV);
                 localStorage.setItem("volunteerVal", volV);
                 if (checkpointKm) localStorage.setItem('checkpointKmVal', checkpointKm); else localStorage.removeItem('checkpointKmVal');
@@ -2918,7 +2918,7 @@ vibrateEnabled = document.getElementById("vibrateToggle").checked;
                 summary.classList.remove("hidden");
             } else {
                 lockBtn.textContent = "🔒 Lock Setup";
-                lockBtn.className = "text-[9px] theme-btn-lock border px-1.5 py-0.5 rounded font-bold transition flex items-center gap-0.5";
+                lockBtn.className = "setup-lock-button is-lock theme-btn-lock border font-bold transition flex items-center gap-0.5";
                 fields.classList.remove("hidden");
                 row.classList.replace("mb-0", "mb-1");
                 summary.classList.add("hidden");
@@ -5328,14 +5328,19 @@ Clarify the previous checkpoint check-in. Log anyway?`)) {
                 if (isBusy || isError) revealDirectorToolbarLabel_('directorSyncBadge', statusText);
             }
             if (safetyBadge) {
-                safetyBadge.textContent = label;
-                safetyBadge.title = detail || '';
+                safetyBadge.dataset.state = isBusy ? 'syncing' : isError ? 'error' : 'ready';
+                safetyBadge.dataset.fullLabel = statusText;
+                safetyBadge.textContent = icon;
+                safetyBadge.title = detail || statusText;
+                safetyBadge.setAttribute('aria-label', statusText);
                 safetyBadge.classList.toggle('animate-pulse', isBusy);
             }
             if (safetyLast) safetyLast.textContent = formatMonitorSyncAge_();
             if (safetyButton) {
                 safetyButton.disabled = isBusy;
-                safetyButton.textContent = isBusy ? 'Syncing all runners…' : '↻ Sync all runners';
+                safetyButton.textContent = '↻';
+                safetyButton.title = isBusy ? 'Syncing all runners…' : 'Sync all runners';
+                safetyButton.setAttribute('aria-label', isBusy ? 'Syncing all runners' : 'Sync all runners');
             }
             if (isBusy) {
                 updateSafetyRosterLoadState_('syncing', 'Loading the complete event runner list. Local records remain visible while the download finishes…');

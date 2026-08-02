@@ -1,9 +1,9 @@
-// Race Bib Logger v19.3.0 UI, sync, and interactive-map revision.
+// Race Bib Logger v19.3.1 UI, sync, and interactive-map revision.
 // Keeps the existing IndexedDB/background-sync logic below unchanged while making
 // app-shell caching safe for subdirectory deployments and shared web origins.
 const CACHE_PREFIX = 'race-logger-';
-const STATIC_CACHE = 'race-logger-static-v19-3-0-r1';
-const RUNTIME_CACHE = 'race-logger-runtime-v19-3-0-r1';
+const STATIC_CACHE = 'race-logger-static-v19-3-1-r1';
+const RUNTIME_CACHE = 'race-logger-runtime-v19-3-1-r1';
 const NETWORK_TIMEOUT_MS = 4500;
 const MAX_RUNTIME_ENTRIES = 80;
 
@@ -25,7 +25,8 @@ const ASSETS_TO_CACHE = [
   './app/main.js',
   './app/operations-v19.js',
   './app/director-ops-v192.js',
-  './app/ux-v193.js',
+  './app/ux-v1931.js',
+  './app/ux-v1931.css',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'

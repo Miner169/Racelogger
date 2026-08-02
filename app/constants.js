@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
   global.RaceConfig = Object.freeze({
-    appVersion: '19.3.0',
+    appVersion: '19.3.1',
     dbName: 'RaceLoggerDB',
     queueBatchSize: 50,
     operationalBatchSize: 25,
