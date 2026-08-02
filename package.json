@@ -1,0 +1,11 @@
+{
+  "name": "race-bib-logger-v19-2",
+  "private": true,
+  "version": "19.2.0",
+  "scripts": {
+    "validate:assets": "node scripts/validate-assets.mjs",
+    "test:unit": "node tests/unit-integrity.mjs && node tests/checksum-parity.mjs && node tests/fnv-parity.mjs",
+    "test:static": "node tests/static-checks.mjs",
+    "test": "npm run validate:assets && npm run test:unit && npm run test:static"
+  }
+}

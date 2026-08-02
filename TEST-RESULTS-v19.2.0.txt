@@ -1,0 +1,90 @@
+RACE BIB LOGGER v19.2.0 — LOCAL VALIDATION RESULTS
+===================================================
+
+Validation date: 2026-08-02
+Package: race-bib-logger-v19.2.0
+
+1. DEPLOYMENT ASSET VALIDATION — PASS
+-------------------------------------
+Command:
+  npm run validate:assets
+
+Result:
+  Deployment asset validation passed.
+  Checked 14 core files, manifest icons, HTML references, and service-worker app-shell assets.
+
+Coverage:
+- Required application files exist.
+- Manifest JSON parses.
+- Manifest icons exist.
+- Local HTML scripts/styles exist.
+- Service-worker app-shell entries exist.
+- Service-worker cache is versioned for v19.2.0.
+
+2. INTEGRITY UNIT TESTS — PASS
+------------------------------
+Command:
+  npm run test:unit
+
+Results:
+- Integrity unit tests passed.
+- SHA-256 checksum parity passed.
+  Fixture digest: abfa9fc0856dd88a2f527e091e4f05b662133b03cd13faf3e3e79108469f0687
+- FNV-1a 64-bit fallback parity passed.
+
+3. STATIC INTEGRATION TESTS — PASS
+----------------------------------
+Command:
+  npm run test:static
+
+Result:
+  Static integration checks passed.
+
+Coverage includes:
+- APP_VERSION 19.2.0 and retained Racelog A:AC schema.
+- CommandOps and WeatherRisk backend sheets/endpoints.
+- Extended Incidents, DeviceHealth, and COTAlerts fields.
+- 10/20/30-minute forecast fields.
+- All requested v19.2 Director widgets.
+- Operational batching and event-epoch protection.
+- Complete command timeline export.
+- COT resolution action.
+- Enhanced device connectivity/GPS fields.
+- Service-worker caching of app/director-ops-v192.js.
+- Retained v19 integrity, recovery, duplicate, reconciliation, and checksum controls.
+
+4. JAVASCRIPT SYNTAX — PASS
+---------------------------
+Commands:
+  node --check app/main.js
+  node --check app/director-ops-v192.js
+  node --check app/constants.js
+  node --check app/contracts.js
+  node --check sw.js
+  cp Code.gs /tmp/code-v192.js && node --check /tmp/code-v192.js
+
+Result:
+  All files parsed successfully.
+
+5. FULL TEST COMMAND — PASS
+---------------------------
+Command:
+  npm test
+
+Stages passed:
+- validate:assets
+- test:unit
+- test:static
+
+6. NOT EXECUTED IN THIS ENVIRONMENT
+-----------------------------------
+- Playwright/browser end-to-end suite: @playwright/test is not installed in the package environment.
+- Installed iPhone/Android PWA testing.
+- Live Google Apps Script deployment and Google Sheets concurrency.
+- Real GPS movement and accuracy behavior.
+- Authorized weather-provider integration.
+- Weak-network/background sync behavior on physical devices.
+- Screen-reader and full accessibility review.
+- Multi-device race-volume soak test.
+
+These remain mandatory before production race-day deployment. See docs/DEVICE-TEST-MATRIX-v19.2.0.md.

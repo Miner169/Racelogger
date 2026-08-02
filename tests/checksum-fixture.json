@@ -1,0 +1,4 @@
+[
+  {"uid":"fixture-002","bib":"B-202","time":"02/08/2026 12:01:00 AM","checkpoint":"CP2","volunteer":"AB","device":"iPhone PWA","creatorId":"device-b","status":"Active","reasonCode":"","reconciliationFlags":"","routeExceptionReason":"","unknownBib":false,"originalDeviceTime":"02/08/2026 12:01:00 AM","clockOffsetMs":0,"clockConfidenceMs":30,"editedAt":"","editedBy":""},
+  {"uid":"fixture-001","bib":"101","time":"02/08/2026 12:00:00 AM","checkpoint":"CP1","volunteer":"CD","device":"Android PWA","creatorId":"device-a","status":"Active","reasonCode":"UNKNOWN_MANUAL_ENTRY","reconciliationFlags":"unknown-bib","routeExceptionReason":"","unknownBib":true,"originalDeviceTime":"02/08/2026 12:00:00 AM","clockOffsetMs":150,"clockConfidenceMs":20,"editedAt":"","editedBy":""}
+]

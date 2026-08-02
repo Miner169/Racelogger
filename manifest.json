@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Race Bib Logger",
   "short_name": "Race Log",
-  "description": "Offline-first race logging with an OLED quick-entry keypad, an enlarged BIB preview, keypad-driven optional remarks, device-local recent-entry tracking, GPS checkpoint validation, a complete safety roster, compact expandable COT alerts, incidents, forecasting and race command views.",
+  "description": "Offline-first race logging with keypad-priority BIB entry, safety workflows, forecasts, route anomaly detection, GPS device health, logistics boards, weather risk, handover, and post-race command reporting.",
   "lang": "en",
   "dir": "ltr",
   "start_url": "./index.html",

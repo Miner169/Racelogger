@@ -1,9 +1,9 @@
-// Race Bib Logger v18.0.9 expanded minimalist entry, keypad remark, and compact safety-alert revision.
+// Race Bib Logger v19.2.0 operational-integrity and recovery revision.
 // Keeps the existing IndexedDB/background-sync logic below unchanged while making
 // app-shell caching safe for subdirectory deployments and shared web origins.
 const CACHE_PREFIX = 'race-logger-';
-const STATIC_CACHE = 'race-logger-static-v18-0-9-r1';
-const RUNTIME_CACHE = 'race-logger-runtime-v18-0-9-r1';
+const STATIC_CACHE = 'race-logger-static-v19-2-0-r1';
+const RUNTIME_CACHE = 'race-logger-runtime-v19-2-0-r1';
 const NETWORK_TIMEOUT_MS = 4500;
 const MAX_RUNTIME_ENTRIES = 80;
 
@@ -16,6 +16,15 @@ const ASSETS_TO_CACHE = [
   './index.html',
   './tailwind.css',
   './manifest.json',
+  './app/constants.js',
+  './app/contracts.js',
+  './app/state-store.js',
+  './app/errors.js',
+  './app/components.js',
+  './app/integrity.js',
+  './app/main.js',
+  './app/operations-v19.js',
+  './app/director-ops-v192.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
@@ -191,14 +200,67 @@ function putStoreRecord_(db, storeName, record) {
   });
 }
 
-async function postOperationalRecord_(syncUrl, action, key, value) {
+const SW_CHECKSUM_FIELDS = [
+  'uid', 'bib', 'time', 'checkpoint', 'volunteer', 'device', 'creatorId', 'status',
+  'reasonCode', 'reconciliationFlags', 'routeExceptionReason', 'unknownBib',
+  'originalDeviceTime', 'clockOffsetMs', 'clockConfidenceMs', 'editedAt', 'editedBy'
+];
+
+function normalizeChecksumValue_(value) {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '';
+  return String(value).replace(/\r\n/g, '\n').trim();
+}
+
+function canonicalSyncRecord_(record) {
+  return SW_CHECKSUM_FIELDS.map((field) => `${field}=${normalizeChecksumValue_(record && record[field])}`).join('\u001f');
+}
+
+function canonicalSyncBatch_(records) {
+  return (records || []).slice().sort((a, b) => {
+    const left = String(a && a.uid || '');
+    const right = String(b && b.uid || '');
+    return left < right ? -1 : (left > right ? 1 : 0);
+  }).map(canonicalSyncRecord_).join('\n');
+}
+
+function bytesToHex_(bytes) {
+  return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function checksumText_(text) {
+  if (self.crypto && self.crypto.subtle && self.TextEncoder) {
+    const digest = await self.crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(text || '')));
+    return { algorithm: 'SHA-256', checksum: bytesToHex_(new Uint8Array(digest)) };
+  }
+  let hash = BigInt('14695981039346656037');
+  const prime = BigInt('1099511628211');
+  const mask = BigInt('0xffffffffffffffff');
+  for (const byte of new TextEncoder().encode(String(text || ''))) { hash ^= BigInt(byte); hash = (hash * prime) & mask; }
+  return { algorithm: 'FNV1A-64', checksum: hash.toString(16).padStart(16, '0') };
+}
+
+async function checksumBatch_(records) {
+  return checksumText_(canonicalSyncBatch_(records));
+}
+
+async function attachRecordChecksums_(records) {
+  for (const record of records || []) {
+    const digest = await checksumText_(canonicalSyncRecord_(record));
+    record.recordChecksum = digest.checksum;
+  }
+  return records;
+}
+
+async function postOperationalBatch_(syncUrl, payload) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 20000);
   try {
     const response = await fetch(`${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action, [key]: value }),
+      body: JSON.stringify(Object.assign({ action: 'operational_batch' }, payload)),
       signal: controller.signal
     });
     return await response.json();
@@ -206,24 +268,17 @@ async function postOperationalRecord_(syncUrl, action, key, value) {
 }
 
 async function syncOperationalStores_(db, syncUrl) {
-  const incidents = (await readStoreAll_(db, 'incidents')).filter(row => row && row.synced === false);
-  for (const incident of incidents) {
-    try {
-      const result = await postOperationalRecord_(syncUrl, 'incident_upsert', 'incident', incident);
-      if (result.status === 'success' && result.incident) {
-        await putStoreRecord_(db, 'incidents', Object.assign({}, result.incident, { synced: true }));
-      }
-    } catch (_) { /* keep queued for next background sync */ }
-  }
-  const alerts = (await readStoreAll_(db, 'cotAlerts')).filter(row => row && row.synced === false);
-  for (const alert of alerts) {
-    try {
-      const result = await postOperationalRecord_(syncUrl, 'cot_alert_upsert', 'alert', alert);
-      if (result.status === 'success' && result.alert) {
-        await putStoreRecord_(db, 'cotAlerts', Object.assign({}, result.alert, { synced: true }));
-      }
-    } catch (_) { /* keep queued for next background sync */ }
-  }
+  const incidents = (await readStoreAll_(db, 'incidents')).filter(row => row && row.synced === false).slice(0, 25);
+  const safetyNotes = (await readStoreAll_(db, 'safetyNotes')).filter(row => row && row.synced === false).slice(0, 25);
+  const cotAlerts = (await readStoreAll_(db, 'cotAlerts')).filter(row => row && row.synced === false).slice(0, 25);
+  if (!incidents.length && !safetyNotes.length && !cotAlerts.length) return;
+  try {
+    const result = await postOperationalBatch_(syncUrl, { incidents, safetyNotes, cotAlerts, checkpointStatuses: [] });
+    if (result.status !== 'success') return;
+    for (const item of result.incidents || []) await putStoreRecord_(db, 'incidents', Object.assign({}, item, { synced: true }));
+    for (const item of result.safetyNotes || []) await putStoreRecord_(db, 'safetyNotes', Object.assign({}, item, { synced: true }));
+    for (const item of result.cotAlerts || []) await putStoreRecord_(db, 'cotAlerts', Object.assign({}, item, { synced: true }));
+  } catch (_) { /* keep queued for next background sync */ }
 }
 
 async function syncPendingLogs() {
@@ -263,7 +318,7 @@ async function syncPendingLogs() {
           log.clientTimeMs = parseClientTimeMs_(log.time);
           changed = true;
         }
-        const originalBib = String(log.bib || log.bibKey || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        const originalBib = String(log.bib || log.bibKey || '').normalize('NFKC').replace(/[\u0000-\u001F\u007F]/g, '').replace(/\s+/g, ' ').trim().slice(0, 64).toUpperCase();
         const bibNumber = String(log.bibNumber || originalBib).replace(/[^0-9]/g, '');
         const bibNumberKey = bibNumber ? (bibNumber.replace(/^0+(?=\d)/, '') || '0') : '';
         const bibKey = originalBib;
@@ -306,7 +361,8 @@ async function syncPendingLogs() {
 
       getAllReq.onsuccess = async () => {
         const allLogs = getAllReq.result || [];
-        const unsynced = allLogs.filter(log => !log.synced);
+        const unsyncedAll = allLogs.filter(log => !log.synced);
+        const unsynced = unsyncedAll.slice(0, 50);
         if (unsynced.length === 0) {
           try { await syncOperationalStores_(db, syncUrl); } catch (_) { /* queued for next attempt */ }
           resolve(); return;
@@ -315,19 +371,22 @@ async function syncPendingLogs() {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 25000);
+          await attachRecordChecksums_(unsynced);
+          const integrity = await checksumBatch_(unsynced);
+          const batchId = `sw-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
           let response;
           try {
             response = await fetch(`${syncUrl}${syncUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`, {
               method: "POST",
               headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify({ action: "batch_sync", data: unsynced }),
+              body: JSON.stringify({ action: "batch_sync", data: unsynced, checksum: integrity.checksum, checksumAlgorithm: integrity.algorithm, batchId }),
               signal: controller.signal
             });
           } finally {
             clearTimeout(timeoutId);
           }
           const result = await response.json();
-          if (result.status === "success") {
+          if (result.status === "success" && result.checksumVerified === true && result.recordChecksumsVerified === true && result.ackChecksum === integrity.checksum) {
             const confirmedIds = new Set(result.confirmedIds || []);
             const remakeIds = new Set(result.remakeIds || []);
             const deletedUidsSet = new Set(result.deletedUids || []);
@@ -379,6 +438,9 @@ async function syncPendingLogs() {
             writeTx.onabort = () => reject(writeTx.error || new Error('Background sync update was aborted.'));
             writeTx.oncomplete = async () => {
               try { await syncOperationalStores_(db, syncUrl); } catch (_) { /* queued for next attempt */ }
+              if (unsyncedAll.length > unsynced.length && self.registration.sync) {
+                try { await self.registration.sync.register('race-log-sync'); } catch (_) { /* next foreground sync will continue */ }
+              }
               for (const client of allClients) {
                 client.postMessage({
                   type: 'race-log-sync-complete',
